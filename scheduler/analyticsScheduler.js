@@ -1,18 +1,22 @@
 import cron from "node-cron";
 
 import statisticsService
-from "../services/analytics/statisticsService.js";
+    from "../services/analytics/statisticsService.js";
 
 import forecastService
-from "../services/analytics/forecastService.js";
+    from "../services/analytics/forecastService.js";
 
 import reliabilityService
-from "../services/analytics/reliabilityService.js";
+    from "../services/analytics/reliabilityService.js";
 
 import insightsService
-from "../services/analytics/insightsService.js";
+    from "../services/analytics/insightsService.js";
 
-import logger from "../utils/logger.js";
+import Installation
+    from "../models/Installation.js";
+
+import logger
+    from "../utils/logger.js";
 
 async function runAnalytics() {
 
@@ -22,17 +26,57 @@ async function runAnalytics() {
             "Analytics scheduler started."
         );
 
-        await statisticsService
-            .saveStatisticsSnapshot();
+        const installations = await Installation
+            .find({ isActive: true })
+            .select("site installationId name");
 
-        await forecastService
-            .forecastNext24Hours();
+        if (!installations.length) {
 
-        await reliabilityService
-            .saveReliabilitySnapshot();
+            logger.warn(
+                "No active installations found."
+            );
 
-        await insightsService
-            .generateOperationalInsights();
+            return;
+
+        }
+
+        for (const installation of installations) {
+
+            try {
+
+                const siteId = installation.site;
+
+                await statisticsService
+                    .saveStatisticsSnapshot(siteId);
+
+                await forecastService
+                    .forecastNext24Hours(siteId);
+
+                await reliabilityService
+                    .saveReliabilitySnapshot(siteId);
+
+                await insightsService
+                    .generateOperationalInsights(siteId);
+
+                logger.info(
+                    `Analytics completed for ${installation.name}`
+                );
+
+            }
+
+            catch (error) {
+
+                logger.error(
+
+                    `Analytics failed for installation ${installation.installationId}`,
+
+                    error
+
+                );
+
+            }
+
+        }
 
         logger.info(
             "Analytics scheduler completed."
@@ -43,8 +87,11 @@ async function runAnalytics() {
     catch (error) {
 
         logger.error(
+
             "Analytics scheduler failed.",
+
             error
+
         );
 
     }

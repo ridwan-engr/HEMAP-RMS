@@ -12,7 +12,7 @@ async function processNotifications() {
         const result =
 
             await notificationService
-                .processNotificationQueue();
+                .processScheduledNotifications();
 
         logger.info(
 
