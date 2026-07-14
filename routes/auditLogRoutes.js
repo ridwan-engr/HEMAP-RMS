@@ -13,7 +13,11 @@ import {
 
     updateAuditLog,
 
-    deleteAuditLog
+    deleteAuditLog,
+
+    getAuditSummary,
+
+    getAuditStatistics
 
 } from "../controllers/auditLogController.js";
 
@@ -58,6 +62,24 @@ router.delete(
     authenticate,
     authorize("Administrator"),
     deleteAuditLog
+);
+
+router.get(
+
+    "/summary",
+    authenticate,
+    authorize("Administrator"),
+    getAuditSummary
+
+);
+
+router.get(
+
+    "/statistics",
+    authenticate,
+    authorize("Administrator"),
+    getAuditStatistics
+
 );
 
 export default router;

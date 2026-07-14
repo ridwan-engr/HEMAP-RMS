@@ -414,3 +414,158 @@ export const deleteAuditLog = asyncHandler(async (req, res) => {
     });
 
 });
+
+/*
+|--------------------------------------------------------------------------
+| Audit Summary
+|--------------------------------------------------------------------------
+*/
+
+export async function getAuditSummary(req, res, next) {
+
+    try {
+
+        const [
+
+            totalLogs,
+
+            todayLogs,
+
+            uniqueUsers,
+
+            uniqueSites
+
+        ] = await Promise.all([
+
+            AuditLog.countDocuments(),
+
+            AuditLog.countDocuments({
+
+                createdAt: {
+
+                    $gte: new Date(
+
+                        new Date().setHours(
+
+                            0,
+                            0,
+                            0,
+                            0
+
+                        )
+
+                    )
+
+                }
+
+            }),
+
+            AuditLog.distinct("user"),
+
+            AuditLog.distinct("site")
+
+        ]);
+
+        return res.status(200).json({
+
+            success: true,
+
+            data: {
+
+                totalLogs,
+
+                todayLogs,
+
+                totalUsers: uniqueUsers.length,
+
+                totalSites: uniqueSites.length
+
+            }
+
+        });
+
+    }
+
+    catch (error) {
+
+        logger.error(error);
+
+        next(error);
+
+    }
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Audit Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getAuditStatistics(req, res, next) {
+
+    try {
+
+        const statistics = await AuditLog.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: "$module",
+
+                    count: {
+
+                        $sum: 1
+
+                    }
+
+                }
+
+            },
+
+            {
+
+                $project: {
+
+                    _id: 0,
+
+                    module: "$_id",
+
+                    count: 1
+
+                }
+
+            },
+
+            {
+
+                $sort: {
+
+                    count: -1
+
+                }
+
+            }
+
+        ]);
+
+        return res.status(200).json({
+
+            success: true,
+
+            data: statistics
+
+        });
+
+    }
+
+    catch (error) {
+
+        logger.error(error);
+
+        next(error);
+
+    }
+
+}

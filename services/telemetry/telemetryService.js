@@ -1,292 +1,91 @@
 import Telemetry from "../../models/Telemetry.js";
 import Site from "../../models/Site.js";
 import Installation from "../../models/Installation.js";
+import logger from "../../utils/logger.js";
 
 /*
 |--------------------------------------------------------------------------
-| Create Telemetry Record
+| Utility Functions
 |--------------------------------------------------------------------------
 */
+export function buildTelemetryQuery(siteId, filters = {}) {
 
-export async function createTelemetry(data) {
+    const query = {};
 
-    const site = await Site.findById(data.site);
+    if (siteId) {
+        query.site = siteId;
+    }
 
-    if (!site) {
+    if (filters.start || filters.end) {
 
-        throw new Error(
-            "Site not found."
-        );
+        query.timestamp = {};
+
+        if (filters.start) {
+            query.timestamp.$gte = new Date(filters.start);
+        }
+
+        if (filters.end) {
+            query.timestamp.$lte = new Date(filters.end);
+        }
 
     }
 
-    return await Telemetry.create({
+    return query;
 
-        ...data,
+}
+
+
+export async function latestRecord(siteId) {
+
+    return Telemetry.findOne({
+        site: siteId
+    })
+
+        .populate("site")
+
+        .sort({
+            timestamp: -1
+        });
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| CRUD
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Create telemetry manually
+ */
+export async function createTelemetry(payload) {
+
+    const site = await Site.findById(payload.site);
+
+    if (!site) {
+        throw new Error("Site not found.");
+    }
+
+    return Telemetry.create({
+
+        ...payload,
 
         timestamp:
-            data.timestamp ||
+            payload.timestamp ||
             new Date()
 
     });
 
 }
 
-/*
-|--------------------------------------------------------------------------
-| Get Latest Telemetry
-|--------------------------------------------------------------------------
-*/
-
-export async function getLatestTelemetry(siteId) {
-
-    return await Telemetry.findOne({
-
-        site: siteId
-
-    })
-
-    .populate("site")
-
-    .sort({
-
-        timestamp: -1
-
-    });
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Telemetry History
-|--------------------------------------------------------------------------
-*/
-
-export async function getTelemetryHistory(
-
-    siteId,
-
-    {
-
-        start,
-
-        end,
-
-        limit = 1000
-
-    } = {}
-
-) {
-
-    const query = {
-
-        site: siteId
-
-    };
-
-    if (start || end) {
-
-        query.timestamp = {};
-
-        if (start) {
-
-            query.timestamp.$gte =
-
-                new Date(start);
-
-        }
-
-        if (end) {
-
-            query.timestamp.$lte =
-
-                new Date(end);
-
-        }
-
-    }
-
-    return await Telemetry.find(query)
-
-        .sort({
-
-            timestamp: -1
-
-        })
-
-        .limit(limit);
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Telemetry Record By ID
-|--------------------------------------------------------------------------
-*/
-
-export async function getTelemetryById(id) {
-
-    const telemetry =
-
-        await Telemetry.findById(id)
-
-        .populate("site");
-
-    if (!telemetry) {
-
-        throw new Error(
-
-            "Telemetry record not found."
-
-        );
-
-    }
-
-    return telemetry;
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Delete Telemetry
-|--------------------------------------------------------------------------
-*/
-
-export async function deleteTelemetry(id) {
-
-    const telemetry =
-
-        await Telemetry.findByIdAndDelete(id);
-
-    if (!telemetry) {
-
-        throw new Error(
-
-            "Telemetry record not found."
-
-        );
-
-    }
-
-    return telemetry;
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Save Incoming VRM Telemetry
-|--------------------------------------------------------------------------
-*/
-
-export async function saveVRMTelemetry(
-
-    installationId,
-
-    telemetryData
-
-) {
-
-    const installation = await Installation.findOne({
-
-        installationId
-
-    });
-
-    if (!installation) {
-
-        throw new Error(
-
-            `Installation ${installationId} not found.`
-
-        );
-
-    }
-
-    const record = await Telemetry.create({
-
-        site: installation.site,
-
-        timestamp:
-
-            telemetryData.timestamp ||
-
-            new Date(),
-
-        solarPower:
-
-            telemetryData.solarPower || 0,
-
-        batterySOC:
-
-            telemetryData.batterySOC || 0,
-
-        batteryVoltage:
-
-            telemetryData.batteryVoltage || 0,
-
-        batteryCurrent:
-
-            telemetryData.batteryCurrent || 0,
-
-        batteryPower:
-
-            telemetryData.batteryPower || 0,
-
-        gridPower:
-
-            telemetryData.gridPower || 0,
-
-        generatorPower:
-
-            telemetryData.generatorPower || 0,
-
-        loadPower:
-
-            telemetryData.loadPower || 0,
-
-        inverterPower:
-
-            telemetryData.inverterPower || 0,
-
-        frequency:
-
-            telemetryData.frequency || 50,
-
-        temperature:
-
-            telemetryData.temperature || 25
-
-    });
-
-    installation.lastTelemetry = new Date();
-
-    installation.lastSync = new Date();
-
-    installation.status = "ONLINE";
-
-    await installation.save();
-
-    return record;
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Update Latest Telemetry
-|--------------------------------------------------------------------------
-*/
-
-export async function updateLatestTelemetry(
-
-    telemetryId,
-
-    payload
-
-) {
+/**
+ * Update telemetry
+ */
+export async function updateLatestTelemetry(id, payload) {
 
     const telemetry = await Telemetry.findByIdAndUpdate(
 
-        telemetryId,
+        id,
 
         payload,
 
@@ -301,13 +100,39 @@ export async function updateLatestTelemetry(
     ).populate("site");
 
     if (!telemetry) {
+        throw new Error("Telemetry record not found.");
+    }
 
-        throw new Error(
+    return telemetry;
 
-            "Telemetry record not found."
+}
 
-        );
+/**
+ * Get telemetry by id
+ */
+export async function getTelemetryById(id) {
 
+    const telemetry = await Telemetry.findById(id)
+
+        .populate("site");
+
+    if (!telemetry) {
+        throw new Error("Telemetry record not found.");
+    }
+
+    return telemetry;
+
+}
+
+/**
+ * Delete telemetry
+ */
+export async function deleteTelemetry(id) {
+
+    const telemetry = await Telemetry.findByIdAndDelete(id);
+
+    if (!telemetry) {
+        throw new Error("Telemetry record not found.");
     }
 
     return telemetry;
@@ -316,73 +141,171 @@ export async function updateLatestTelemetry(
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard Summary
+| Live Monitoring
 |--------------------------------------------------------------------------
 */
 
-export async function getTelemetrySummary(
+/**
+ * GET /telemetry/live
+ */
+export async function getLiveTelemetry(filters = {}) {
 
-    siteId
-
-) {
-
-    const latest = await getLatestTelemetry(
-
-        siteId
-
-    );
-
-    if (!latest) {
-
-        return null;
-
-    }
+    const telemetry = await latestRecord(filters.siteId);
 
     return {
 
         timestamp:
 
-            latest.timestamp,
+            telemetry?.timestamp ||
 
-        solarPower:
+            new Date(),
 
-            latest.solarPower,
+        site:
 
-        loadPower:
+            telemetry?.site ||
 
-            latest.loadPower,
+            null,
 
-        gridPower:
+        telemetry
 
-            latest.gridPower,
+    };
 
-        generatorPower:
+}
 
-            latest.generatorPower,
+/**
+ * GET /telemetry/history
+ */
+export async function getHistoricalTelemetry(filters = {}) {
 
-        inverterPower:
+    const query = buildTelemetryQuery(
 
-            latest.inverterPower,
+        filters.siteId,
 
-        batteryPower:
+        filters
 
-            latest.batteryPower,
+    );
 
-        batterySOC:
+    return Telemetry.find(query)
 
-            latest.batterySOC,
+        .sort({
 
-        batteryVoltage:
+            timestamp: -1
 
-            latest.batteryVoltage,
+        })
 
-        frequency:
+        .limit(
 
-            latest.frequency,
+            filters.limit || 1000
 
-        temperature:
+        );
 
-            latest.temperature
+}
+
+/**
+ * GET /telemetry/latest
+ */
+export async function getLatestSnapshot(siteId) {
+
+    return latestRecord(siteId);
+
+}
+
+/**
+ * GET /telemetry/status/device
+ */
+export async function getDeviceStatus(siteId) {
+
+    const latest = await latestRecord(siteId);
+
+    if (!latest) {
+
+        return {
+
+            online: false,
+
+            status: "OFFLINE"
+
+        };
+
+    }
+
+    return {
+
+        online: true,
+
+        status: "ONLINE",
+
+        lastUpdate:
+
+            latest.timestamp
+
+    };
+
+}
+
+/**
+ * GET /telemetry/status/communication
+ */
+export async function getCommunicationStatus(siteId) {
+
+    const installation = await Installation.findOne({
+
+        site: siteId
+
+    });
+
+    if (!installation) {
+
+        return {
+
+            connected: false,
+
+            status: "UNKNOWN"
+
+        };
+
+    }
+
+    return {
+
+        connected:
+
+            installation.status === "ONLINE",
+
+        status:
+
+            installation.status,
+
+        lastSync:
+
+            installation.lastSync
+
+    };
+
+}
+
+/**
+ * POST /telemetry/synchronize
+ *
+ * Placeholder.
+ * Actual implementation will call:
+ *
+ * services/vrm/syncService.js
+ *
+ */
+export async function synchronize(siteId) {
+
+    logger.info(
+
+        `Manual synchronization requested for site ${siteId}`
+
+    );
+
+    return {
+
+        success: true,
+
+        message: "Synchronization queued."
 
     };
 
@@ -390,211 +313,582 @@ export async function getTelemetrySummary(
 
 /*
 |--------------------------------------------------------------------------
-| Power Flow
+| Component Telemetry
 |--------------------------------------------------------------------------
 */
 
-export async function getPowerFlow(
+/**
+ * ============================================================================
+ * Component Telemetry
+ * Returns all monitored equipment for one installation.
+ * ============================================================================
+ */
+export async function componentTelemetry(installationId) {
 
-    siteId
+    const latest = await Telemetry.findOne({
 
-) {
+        installation: installationId
 
-    const latest = await getLatestTelemetry(
+    })
 
-        siteId
+        .sort({
+            timestamp: -1
+        })
 
-    );
+        .lean();
 
     if (!latest) {
 
-        return null;
+        return {
+            installationId,
+            battery: null,
+            solar: null,
+            generator: null,
+            grid: null,
+            inverter: null,
+            rectifier: null,
+            smartMeter: null,
+            load: null,
+            weather: null
+        };
 
     }
 
     return {
 
-        sources: {
+        installationId,
 
-            solar:
+        battery:
+            latest.battery || null,
 
-                latest.solarPower,
+        solar:
+            latest.solar || null,
 
-            grid:
+        generator:
+            latest.generator || null,
 
-                latest.gridPower,
-
-            generator:
-
-                latest.generatorPower,
-
-            battery:
-
-                latest.batteryPower
-
-        },
-
-        load:
-
-            latest.loadPower,
+        grid:
+            latest.grid || null,
 
         inverter:
+            latest.inverter || null,
 
-            latest.inverterPower
+        rectifier:
+            latest.rectifier || null,
 
-    };
+        smartMeter:
+            latest.smartMeter || null,
 
-}
+        load:
+            latest.load || null,
 
-/*
-|--------------------------------------------------------------------------
-| Battery Status
-|--------------------------------------------------------------------------
-*/
-
-export async function getBatteryStatus(
-
-    siteId
-
-) {
-
-    const latest = await getLatestTelemetry(
-
-        siteId
-
-    );
-
-    if (!latest) {
-
-        return null;
-
-    }
-
-    return {
-
-        soc:
-
-            latest.batterySOC,
-
-        voltage:
-
-            latest.batteryVoltage,
-
-        current:
-
-            latest.batteryCurrent,
-
-        power:
-
-            latest.batteryPower,
-
-        health:
-
-            latest.batterySOC >= 70
-
-                ? "GOOD"
-
-                : latest.batterySOC >= 40
-
-                ? "WARNING"
-
-                : "CRITICAL"
+        weather:
+            latest.weather || null
 
     };
 
 }
 
+/**
+ * ============================================================================
+ * Battery
+ * ============================================================================
+ */
+
+export async function getBatteryTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.battery;
+
+}
+
+/**
+ * ============================================================================
+ * Solar
+ * ============================================================================
+ */
+
+export async function getSolarTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.solar;
+
+}
+
+/**
+ * ============================================================================
+ * Generator
+ * ============================================================================
+ */
+
+export async function getGeneratorTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.generator;
+
+}
+
+/**
+ * ============================================================================
+ * Grid
+ * ============================================================================
+ */
+
+export async function getGridTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.grid;
+
+}
+
+/**
+ * ============================================================================
+ * Inverter
+ * ============================================================================
+ */
+
+export async function getInverterTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.inverter;
+
+}
+
+/**
+ * ============================================================================
+ * Rectifier
+ * ============================================================================
+ */
+
+export async function getRectifierTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.rectifier;
+
+}
+
+/**
+ * ============================================================================
+ * Smart Meter
+ * ============================================================================
+ */
+
+export async function getSmartMeterTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.smartMeter;
+
+}
+
+/**
+ * ============================================================================
+ * Load
+ * ============================================================================
+ */
+
+export async function getLoadTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.load;
+
+}
+
+/**
+ * ============================================================================
+ * Weather
+ * ============================================================================
+ * Reserved for future integration.
+ * Can be populated from:
+ * - OpenWeather API
+ * - Meteostat
+ * - Site weather station
+ * ============================================================================
+ */
+
+export async function getWeatherTelemetry(installationId) {
+
+    const latest = await componentTelemetry(
+        installationId
+    );
+
+    return latest.weather;
+
+}
+
 /*
 |--------------------------------------------------------------------------
-| Energy KPIs
+| Analytics & Dashboard
 |--------------------------------------------------------------------------
 */
 
-export async function getEnergyKPIs(
+/**
+ * ============================================================================
+ * Telemetry Statistics
+ * ============================================================================
+ */
 
-    siteId
+export async function telemetryStatistics(filters = {}) {
 
-) {
-
-    const latest = await getLatestTelemetry(
-
-        siteId
-
+    const query = buildTelemetryQuery(
+        filters.siteId,
+        filters
     );
 
-    if (!latest) {
+    const records = await Telemetry.find(query).lean();
 
-        return null;
+    if (!records.length) {
+
+        return {
+
+            totalRecords: 0,
+
+            latestTimestamp: null,
+
+            oldestTimestamp: null
+
+        };
 
     }
 
-    const renewableInput =
-
-        latest.solarPower;
-
-    const conventionalInput =
-
-        latest.gridPower +
-
-        latest.generatorPower;
-
-    const totalInput =
-
-        renewableInput +
-
-        conventionalInput;
-
     return {
 
-        renewableFraction:
+        totalRecords: records.length,
 
-            totalInput > 0
+        latestTimestamp: records[0].timestamp,
 
-                ? Number(
+        oldestTimestamp:
+            records[records.length - 1].timestamp
 
-                      (
+    };
 
-                          renewableInput /
+}
 
-                          totalInput
+/**
+ * ============================================================================
+ * Telemetry Trends
+ * ============================================================================
+ */
 
-                      ).toFixed(3)
+export async function telemetryTrends(filters = {}) {
 
-                  )
+    const query = buildTelemetryQuery(
+        filters.siteId,
+        filters
+    );
 
-                : 0,
+    return Telemetry.find(query)
 
-        loadPower:
+        .sort({
+            timestamp: 1
+        })
 
-            latest.loadPower,
+        .limit(
+            filters.limit || 200
+        )
+
+        .lean();
+
+}
+
+/**
+ * ============================================================================
+ * Live KPIs
+ * ============================================================================
+ */
+
+export async function liveKPIs(siteId) {
+
+    const latest = await latestRecord(siteId);
+
+    if (!latest) {
+
+        return {
+
+            batterySOC: 0,
+
+            solarPower: 0,
+
+            loadPower: 0,
+
+            generatorPower: 0,
+
+            gridPower: 0,
+
+            renewableContribution: 0
+
+        };
+
+    }
+
+    return {
 
         batterySOC:
+            latest.battery?.soc ?? 0,
 
-            latest.batterySOC,
+        solarPower:
+            latest.solar?.power ?? 0,
 
-        gridDependency:
+        loadPower:
+            latest.load?.power ?? 0,
 
-            latest.gridPower,
+        generatorPower:
+            latest.generator?.power ?? 0,
 
-        generatorDependency:
+        gridPower:
+            latest.grid?.power ?? 0,
 
-            latest.generatorPower
+        renewableContribution:
+            latest.energy?.renewablePercentage ?? 0
 
     };
 
 }
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard Object
-|--------------------------------------------------------------------------
-*/
+/**
+ * ============================================================================
+ * Alarm Summary
+ * ============================================================================
+ */
 
-export async function getDashboardTelemetry(
+export async function alarmSummary(siteId) {
 
-    siteId
+    const latest = await latestRecord(siteId);
 
-) {
+    if (!latest) {
+
+        return {
+
+            total: 0,
+
+            critical: 0,
+
+            warning: 0,
+
+            alarms: []
+
+        };
+
+    }
+
+    const alarms = latest.alarms || [];
+
+    return {
+
+        total: alarms.length,
+
+        critical:
+
+            alarms.filter(
+                alarm => alarm.severity === "critical"
+            ).length,
+
+        warning:
+
+            alarms.filter(
+                alarm => alarm.severity === "warning"
+            ).length,
+
+        alarms
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Battery Analytics
+ * ============================================================================
+ */
+
+export async function batteryAnalytics(siteId) {
+
+    return {
+
+        current: await getBatteryTelemetry(siteId),
+
+        status: await getBatteryStatus(siteId)
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Solar Analytics
+ * ============================================================================
+ */
+
+export async function solarAnalytics(siteId) {
+
+    return {
+
+        current:
+            await getSolarTelemetry(siteId)
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Generator Analytics
+ * ============================================================================
+ */
+
+export async function generatorAnalytics(siteId) {
+
+    return {
+
+        current:
+            await getGeneratorTelemetry(siteId)
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Grid Analytics
+ * ============================================================================
+ */
+
+export async function gridAnalytics(siteId) {
+
+    return {
+
+        current:
+            await getGridTelemetry(siteId)
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Weather Analytics
+ * ============================================================================
+ */
+
+export async function weatherAnalytics(siteId) {
+
+    return {
+
+        current:
+            await getWeatherTelemetry(siteId)
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Energy Forecast
+ * ============================================================================
+ */
+
+export async function energyForecast(siteId) {
+
+    const latest = await latestRecord(siteId);
+
+    return {
+
+        generatedAt: new Date(),
+
+        siteId,
+
+        currentLoad:
+
+            latest?.load?.power ?? 0,
+
+        projectedEnergy:
+
+            latest?.energy?.today ?? 0,
+
+        prediction:
+
+            "Forecast module integration pending."
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Reliability Summary
+ * ============================================================================
+ */
+
+export async function reliabilitySummary(siteId) {
+
+    const latest = await latestRecord(siteId);
+
+    return {
+
+        siteId,
+
+        availability:
+
+            latest?.reliability?.availability ?? 0,
+
+        reliability:
+
+            latest?.reliability?.reliability ?? 0,
+
+        mtbf:
+
+            latest?.reliability?.mtbf ?? 0,
+
+        mttr:
+
+            latest?.reliability?.mttr ?? 0,
+
+        saidi:
+
+            latest?.reliability?.saidi ?? 0,
+
+        saifi:
+
+            latest?.reliability?.saifi ?? 0,
+
+        ens:
+
+            latest?.reliability?.ens ?? 0
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Dashboard Summary
+ * ============================================================================
+ */
+
+export async function getDashboardTelemetry(siteId) {
 
     const [
 
@@ -602,60 +896,208 @@ export async function getDashboardTelemetry(
 
         battery,
 
-        flow,
+        kpis,
 
-        kpis
+        alarms,
+
+        reliability
 
     ] = await Promise.all([
 
-        getLatestTelemetry(siteId),
+        getLatestSnapshot(siteId),
 
-        getBatteryStatus(siteId),
+        batteryAnalytics(siteId),
 
-        getPowerFlow(siteId),
+        liveKPIs(siteId),
 
-        getEnergyKPIs(siteId)
+        alarmSummary(siteId),
+
+        reliabilitySummary(siteId)
 
     ]);
 
     return {
 
+        generatedAt: new Date(),
+
         latest,
 
         battery,
 
-        powerFlow: flow,
+        kpis,
 
-        kpis
+        alarms,
+
+        reliability
 
     };
 
 }
 
-export default {
+/*
+|--------------------------------------------------------------------------
+| Administration
+|--------------------------------------------------------------------------
+*/
 
-    createTelemetry,
+/**
+ * ============================================================================
+ * Export Telemetry
+ * ============================================================================
+ */
 
-    getLatestTelemetry,
+export async function exportTelemetry(filters = {}) {
 
-    getTelemetryHistory,
+    const query = buildTelemetryQuery(
+        filters.siteId,
+        filters
+    );
 
-    getTelemetryById,
+    const telemetry = await Telemetry.find(query)
+        .sort({ timestamp: -1 })
+        .lean();
 
-    deleteTelemetry,
+    return {
 
-    saveVRMTelemetry,
+        generatedAt: new Date(),
 
-    updateLatestTelemetry,
+        totalRecords: telemetry.length,
 
-    getTelemetrySummary,
+        telemetry
 
-    getPowerFlow,
+    };
 
-    getBatteryStatus,
+}
 
-    getEnergyKPIs,
+/**
+ * ============================================================================
+ * Import Telemetry
+ * ============================================================================
+ */
 
-    getDashboardTelemetry
+export async function importTelemetry(payload = []) {
 
-};
+    if (!Array.isArray(payload)) {
+
+        throw new Error(
+            "Telemetry import expects an array."
+        );
+
+    }
+
+    const inserted = await Telemetry.insertMany(
+        payload,
+        {
+            ordered: false
+        }
+    );
+
+    return {
+
+        success: true,
+
+        imported: inserted.length
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Refresh Cache
+ * ============================================================================
+ *
+ * Future:
+ * Redis
+ * Memcached
+ * In-Memory Cache
+ *
+ */
+
+export async function refreshCache(siteId) {
+
+    logger.info(
+
+        `Refreshing telemetry cache for ${siteId}`
+
+    );
+
+    return {
+
+        success: true,
+
+        refreshedAt: new Date()
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Broadcast Latest Telemetry
+ * ============================================================================
+ *
+ * Socket.IO integration point.
+ * Controller will eventually inject io.
+ *
+ */
+
+export async function broadcastLatestTelemetry(siteId, io = null) {
+
+    const latest = await getLatestSnapshot(siteId);
+
+    if (io) {
+
+        io.to(`site:${siteId}`).emit(
+
+            "telemetry:live",
+
+            latest
+
+        );
+
+    }
+
+    return {
+
+        success: true,
+
+        broadcast: !!io,
+
+        telemetry: latest
+
+    };
+
+}
+
+/**
+ * ============================================================================
+ * Health Check
+ * ============================================================================
+ */
+
+export async function healthCheck(siteId) {
+
+    const latest = await getLatestSnapshot(siteId);
+
+    return {
+
+        service: "Telemetry",
+
+        status:
+
+            latest ? "HEALTHY" : "NO DATA",
+
+        database: "CONNECTED",
+
+        latestTimestamp:
+
+            latest?.timestamp || null,
+
+        checkedAt:
+
+            new Date()
+
+    };
+
+}
