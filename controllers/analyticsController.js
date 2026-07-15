@@ -4,51 +4,83 @@ import * as optimizationService from "../services/analytics/optimizationService.
 import * as reliabilityService from "../services/analytics/reliabilityService.js";
 import * as insightsService from "../services/analytics/insightsService.js";
 import * as reportService from "../services/reports/reportService.js";
+import * as Analytics from "../models/Analytics.js";
 /*
 |--------------------------------------------------------------------------
 | Analytics Dashboard
 |--------------------------------------------------------------------------
 */
 
-export async function analyticsDashboard(req, res) {
+export async function analyticsDashboard(
+
+    req,
+
+    res,
+
+    next
+
+) {
 
     try {
 
-        const dashboard =
-            await statisticsService.getAnalyticsDashboard({
+        const {
 
-                siteId: req.body.siteId,
+            site,
 
-                region: req.body.region,
+            period,
 
-                start: req.body.start,
+            startDate,
 
-                end: req.body.end
+            endDate
+
+        } = req.query;
+
+        let analytics = await findCachedAnalytics(
+
+            site,
+
+            period,
+
+            startDate,
+
+            endDate
+
+        );
+
+        if (!analytics) {
+
+            analytics = await buildAnalytics({
+
+                site,
+
+                period,
+
+                startDate,
+
+                endDate
 
             });
 
-        return res.status(200).json({
+        }
+
+        return res.json({
 
             success: true,
 
-            data: dashboard
+            cached: !!analytics,
 
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
+            data: analytics
 
         });
 
     }
 
-}
+    catch (error) {
 
+        next(error);
+
+    }
+}
 /*
 |--------------------------------------------------------------------------
 | Energy Statistics
@@ -1218,6 +1250,238 @@ export const overallKPIs = async (req, res, next) => {
 
     }
 
+export async function findCachedAnalytics(
+
+    site,
+
+    period,
+
+    startDate,
+
+    endDate
+
+) {
+
+    return Analytics.findOne({
+
+        site,
+
+        period,
+
+        startDate,
+
+        endDate
+
+    });
+
+}
+
+export async function buildAnalytics({
+
+    site,
+
+    period,
+
+    startDate,
+
+    endDate
+
+}) {
+
+    const statistics = await statisticsService.calculateStatistics({
+
+        site,
+
+        startDate,
+
+        endDate
+
+    });
+
+    const forecast = await forecastService.generateForecast({
+
+        site,
+
+        startDate,
+
+        endDate
+
+    });
+
+    const optimization = await optimizationService.optimize({
+
+        site,
+
+        startDate,
+
+        endDate
+
+    });
+
+    const reliability = await reliabilityService.calculate({
+
+        site,
+
+        startDate,
+
+        endDate
+
+    });
+
+    const insights = await insightsService.generateInsights({
+
+        site,
+
+        statistics,
+
+        forecast,
+
+        optimization,
+
+        reliability
+
+    });
+
+    const analytics = await Analytics.create({
+
+        site,
+
+        period,
+
+        startDate,
+
+        endDate,
+
+        energy: statistics.energy,
+
+        battery: statistics.battery,
+
+        generator: statistics.generator,
+
+        weather: statistics.weather,
+
+        forecast,
+
+        optimization,
+
+        reliability,
+
+        insights
+
+    });
+
+    return analytics;
+
+}
+
+export async function refreshAnalytics(
+
+    req,
+
+    res,
+
+    next
+
+) {
+
+    try {
+
+        const {
+
+            site,
+
+            period,
+
+            startDate,
+
+            endDate
+
+        } = req.body;
+
+        await Analytics.deleteMany({
+
+            site,
+
+            period,
+
+            startDate,
+
+            endDate
+
+        });
+
+        const analytics = await buildAnalytics({
+
+            site,
+
+            period,
+
+            startDate,
+
+            endDate
+
+        });
+
+        res.json({
+
+            success: true,
+
+            data: analytics
+
+        });
+
+    }
+
+    catch (error) {
+
+        next(error);
+
+    }
+
+}
+
+export async function analyticsHistory(
+
+    req,
+
+    res,
+
+    next
+
+) {
+
+    try {
+
+        const history = await Analytics.find({
+
+            site: req.params.site
+
+        })
+
+        .sort({
+
+            startDate: -1
+
+        });
+
+        res.json({
+
+            success: true,
+
+            data: history
+
+        });
+
+    }
+
+    catch (error) {
+
+        next(error);
+
+    }
+
+}
+
 };
 export default {
 
@@ -1298,6 +1562,14 @@ export default {
 
     portfolioAnalytics,
 
-    executiveDashboard
+    executiveDashboard,
+
+    analyticsHistory,
+
+    refreshAnalytics,
+
+    buildAnalytics,
+
+    findCachedAnalytics
 
 };

@@ -278,4 +278,23 @@ router.get(
     analyticsController.executiveDashboard
 );
 
+router.get(
+    "/dashboard",
+    authenticate,
+    analyticsController.analyticsDashboard
+);
+
+router.post(
+    "/refresh",
+    authenticate,
+    authorize("ADMIN"),
+    analyticsController.refreshAnalytics
+);
+
+router.get(
+    "/history/:site",
+    authenticate,
+    analyticsController.analyticsHistory
+);
+
 export default router;
