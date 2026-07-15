@@ -16,6 +16,8 @@ import startSchedulers from "./scheduler/index.js";
 
 import mongoose from "mongoose";
 
+import { startAnalyticsScheduler } from "./schedulers/analyticsScheduler.js";
+
 dns.setServers(["8.8.8.8","8.8.4.4"]);
 
 const server = http.createServer(app);
@@ -29,6 +31,8 @@ async function startServer() {
         initializeSocket(server);
 
         startSchedulers();
+
+        startAnalyticsScheduler();
 
         server.listen(env.port, () => {
 
