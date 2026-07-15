@@ -2,7 +2,7 @@
  * ============================================================================
  * Generic Request Validation Middleware
  * ----------------------------------------------------------------------------
- * Validates req.body, req.query, req.params or req.headers using Joi schemas.
+ * Validates req.body, req.body, req.body or req.headers using Joi schemas.
  *
  * Usage:
  * router.post(
@@ -59,7 +59,7 @@ export function validate(schemas = {}) {
 
             if (schemas.query) {
 
-                const { error, value } = schemas.query.validate(req.query, {
+                const { error, value } = schemas.query.validate(req.body, {
 
                     abortEarly: false,
 
@@ -91,13 +91,13 @@ export function validate(schemas = {}) {
 
                 }
 
-                req.query = value;
+                req.body = value;
 
             }
 
             if (schemas.params) {
 
-                const { error, value } = schemas.params.validate(req.params, {
+                const { error, value } = schemas.params.validate(req.body, {
 
                     abortEarly: false,
 
@@ -129,7 +129,7 @@ export function validate(schemas = {}) {
 
                 }
 
-                req.params = value;
+                req.body = value;
 
             }
 

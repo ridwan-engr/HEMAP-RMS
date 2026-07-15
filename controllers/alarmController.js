@@ -68,7 +68,7 @@ export async function getAlarms(req, res, next) {
 
             sort = "-createdAt"
 
-        } = req.query;
+        } = req.body;
 
         const filter = {};
 
@@ -180,7 +180,7 @@ export async function getAlarm(req, res, next) {
 
         const alarm = await Alarm.findById(
 
-            req.params.id
+            req.body.id
 
         ).populate(
 
@@ -278,7 +278,7 @@ export async function resolveAlarm(req, res, next) {
 
         const alarm = await Alarm.findById(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -346,7 +346,7 @@ export async function acknowledgeAlarm(
 
         const alarm = await Alarm.findById(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -414,7 +414,7 @@ export async function deleteAlarm(
 
         const alarm = await Alarm.findByIdAndDelete(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -532,7 +532,7 @@ export async function getSiteAlarms(
 
         const alarms = await Alarm.find({
 
-            site: req.params.siteId
+            site: req.body.siteId
 
         })
 

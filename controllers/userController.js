@@ -98,7 +98,7 @@ export async function getUsers(
 
             await userService.getUsers(
 
-                req.query
+                req.body
 
             );
 
@@ -166,7 +166,7 @@ export async function getUserById(
 
             await userService.getUserById(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -257,7 +257,7 @@ export async function updateUser(
 
             await userService.updateUser(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -331,7 +331,7 @@ export async function updateProfile(
 
             await userService.updateProfile(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -419,7 +419,7 @@ export async function changePassword(
 
             await userService.changePassword(
 
-                req.params.id,
+                req.body.id,
 
                 currentPassword,
 
@@ -502,7 +502,7 @@ export async function assignSites(
 
             await userService.assignSitesToUser(
 
-                req.params.id,
+                req.body.id,
 
                 siteIds
 
@@ -580,9 +580,9 @@ export async function removeSite(
 
             await userService.removeSiteAssignment(
 
-                req.params.id,
+                req.body.id,
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -658,7 +658,7 @@ export async function activateUser(
 
             await userService.activateUser(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -734,7 +734,7 @@ export async function deactivateUser(
 
             await userService.deactivateUser(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -810,7 +810,7 @@ export async function deleteUser(
 
             await userService.deleteUser(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -884,7 +884,7 @@ export async function restoreUser(
 
             await userService.restoreUser(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -958,7 +958,7 @@ export async function permanentlyDeleteUser(
 
         await userService.permanentlyDeleteUser(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -1029,7 +1029,7 @@ export async function searchUsers(
 
             await userService.searchUsers(
 
-                req.query.keyword
+                req.body.keyword
 
             );
 
@@ -1171,7 +1171,7 @@ export async function paginatedUsers(
 
                     Number(
 
-                        req.query.page || 1
+                        req.body.page || 1
 
                     ),
 
@@ -1180,19 +1180,19 @@ export async function paginatedUsers(
 
                     Number(
 
-                        req.query.limit || 20
+                        req.body.limit || 20
 
                     ),
 
 
                 sortBy:
 
-                    req.query.sortBy || "createdAt",
+                    req.body.sortBy || "createdAt",
 
 
                 order:
 
-                    req.query.order || "desc"
+                    req.body.order || "desc"
 
             });
 
@@ -1415,7 +1415,7 @@ export async function exportUsers(
 
             await userService.exportUsers(
 
-                req.query
+                req.body
 
             );
 
@@ -1484,7 +1484,7 @@ export async function permissionSummary(
 
             await userService.getUserPermissionSummary(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -1555,7 +1555,7 @@ export async function profileSummary(
 
             await userService.getProfileSummary(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -1626,7 +1626,7 @@ export async function updateLastLogin(
 
             await userService.updateLastLogin(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -1702,9 +1702,9 @@ export async function validateSiteAccess(
 
             await userService.hasSiteAccess(
 
-                req.params.id,
+                req.body.id,
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -1787,7 +1787,7 @@ export async function assignRole(req, res) {
 
         const user = await userService.assignRole(
 
-            req.params.userId,
+            req.body.userId,
 
             req.body.roleId
 
@@ -1825,7 +1825,7 @@ export async function updateStatus(req, res) {
 
         const user = await userService.updateStatus(
 
-            req.params.userId,
+            req.body.userId,
 
             req.body.status
 

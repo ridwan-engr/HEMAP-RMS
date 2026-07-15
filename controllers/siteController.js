@@ -45,11 +45,11 @@ export async function getSites(req, res) {
 
         const options = {
 
-            page: Number(req.query.page) || 1,
-            limit: Number(req.query.limit) || 20,
-            search: req.query.search || "",
-            status: req.query.status || "",
-            region: req.query.region || ""
+            page: Number(req.body.page) || 1,
+            limit: Number(req.body.limit) || 20,
+            search: req.body.search || "",
+            status: req.body.status || "",
+            region: req.body.region || ""
 
         };
 
@@ -82,7 +82,7 @@ export async function getSiteById(req, res) {
 
     try {
 
-        const site = await siteService.getSiteById(req.params.id);
+        const site = await siteService.getSiteById(req.body.id);
 
         if (!site) {
 
@@ -121,7 +121,7 @@ export async function updateSite(req, res) {
     try {
 
         const site = await siteService.updateSite(
-            req.params.id,
+            req.body.id,
             req.body
         );
 
@@ -153,7 +153,7 @@ export async function deleteSite(req, res) {
 
     try {
 
-        await siteService.deleteSite(req.params.id);
+        await siteService.deleteSite(req.body.id);
 
         return res.status(200).json({
             success: true,
@@ -183,15 +183,15 @@ export async function searchSites(req, res) {
 
         const results = await siteService.searchSites({
 
-            keyword: req.query.keyword || "",
+            keyword: req.body.keyword || "",
 
-            region: req.query.region,
+            region: req.body.region,
 
-            state: req.query.state,
+            state: req.body.state,
 
-            status: req.query.status,
+            status: req.body.status,
 
-            technology: req.query.technology
+            technology: req.body.technology
 
         });
 
@@ -230,7 +230,7 @@ export async function assignEngineer(req, res) {
 
         const site = await siteService.assignEngineer(
 
-            req.params.id,
+            req.body.id,
 
             req.body.userId
 
@@ -273,9 +273,9 @@ export async function removeEngineer(req, res) {
 
         const site = await siteService.removeEngineer(
 
-            req.params.id,
+            req.body.id,
 
-            req.params.userId
+            req.body.userId
 
         );
 
@@ -316,7 +316,7 @@ export async function activateSite(req, res) {
 
         const site = await siteService.activateSite(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -357,7 +357,7 @@ export async function deactivateSite(req, res) {
 
         const site = await siteService.deactivateSite(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -398,7 +398,7 @@ export async function updateCoordinates(req, res) {
 
         const site = await siteService.updateCoordinates(
 
-            req.params.id,
+            req.body.id,
 
             {
 
@@ -447,7 +447,7 @@ export async function updateOperationalStatus(req, res) {
 
         const site = await siteService.updateOperationalStatus(
 
-            req.params.id,
+            req.body.id,
 
             req.body.status
 
@@ -490,7 +490,7 @@ export async function siteHealthSummary(req, res) {
 
         const summary = await siteService.getSiteHealthSummary(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -527,7 +527,7 @@ export async function siteDashboard(req, res) {
     try {
 
         const dashboard = await siteService.getSiteDashboard(
-            req.params.id
+            req.body.id
         );
 
         return res.status(200).json({
@@ -564,7 +564,7 @@ export async function telemetrySummary(req, res) {
 
         const summary =
             await telemetryService.getTelemetrySummary(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -601,7 +601,7 @@ export async function energySummary(req, res) {
 
         const energy =
             await statisticsService.getEnergyStatistics(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -638,7 +638,7 @@ export async function alarmSummary(req, res) {
 
         const alarms =
             await siteService.getAlarmSummary(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -675,7 +675,7 @@ export async function installationSummary(req, res) {
 
         const installations =
             await siteService.getInstallationSummary(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -712,7 +712,7 @@ export async function reliabilitySummary(req, res) {
 
         const report =
             await reliabilityService.generateReliabilityMetrics(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -749,7 +749,7 @@ export async function siteAvailability(req, res) {
 
         const availability =
             await reliabilityService.calculateAvailability(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -786,7 +786,7 @@ export async function siteKPIs(req, res) {
 
         const kpis =
             await statisticsService.getSiteKPIs(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -823,11 +823,11 @@ export async function exportSites(req, res) {
 
         const result = await siteService.exportSites({
 
-            format: req.query.format || "json",
+            format: req.body.format || "json",
 
-            status: req.query.status,
+            status: req.body.status,
 
-            region: req.query.region
+            region: req.body.region
 
         });
 
@@ -909,7 +909,7 @@ export async function archiveSite(req, res) {
 
         const site = await siteService.archiveSite(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -950,7 +950,7 @@ export async function restoreSite(req, res) {
 
         const site = await siteService.restoreSite(
 
-            req.params.id
+            req.body.id
 
         );
 

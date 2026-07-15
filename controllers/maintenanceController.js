@@ -72,7 +72,7 @@ export const getMaintenanceRecords = asyncHandler(async (req, res) => {
 
 export const getMaintenanceById = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.params.id)
+    const maintenance = await Maintenance.findById(req.body.id)
 
         .populate("site")
 
@@ -112,7 +112,7 @@ export const getMaintenanceBySite = asyncHandler(async (req, res) => {
 
     const records = await Maintenance.find({
 
-        site: req.params.siteId
+        site: req.body.siteId
 
     })
 
@@ -146,7 +146,7 @@ export const getMaintenanceBySite = asyncHandler(async (req, res) => {
 
 export const updateMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.params.id);
+    const maintenance = await Maintenance.findById(req.body.id);
 
     if (!maintenance) {
 
@@ -194,7 +194,7 @@ export const updateMaintenance = asyncHandler(async (req, res) => {
 
 export const completeMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.params.id);
+    const maintenance = await Maintenance.findById(req.body.id);
 
     if (!maintenance) {
 
@@ -258,7 +258,7 @@ export const completeMaintenance = asyncHandler(async (req, res) => {
 
 export const deleteMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.params.id);
+    const maintenance = await Maintenance.findById(req.body.id);
 
     if (!maintenance) {
 

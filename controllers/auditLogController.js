@@ -129,7 +129,7 @@ export async function getAuditLogs(req, res, next) {
 
             sort = "-createdAt"
 
-        } = req.query;
+        } = req.body;
 
         const filter = {};
 
@@ -287,7 +287,7 @@ export async function getAuditLog(
 
         const audit = await AuditLog.findById(
 
-            req.params.id
+            req.body.id
 
         )
 
@@ -349,7 +349,7 @@ export async function getAuditLog(
 
 export const updateAuditLog = asyncHandler(async (req, res) => {
 
-    const auditLog = await AuditLog.findById(req.params.id);
+    const auditLog = await AuditLog.findById(req.body.id);
 
     if (!auditLog) {
 
@@ -387,7 +387,7 @@ export const updateAuditLog = asyncHandler(async (req, res) => {
 
 export const deleteAuditLog = asyncHandler(async (req, res) => {
 
-    const auditLog = await AuditLog.findById(req.params.id);
+    const auditLog = await AuditLog.findById(req.body.id);
 
     if (!auditLog) {
 

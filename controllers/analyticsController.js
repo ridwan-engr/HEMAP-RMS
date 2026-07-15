@@ -17,13 +17,13 @@ export async function analyticsDashboard(req, res) {
         const dashboard =
             await statisticsService.getAnalyticsDashboard({
 
-                siteId: req.query.siteId,
+                siteId: req.body.siteId,
 
-                region: req.query.region,
+                region: req.body.region,
 
-                start: req.query.start,
+                start: req.body.start,
 
-                end: req.query.end
+                end: req.body.end
 
             });
 
@@ -62,7 +62,7 @@ export async function energyStatistics(req, res) {
         const statistics =
             await statisticsService.getEnergyStatistics(
 
-                req.query
+                req.body
 
             );
 
@@ -100,7 +100,7 @@ export async function powerFlowSummary(req, res) {
         const summary =
             await statisticsService.getPowerFlowSummary(
 
-                req.query
+                req.body
 
             );
 
@@ -138,7 +138,7 @@ export async function renewablePenetration(req, res) {
         const penetration =
             await statisticsService.getRenewablePenetration(
 
-                req.query
+                req.body
 
             );
 
@@ -176,7 +176,7 @@ export async function carbonSavings(req, res) {
         const carbon =
             await statisticsService.getCarbonSavings(
 
-                req.query
+                req.body
 
             );
 
@@ -214,7 +214,7 @@ export async function fuelSavings(req, res) {
         const savings =
             await statisticsService.getFuelSavings(
 
-                req.query
+                req.body
 
             );
 
@@ -252,7 +252,7 @@ export async function systemEfficiency(req, res) {
         const efficiency =
             await statisticsService.getSystemEfficiency(
 
-                req.query
+                req.body
 
             );
 
@@ -290,11 +290,11 @@ export async function energyForecast(req, res) {
         const forecast =
             await forecastService.generateEnergyForecast({
 
-                siteId: req.query.siteId,
+                siteId: req.body.siteId,
 
-                horizon: req.query.horizon || "24h",
+                horizon: req.body.horizon || "24h",
 
-                interval: req.query.interval || "1h"
+                interval: req.body.interval || "1h"
 
             });
 
@@ -332,7 +332,7 @@ export async function solarForecast(req, res) {
     try {
 
         const forecast =
-            await forecastService.generateSolarForecast(req.query);
+            await forecastService.generateSolarForecast(req.body);
 
         return res.status(200).json({
 
@@ -368,7 +368,7 @@ export async function loadForecast(req, res) {
     try {
 
         const forecast =
-            await forecastService.generateLoadForecast(req.query);
+            await forecastService.generateLoadForecast(req.body);
 
         return res.status(200).json({
 
@@ -404,7 +404,7 @@ export async function batteryForecast(req, res) {
     try {
 
         const forecast =
-            await forecastService.generateBatteryForecast(req.query);
+            await forecastService.generateBatteryForecast(req.body);
 
         return res.status(200).json({
 
@@ -440,7 +440,7 @@ export async function weatherForecast(req, res) {
     try {
 
         const forecast =
-            await forecastService.generateWeatherForecast(req.query);
+            await forecastService.generateWeatherForecast(req.body);
 
         return res.status(200).json({
 
@@ -674,7 +674,7 @@ export async function reliabilityDashboard(req, res) {
     try {
 
         const dashboard =
-            await reliabilityService.getReliabilityDashboard(req.query);
+            await reliabilityService.getReliabilityDashboard(req.body);
 
         return res.status(200).json({
             success: true,
@@ -702,7 +702,7 @@ export async function reliabilityIndices(req, res) {
     try {
 
         const indices =
-            await reliabilityService.calculateReliabilityIndices(req.query);
+            await reliabilityService.calculateReliabilityIndices(req.body);
 
         return res.status(200).json({
             success: true,
@@ -730,7 +730,7 @@ export async function batteryHealth(req, res) {
     try {
 
         const report =
-            await statisticsService.getBatteryHealth(req.query);
+            await statisticsService.getBatteryHealth(req.body);
 
         return res.status(200).json({
             success: true,
@@ -758,7 +758,7 @@ export async function solarPerformance(req, res) {
     try {
 
         const report =
-            await statisticsService.getSolarPerformance(req.query);
+            await statisticsService.getSolarPerformance(req.body);
 
         return res.status(200).json({
             success: true,
@@ -786,7 +786,7 @@ export async function generatorEfficiency(req, res) {
     try {
 
         const report =
-            await statisticsService.getGeneratorEfficiency(req.query);
+            await statisticsService.getGeneratorEfficiency(req.body);
 
         return res.status(200).json({
             success: true,
@@ -814,7 +814,7 @@ export async function powerQuality(req, res) {
     try {
 
         const report =
-            await statisticsService.getPowerQuality(req.query);
+            await statisticsService.getPowerQuality(req.body);
 
         return res.status(200).json({
             success: true,
@@ -842,7 +842,7 @@ export async function financialAnalytics(req, res) {
     try {
 
         const report =
-            await statisticsService.getFinancialAnalytics(req.query);
+            await statisticsService.getFinancialAnalytics(req.body);
 
         return res.status(200).json({
             success: true,
@@ -870,7 +870,7 @@ export async function maintenanceAnalytics(req, res) {
     try {
 
         const report =
-            await statisticsService.getMaintenanceAnalytics(req.query);
+            await statisticsService.getMaintenanceAnalytics(req.body);
 
         return res.status(200).json({
             success: true,
@@ -898,7 +898,7 @@ export async function operationalInsights(req, res) {
     try {
 
         const insights =
-            await insightsService.generateOperationalInsights(req.query);
+            await insightsService.generateOperationalInsights(req.body);
 
         return res.status(200).json({
             success: true,
@@ -926,7 +926,7 @@ export async function assetRiskAssessment(req, res) {
     try {
 
         const assessment =
-            await reliabilityService.assessAssetRisk(req.query);
+            await reliabilityService.assessAssetRisk(req.body);
 
         return res.status(200).json({
             success: true,
@@ -996,9 +996,9 @@ export async function exportReport(req, res) {
         const file =
             await reportService.exportReport(
 
-                req.params.reportId,
+                req.body.reportId,
 
-                req.query.format || "pdf"
+                req.body.format || "pdf"
 
             );
 
@@ -1078,7 +1078,7 @@ export async function benchmarkComparison(req, res) {
         const comparison =
             await statisticsService.compareBenchmarks(
 
-                req.query
+                req.body
 
             );
 
@@ -1118,7 +1118,7 @@ export async function portfolioAnalytics(req, res) {
         const portfolio =
             await statisticsService.getPortfolioAnalytics(
 
-                req.query
+                req.body
 
             );
 
@@ -1158,7 +1158,7 @@ export async function executiveDashboard(req, res) {
         const dashboard =
             await statisticsService.getExecutiveDashboard(
 
-                req.query
+                req.body
 
             );
 

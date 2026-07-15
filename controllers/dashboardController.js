@@ -13,7 +13,7 @@ export async function getDashboard(req, res, next) {
 
     try {
 
-        const dashboard = await dashboardService.getDashboard(req.query);
+        const dashboard = await dashboardService.getDashboard(req.body);
 
         return res.status(200).json({
 
@@ -40,7 +40,7 @@ export async function getExecutiveDashboard(req, res, next) {
 
     try {
 
-        const dashboard = await dashboardService.getExecutiveDashboard(req.query);
+        const dashboard = await dashboardService.getExecutiveDashboard(req.body);
 
         return res.status(200).json({
 
@@ -67,7 +67,7 @@ export async function getDashboardCards(req, res, next) {
 
     try {
 
-        const cards = await dashboardService.getDashboardCards(req.query);
+        const cards = await dashboardService.getDashboardCards(req.body);
 
         return res.status(200).json({
 
@@ -94,7 +94,7 @@ export async function getKPIs(req, res, next) {
 
     try {
 
-        const kpis = await dashboardService.getKPIs(req.query);
+        const kpis = await dashboardService.getKPIs(req.body);
 
         return res.status(200).json({
 
@@ -121,7 +121,7 @@ export async function getMap(req, res, next) {
 
     try {
 
-        const map = await dashboardService.getMap(req.query);
+        const map = await dashboardService.getMap(req.body);
 
         return res.status(200).json({
 
@@ -175,7 +175,7 @@ export async function getOptimizationSummary(req, res, next) {
 
     try {
 
-        const summary = await dashboardService.getOptimizationSummary(req.query);
+        const summary = await dashboardService.getOptimizationSummary(req.body);
 
         return res.status(200).json({
 

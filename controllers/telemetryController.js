@@ -20,7 +20,7 @@ export async function getLiveTelemetry(req, res) {
 
         const telemetry =
             await telemetryService.getLiveTelemetry(
-                req.params.siteId
+                req.body.siteId
             );
 
         return res.status(200).json({
@@ -59,15 +59,15 @@ export async function getHistoricalTelemetry(req, res) {
         const history =
             await telemetryService.getHistoricalTelemetry(
 
-                req.params.siteId,
+                req.body.siteId,
 
                 {
 
-                    start: req.query.start,
+                    start: req.body.start,
 
-                    end: req.query.end,
+                    end: req.body.end,
 
-                    interval: req.query.interval || "1h"
+                    interval: req.body.interval || "1h"
 
                 }
 
@@ -109,7 +109,7 @@ export async function latestSnapshot(req, res) {
         const snapshot =
             await telemetryService.getLatestSnapshot(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -149,7 +149,7 @@ export async function deviceStatus(req, res) {
         const status =
             await telemetryService.getDeviceStatus(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -189,7 +189,7 @@ export async function communicationStatus(req, res) {
         const communication =
             await telemetryService.getCommunicationStatus(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -229,7 +229,7 @@ export async function synchronize(req, res) {
         const result =
             await syncService.syncInstallation(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -266,7 +266,7 @@ export async function componentTelemetry(req, res) {
 
     try {
 
-        const siteId = req.params.siteId;
+        const siteId = req.body.siteId;
 
         const [
             battery,
@@ -349,7 +349,7 @@ export async function batteryTelemetry(req, res) {
         const telemetry =
             await batteryService.getBatteryTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -387,7 +387,7 @@ export async function solarTelemetry(req, res) {
         const telemetry =
             await solarService.getSolarTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -425,7 +425,7 @@ export async function generatorTelemetry(req, res) {
         const telemetry =
             await generatorService.getGeneratorTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -463,7 +463,7 @@ export async function gridTelemetry(req, res) {
         const telemetry =
             await gridService.getGridTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -501,7 +501,7 @@ export async function inverterTelemetry(req, res) {
         const telemetry =
             await telemetryService.getInverterTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -539,7 +539,7 @@ export async function rectifierTelemetry(req, res) {
         const telemetry =
             await telemetryService.getRectifierTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -577,7 +577,7 @@ export async function smartMeterTelemetry(req, res) {
         const telemetry =
             await telemetryService.getSmartMeterTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -615,7 +615,7 @@ export async function loadTelemetry(req, res) {
         const telemetry =
             await telemetryService.getLoadTelemetry(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -652,8 +652,8 @@ export async function telemetryStatistics(req, res) {
 
         const statistics =
             await statisticsService.getTelemetryStatistics(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -683,8 +683,8 @@ export async function telemetryTrends(req, res) {
 
         const trends =
             await statisticsService.getTelemetryTrends(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -714,7 +714,7 @@ export async function liveKPIs(req, res) {
 
         const kpis =
             await statisticsService.getSiteKPIs(
-                req.params.siteId
+                req.body.siteId
             );
 
         return res.status(200).json({
@@ -744,7 +744,7 @@ export async function alarmSummary(req, res) {
 
         const alarms =
             await alarmService.getAlarmSummary(
-                req.params.siteId
+                req.body.siteId
             );
 
         return res.status(200).json({
@@ -774,8 +774,8 @@ export async function batteryAnalytics(req, res) {
 
         const analytics =
             await statisticsService.getBatteryAnalytics(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -805,8 +805,8 @@ export async function solarAnalytics(req, res) {
 
         const analytics =
             await statisticsService.getSolarAnalytics(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -836,8 +836,8 @@ export async function generatorAnalytics(req, res) {
 
         const analytics =
             await statisticsService.getGeneratorAnalytics(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -867,8 +867,8 @@ export async function gridAnalytics(req, res) {
 
         const analytics =
             await statisticsService.getGridAnalytics(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -898,8 +898,8 @@ export async function weatherAnalytics(req, res) {
 
         const analytics =
             await statisticsService.getWeatherAnalytics(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -929,8 +929,8 @@ export async function energyForecast(req, res) {
 
         const forecast =
             await forecastService.generateForecast(
-                req.params.siteId,
-                req.query
+                req.body.siteId,
+                req.body
             );
 
         return res.status(200).json({
@@ -960,7 +960,7 @@ export async function reliabilitySummary(req, res) {
 
         const report =
             await reliabilityService.generateReliabilityMetrics(
-                req.params.siteId
+                req.body.siteId
             );
 
         return res.status(200).json({
@@ -990,12 +990,12 @@ export async function exportTelemetry(req, res) {
 
         const result = await telemetryService.exportTelemetry(
 
-            req.params.siteId,
+            req.body.siteId,
 
             {
-                format: req.query.format || "json",
-                start: req.query.start,
-                end: req.query.end
+                format: req.body.format || "json",
+                start: req.body.start,
+                end: req.body.end
             }
 
         );
@@ -1037,7 +1037,7 @@ export async function importTelemetry(req, res) {
 
         const result = await telemetryService.importTelemetry(
 
-            req.params.siteId,
+            req.body.siteId,
 
             req.body.records
 
@@ -1080,7 +1080,7 @@ export async function refreshCache(req, res) {
 
         const cache = await telemetryService.refreshCache(
 
-            req.params.siteId
+            req.body.siteId
 
         );
 
@@ -1121,7 +1121,7 @@ export async function broadcastTelemetry(req, res) {
 
         const payload = await telemetryService.broadcastLatestTelemetry(
 
-            req.params.siteId
+            req.body.siteId
 
         );
 
@@ -1162,7 +1162,7 @@ export async function telemetryHealth(req, res) {
 
         const health = await telemetryService.healthCheck(
 
-            req.params.siteId
+            req.body.siteId
 
         );
 

@@ -127,7 +127,7 @@ export async function getLatestWeather(req, res, next) {
 
             .findOne({
 
-                site: req.params.siteId
+                site: req.body.siteId
 
             })
 
@@ -191,11 +191,11 @@ export async function getWeatherHistory(req, res, next) {
 
             end
 
-        } = req.query;
+        } = req.body;
 
         const filter = {
 
-            site: req.params.siteId
+            site: req.body.siteId
 
         };
 
@@ -283,7 +283,7 @@ export async function getWeatherById(req, res, next) {
 
         const weather = await Weather
 
-            .findById(req.params.id)
+            .findById(req.body.id)
 
             .populate("site");
 
@@ -331,7 +331,7 @@ export async function updateWeather(req, res, next) {
 
         const weather = await Weather.findByIdAndUpdate(
 
-            req.params.id,
+            req.body.id,
 
             req.body,
 
@@ -403,7 +403,7 @@ export async function deleteWeather(req, res, next) {
 
         const weather = await Weather.findByIdAndDelete(
 
-            req.params.id
+            req.body.id
 
         );
 

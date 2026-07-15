@@ -10,15 +10,15 @@ import logger from "../utils/logger.js";
 
 export const getGenerators = asyncHandler(async (req, res) => {
 
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
+    const page = Number(req.body.page) || 1;
+    const limit = Number(req.body.limit) || 20;
     const skip = (page - 1) * limit;
 
     const filter = {};
 
-    if (req.query.site) {
+    if (req.body.site) {
 
-        filter.site = req.query.site;
+        filter.site = req.body.site;
 
     }
 
@@ -54,7 +54,7 @@ export const getGenerators = asyncHandler(async (req, res) => {
 
 export const getGenerator = asyncHandler(async (req, res) => {
 
-    const generator = await Generator.findById(req.params.id)
+    const generator = await Generator.findById(req.body.id)
         .populate("site", "name siteCode");
 
     if (!generator) {
@@ -104,7 +104,7 @@ export const createGenerator = asyncHandler(async (req, res) => {
 
 export const updateGenerator = asyncHandler(async (req, res) => {
 
-    const generator = await Generator.findById(req.params.id);
+    const generator = await Generator.findById(req.body.id);
 
     if (!generator) {
 
@@ -137,7 +137,7 @@ export const updateGenerator = asyncHandler(async (req, res) => {
 
 export const deleteGenerator = asyncHandler(async (req, res) => {
 
-    const generator = await Generator.findById(req.params.id);
+    const generator = await Generator.findById(req.body.id);
 
     if (!generator) {
 

@@ -166,7 +166,7 @@ export async function getRoleById(
 
             await roleService.getRoleById(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -260,7 +260,7 @@ export async function getRoleByName(
 
             await roleService.getRoleByName(
 
-                req.params.name
+                req.body.name
 
             );
 
@@ -331,7 +331,7 @@ export async function updateRole(
 
             await roleService.updateRole(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -407,7 +407,7 @@ export async function deleteRole(
 
         await roleService.deleteRole(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -476,7 +476,7 @@ export async function addPermissionToRole(
 
             await roleService.addPermissionToRole(
 
-                req.params.id,
+                req.body.id,
 
                 req.body.permissionId
 
@@ -554,9 +554,9 @@ export async function removePermissionFromRole(
 
             await roleService.removePermissionFromRole(
 
-                req.params.id,
+                req.body.id,
 
-                req.params.permissionId
+                req.body.permissionId
 
             );
 
@@ -632,7 +632,7 @@ export async function replacePermissions(
 
             await roleService.replaceRolePermissions(
 
-                req.params.id,
+                req.body.id,
 
                 req.body.permissions
 
@@ -710,9 +710,9 @@ export async function checkRolePermission(
 
             await roleService.roleHasPermission(
 
-                req.params.roleId,
+                req.body.roleId,
 
-                req.params.permission
+                req.body.permission
 
             );
 
@@ -783,9 +783,9 @@ export async function checkUserPermission(
 
             await roleService.userHasPermission(
 
-                req.params.userId,
+                req.body.userId,
 
-                req.params.permission
+                req.body.permission
 
             );
 
@@ -854,7 +854,7 @@ export async function getUsersByRole(
 
             await roleService.getUsersByRole(
 
-                req.params.roleId
+                req.body.roleId
 
             );
 
@@ -925,7 +925,7 @@ export async function countUsersByRole(
 
             await roleService.countUsersByRole(
 
-                req.params.roleId
+                req.body.roleId
 
             );
 
@@ -994,7 +994,7 @@ export async function checkAdministrator(
 
             await roleService.isAdministrator(
 
-                req.params.userId
+                req.body.userId
 
             );
 
@@ -1408,7 +1408,7 @@ export async function roleExists(
 
             await roleService.roleExists(
 
-                req.params.name
+                req.body.name
 
             );
 

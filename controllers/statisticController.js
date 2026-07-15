@@ -40,15 +40,15 @@ export async function getStatistics(req, res, next) {
 
         const filter = {};
 
-        if (req.query.site) {
+        if (req.body.site) {
 
-            filter.site = req.query.site;
+            filter.site = req.body.site;
 
         }
 
-        if (req.query.period) {
+        if (req.body.period) {
 
-            filter.period = req.query.period;
+            filter.period = req.body.period;
 
         }
 
@@ -89,7 +89,7 @@ export async function getStatistic(req, res, next) {
     try {
 
         const statistic = await Statistic
-            .findById(req.params.id)
+            .findById(req.body.id)
             .populate("site");
 
         if (!statistic) {
@@ -133,7 +133,7 @@ export async function getLatestStatistic(req, res, next) {
 
         const statistic = await Statistic
             .findOne({
-                site: req.params.siteId
+                site: req.body.siteId
             })
             .sort({
                 timestamp: -1
@@ -180,7 +180,7 @@ export async function updateStatistic(req, res, next) {
 
         const statistic = await Statistic.findByIdAndUpdate(
 
-            req.params.id,
+            req.body.id,
 
             req.body,
 
@@ -241,7 +241,7 @@ export async function deleteStatistic(req, res, next) {
 
         const statistic = await Statistic.findByIdAndDelete(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -259,7 +259,7 @@ export async function deleteStatistic(req, res, next) {
 
         logger.success(
 
-            `Statistic deleted: ${req.params.id}`
+            `Statistic deleted: ${req.body.id}`
 
         );
 

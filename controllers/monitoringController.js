@@ -148,7 +148,7 @@ export async function getTelemetry(req, res, next) {
 
             site
 
-        } = req.query;
+        } = req.body;
 
         const filter = {};
 

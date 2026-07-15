@@ -11,15 +11,15 @@ import Grid from "../models/Grid.js";
 
 export const getGrids = asyncHandler(async (req, res) => {
 
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
+    const page = Number(req.body.page) || 1;
+    const limit = Number(req.body.limit) || 20;
     const skip = (page - 1) * limit;
 
     const filter = {};
 
-    if (req.query.site) {
+    if (req.body.site) {
 
-        filter.site = req.query.site;
+        filter.site = req.body.site;
 
     }
 
@@ -55,7 +55,7 @@ export const getGrids = asyncHandler(async (req, res) => {
 
 export const getGrid = asyncHandler(async (req, res) => {
 
-    const grid = await Grid.findById(req.params.id)
+    const grid = await Grid.findById(req.body.id)
         .populate("site", "name siteCode");
 
     if (!grid) {
@@ -105,7 +105,7 @@ export const createGrid = asyncHandler(async (req, res) => {
 
 export const updateGrid = asyncHandler(async (req, res) => {
 
-    const grid = await Grid.findById(req.params.id);
+    const grid = await Grid.findById(req.body.id);
 
     if (!grid) {
 
@@ -138,7 +138,7 @@ export const updateGrid = asyncHandler(async (req, res) => {
 
 export const deleteGrid = asyncHandler(async (req, res) => {
 
-    const grid = await Grid.findById(req.params.id);
+    const grid = await Grid.findById(req.body.id);
 
     if (!grid) {
 

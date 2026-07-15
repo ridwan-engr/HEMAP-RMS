@@ -75,7 +75,7 @@ export async function getSetting(req, res, next) {
     try {
 
         const setting = await SystemSetting.findById(
-            req.params.id
+            req.body.id
         );
 
         if (!setting) {
@@ -119,7 +119,7 @@ export async function getSystemSettingByKey(req, res, next) {
 
         const setting = await SystemSetting.findOne({
 
-            key: req.params.key
+            key: req.body.key
 
         });
 
@@ -164,7 +164,7 @@ export async function updateSetting(req, res, next) {
 
         const setting = await SystemSetting.findByIdAndUpdate(
 
-            req.params.id,
+            req.body.id,
 
             req.body,
 
@@ -225,7 +225,7 @@ export async function updateSystemSettingByKey(req, res, next) {
 
             {
 
-                key: req.params.key
+                key: req.body.key
 
             },
 
@@ -286,7 +286,7 @@ export async function deleteSetting(req, res, next) {
 
         const setting = await SystemSetting.findByIdAndDelete(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -303,7 +303,7 @@ export async function deleteSetting(req, res, next) {
         }
 
         logger.success(
-            `System setting deleted: ${req.params.id}`
+            `System setting deleted: ${req.body.id}`
         );
 
         return res.json({

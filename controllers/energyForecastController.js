@@ -77,7 +77,7 @@ export async function getForecastById(req, res, next) {
 
             await EnergyForecast.findById(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -121,7 +121,7 @@ export async function updateForecast(req, res, next) {
 
             await EnergyForecast.findByIdAndUpdate(
 
-                req.params.id,
+                req.body.id,
 
                 req.body,
 
@@ -161,7 +161,7 @@ export async function deleteForecast(req, res, next) {
 
         await EnergyForecast.findByIdAndDelete(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -193,7 +193,7 @@ export async function runForecast(req, res, next) {
 
             await forecastService.runForecast(
 
-                req.params.id
+                req.body.id
 
             );
 

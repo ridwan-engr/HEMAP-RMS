@@ -60,13 +60,13 @@ export async function getInstallations(req, res) {
         const installations =
             await installationService.getInstallations({
 
-                page: Number(req.query.page) || 1,
+                page: Number(req.body.page) || 1,
 
-                limit: Number(req.query.limit) || 20,
+                limit: Number(req.body.limit) || 20,
 
-                siteId: req.query.siteId,
+                siteId: req.body.siteId,
 
-                status: req.query.status
+                status: req.body.status
 
             });
 
@@ -105,7 +105,7 @@ export async function getInstallation(req, res) {
 
         const installation =
             await installationService.getInstallationById(
-                req.params.id
+                req.body.id
             );
 
         if (!installation) {
@@ -156,7 +156,7 @@ export async function updateInstallation(req, res) {
         const installation =
             await installationService.updateInstallation(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -199,7 +199,7 @@ export async function deleteInstallation(req, res) {
 
         await installationService.deleteInstallation(
 
-            req.params.id
+            req.body.id
 
         );
 
@@ -238,7 +238,7 @@ export async function assignToSite(req, res) {
         const installation =
             await installationService.assignToSite(
 
-                req.params.id,
+                req.body.id,
 
                 req.body.siteId
 
@@ -282,7 +282,7 @@ export async function commissionInstallation(req, res) {
         const installation =
             await installationService.commissionInstallation(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -326,7 +326,7 @@ export async function decommissionInstallation(req, res) {
         const installation =
             await installationService.decommissionInstallation(
 
-                req.params.id,
+                req.body.id,
 
                 req.body.reason
 
@@ -370,7 +370,7 @@ export async function registerSolarArray(req, res) {
         const solar =
             await solarService.registerSolarArray(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -414,7 +414,7 @@ export async function registerBatteryBank(req, res) {
         const battery =
             await batteryService.registerBatteryBank(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -458,7 +458,7 @@ export async function registerGenerator(req, res) {
         const generator =
             await generatorService.registerGenerator(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -502,7 +502,7 @@ export async function registerGrid(req, res) {
         const grid =
             await gridService.registerGridConnection(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -546,7 +546,7 @@ export async function registerVictronGX(req, res) {
         const device =
             await installationService.registerVictronGX(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -590,7 +590,7 @@ export async function registerHuaweiRectifier(req, res) {
         const rectifier =
             await installationService.registerHuaweiRectifier(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -634,7 +634,7 @@ export async function registerSmartMeter(req, res) {
         const meter =
             await installationService.registerSmartMeter(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -675,7 +675,7 @@ export async function installationDashboard(req, res) {
 
         const dashboard =
             await installationService.getInstallationDashboard(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -706,7 +706,7 @@ export async function installationHealth(req, res) {
 
         const health =
             await installationService.getInstallationHealth(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -736,7 +736,7 @@ export async function configurationSummary(req, res) {
 
         const summary =
             await installationService.getConfigurationSummary(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -767,7 +767,7 @@ export async function assetInventory(req, res) {
 
         const inventory =
             await installationService.getAssetInventory(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -797,7 +797,7 @@ export async function energyConfiguration(req, res) {
 
         const configuration =
             await installationService.getEnergyConfiguration(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -828,7 +828,7 @@ export async function communicationStatus(req, res) {
 
         const status =
             await telemetryService.getCommunicationStatus(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -858,7 +858,7 @@ export async function installationAlarms(req, res) {
 
         const alarms =
             await alarmService.getInstallationAlarms(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -888,7 +888,7 @@ export async function installationPerformance(req, res) {
 
         const performance =
             await statisticsService.getInstallationPerformance(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -918,7 +918,7 @@ export async function installationReliability(req, res) {
 
         const metrics =
             await reliabilityService.generateReliabilityMetrics(
-                req.params.id
+                req.body.id
             );
 
         return res.status(200).json({
@@ -949,8 +949,8 @@ export async function exportInstallation(req, res) {
 
         const result =
             await installationService.exportInstallation(
-                req.params.id,
-                req.query.format || "json"
+                req.body.id,
+                req.body.format || "json"
             );
 
         return res.status(200).json({
@@ -991,7 +991,7 @@ export async function cloneInstallation(req, res) {
         const installation =
             await installationService.cloneInstallation(
 
-                req.params.id,
+                req.body.id,
 
                 req.body.siteId
 
@@ -1035,7 +1035,7 @@ export async function validateInstallation(req, res) {
         const validation =
             await installationService.validateInstallation(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -1075,7 +1075,7 @@ export async function archiveInstallation(req, res) {
         const installation =
             await installationService.archiveInstallation(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -1117,7 +1117,7 @@ export async function restoreInstallation(req, res) {
         const installation =
             await installationService.restoreInstallation(
 
-                req.params.id
+                req.body.id
 
             );
 

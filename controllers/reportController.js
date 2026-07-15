@@ -13,7 +13,7 @@ export async function siteOverviewReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -23,7 +23,7 @@ export async function siteOverviewReport(
 
             await reportService.generateSiteOverviewReport(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -31,39 +31,39 @@ export async function siteOverviewReport(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                report
+                    report
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -84,7 +84,7 @@ export async function energyReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -96,7 +96,7 @@ export async function energyReport(
 
             endDate
 
-        } = req.query;
+        } = req.body;
 
 
 
@@ -106,7 +106,7 @@ export async function energyReport(
 
                 siteId:
 
-                    req.params.siteId,
+                    req.body.siteId,
 
 
                 startDate:
@@ -125,7 +125,7 @@ export async function energyReport(
         res.json({
 
 
-            success:true,
+            success: true,
 
 
             data:
@@ -138,23 +138,23 @@ export async function energyReport(
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -175,7 +175,7 @@ export async function batteryReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -185,7 +185,7 @@ export async function batteryReport(
 
             await reportService.generateBatteryReport(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -194,7 +194,7 @@ export async function batteryReport(
         res.json({
 
 
-            success:true,
+            success: true,
 
 
             data:
@@ -207,23 +207,23 @@ export async function batteryReport(
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -244,7 +244,7 @@ export async function reliabilityReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -256,14 +256,14 @@ export async function reliabilityReport(
 
                 siteId:
 
-                    req.params.siteId,
+                    req.body.siteId,
 
 
                 startDate:
 
                     new Date(
 
-                        req.query.startDate
+                        req.body.startDate
 
                     ),
 
@@ -272,7 +272,7 @@ export async function reliabilityReport(
 
                     new Date(
 
-                        req.query.endDate
+                        req.body.endDate
 
                     )
 
@@ -283,7 +283,7 @@ export async function reliabilityReport(
         res.json({
 
 
-            success:true,
+            success: true,
 
 
             data:
@@ -296,23 +296,23 @@ export async function reliabilityReport(
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -331,7 +331,7 @@ export async function alarmReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -343,14 +343,14 @@ export async function alarmReport(
 
                 siteId:
 
-                    req.params.siteId,
+                    req.body.siteId,
 
 
                 startDate:
 
                     new Date(
 
-                        req.query.startDate
+                        req.body.startDate
 
                     ),
 
@@ -359,7 +359,7 @@ export async function alarmReport(
 
                     new Date(
 
-                        req.query.endDate
+                        req.body.endDate
 
                     )
 
@@ -369,39 +369,39 @@ export async function alarmReport(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                report
+                    report
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -422,7 +422,7 @@ export async function maintenanceReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -432,7 +432,7 @@ export async function maintenanceReport(
 
             await reportService.generateMaintenanceReport(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 
@@ -440,39 +440,39 @@ export async function maintenanceReport(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                report
+                    report
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -493,7 +493,7 @@ export async function dashboardReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -507,39 +507,39 @@ export async function dashboardReport(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                report
+                    report
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -560,7 +560,7 @@ export async function executiveReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -574,39 +574,39 @@ export async function executiveReport(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                report
+                    report
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -627,7 +627,7 @@ export async function exportReport(
 
     res
 
-){
+) {
 
 
     try {
@@ -645,39 +645,39 @@ export async function exportReport(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                exported
+                    exported
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -696,10 +696,10 @@ function validateDateRange(
 
     endDate
 
-){
+) {
 
 
-    if(!startDate || !endDate){
+    if (!startDate || !endDate) {
 
 
         throw new Error(
@@ -724,13 +724,13 @@ function validateDateRange(
 
 
 
-    if(
+    if (
 
         isNaN(start) ||
 
         isNaN(end)
 
-    ){
+    ) {
 
 
         throw new Error(
@@ -743,11 +743,11 @@ function validateDateRange(
 
 
 
-    if(
+    if (
 
         start > end
 
-    ){
+    ) {
 
 
         throw new Error(
@@ -781,10 +781,10 @@ function validateSiteId(
 
     siteId
 
-){
+) {
 
 
-    if(!siteId){
+    if (!siteId) {
 
 
         throw new Error(
@@ -818,9 +818,9 @@ function validateSiteId(
 
 export function checkReportPermission(
 
-    permission="VIEW_REPORTS"
+    permission = "VIEW_REPORTS"
 
-){
+) {
 
 
     return permission;
@@ -834,37 +834,34 @@ export function checkReportPermission(
 |--------------------------------------------------------------------------
 */
 
-export function reportResponse({
+export async function reportResponse(req, res) {
 
-    res,
+    const report = await Report.findById(
 
-    data,
+        req.body.reportId
 
-    message="Report generated successfully"
-
-}){
-
+    );
 
     return res.status(200)
 
-    .json({
+        .json({
 
 
-        success:true,
+            success: true,
 
 
-        message,
+            message,
 
 
-        generatedAt:
+            generatedAt:
 
-            new Date(),
-
-
-        data
+                new Date(),
 
 
-    });
+            data
+
+
+        });
 
 }
 

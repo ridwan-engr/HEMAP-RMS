@@ -88,7 +88,7 @@ export async function getBatteryById(req, res, next) {
 
             await batteryService.getBatteryBank(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -138,7 +138,7 @@ export async function updateBattery(req, res, next) {
 
             await batteryService.updateBatteryBank(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -192,7 +192,7 @@ export async function deleteBattery(req, res, next) {
 
             await batteryService.deleteBatteryBank(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -242,7 +242,7 @@ export async function getBatteryBySite(req, res, next) {
 
             await batteryService.getBatteryBanks(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 

@@ -88,7 +88,7 @@ export async function getFaultById(req, res, next) {
 
             await faultService.getFaultById(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -138,7 +138,7 @@ export async function updateFault(req, res, next) {
 
             await faultService.updateFault(
 
-                req.params.id,
+                req.body.id,
 
                 req.body
 
@@ -192,7 +192,7 @@ export async function deleteFault(req, res, next) {
 
             await faultService.deleteFault(
 
-                req.params.id
+                req.body.id
 
             );
 
@@ -242,7 +242,7 @@ export async function getFaultsBySite(req, res, next) {
 
             await faultService.getFaultsBySite(
 
-                req.params.siteId
+                req.body.siteId
 
             );
 

@@ -12,29 +12,29 @@ import logger from "../utils/logger.js";
 
 export const getOptimizations = asyncHandler(async (req, res) => {
 
-    const page = Number(req.query.page) || 1;
+    const page = Number(req.body.page) || 1;
 
-    const limit = Number(req.query.limit) || 20;
+    const limit = Number(req.body.limit) || 20;
 
     const skip = (page - 1) * limit;
 
     const filter = {};
 
-    if (req.query.site) {
+    if (req.body.site) {
 
-        filter.site = req.query.site;
-
-    }
-
-    if (req.query.algorithm) {
-
-        filter.algorithm = req.query.algorithm;
+        filter.site = req.body.site;
 
     }
 
-    if (req.query.status) {
+    if (req.body.algorithm) {
 
-        filter.status = req.query.status;
+        filter.algorithm = req.body.algorithm;
+
+    }
+
+    if (req.body.status) {
+
+        filter.status = req.body.status;
 
     }
 
@@ -82,7 +82,7 @@ export const getOptimization = asyncHandler(async (req, res) => {
 
     const result = await OptimizationResult.findById(
 
-        req.params.id
+        req.body.id
 
     )
 
@@ -152,7 +152,7 @@ export const updateOptimization = asyncHandler(async (req, res) => {
 
     const result = await OptimizationResult.findById(
 
-        req.params.id
+        req.body.id
 
     );
 
@@ -204,7 +204,7 @@ export const deleteOptimization = asyncHandler(async (req, res) => {
 
     const result = await OptimizationResult.findById(
 
-        req.params.id
+        req.body.id
 
     );
 
@@ -246,7 +246,7 @@ export const deleteOptimization = asyncHandler(async (req, res) => {
 
 export const getLatestOptimization = asyncHandler(async (req, res) => {
 
-    const { siteId } = req.params;
+    const { siteId } = req.body;
 
     const result = await OptimizationResult.findOne({
 
@@ -294,7 +294,7 @@ export const getLatestOptimization = asyncHandler(async (req, res) => {
 
 export const getOptimizationHistory = asyncHandler(async (req, res) => {
 
-    const { siteId } = req.params;
+    const { siteId } = req.body;
 
     const history = await OptimizationResult.find({
 
@@ -334,7 +334,7 @@ export const getOptimizationHistory = asyncHandler(async (req, res) => {
 
 export const executeOptimization = asyncHandler(async (req, res) => {
 
-    const { siteId } = req.params;
+    const { siteId } = req.body;
 
     logger.info(
 

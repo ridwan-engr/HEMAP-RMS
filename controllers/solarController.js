@@ -13,23 +13,23 @@ import logger from "../utils/logger.js";
 
 export const getSolars = asyncHandler(async (req, res) => {
 
-    const page = Number(req.query.page) || 1;
+    const page = Number(req.body.page) || 1;
 
-    const limit = Number(req.query.limit) || 20;
+    const limit = Number(req.body.limit) || 20;
 
     const skip = (page - 1) * limit;
 
     const filter = {};
 
-    if (req.query.site) {
+    if (req.body.site) {
 
-        filter.site = req.query.site;
+        filter.site = req.body.site;
 
     }
 
-    if (req.query.status) {
+    if (req.body.status) {
 
-        filter.status = req.query.status;
+        filter.status = req.body.status;
 
     }
 
@@ -69,7 +69,7 @@ export const getSolars = asyncHandler(async (req, res) => {
 
 export const getSolar = asyncHandler(async (req, res) => {
 
-    const asset = await Solar.findById(req.params.id)
+    const asset = await Solar.findById(req.body.id)
 
         .populate("site", "name siteCode");
 
@@ -135,7 +135,7 @@ export const createSolar = asyncHandler(async (req, res) => {
 
 export const updateSolar = asyncHandler(async (req, res) => {
 
-    const asset = await Solar.findById(req.params.id);
+    const asset = await Solar.findById(req.body.id);
 
     if (!asset) {
 
@@ -173,7 +173,7 @@ export const updateSolar = asyncHandler(async (req, res) => {
 
 export const deleteSolar = asyncHandler(async (req, res) => {
 
-    const asset = await Solar.findById(req.params.id);
+    const asset = await Solar.findById(req.body.id);
 
     if (!asset) {
 
@@ -211,7 +211,7 @@ export const getSolarBySite = asyncHandler(async (req, res) => {
 
     const assets = await Solar.find({
 
-        site: req.params.siteId
+        site: req.body.siteId
 
     }).sort({
 
@@ -239,7 +239,7 @@ export const getSolarBySite = asyncHandler(async (req, res) => {
 
 export const getSolarSystems = asyncHandler(async (req, res) => {
 
-    const siteId = req.params.siteId;
+    const siteId = req.body.siteId;
 
     const assets = await Solar.find({
 
@@ -311,7 +311,7 @@ export const getSolarSystems = asyncHandler(async (req, res) => {
 
 export const updateSolarRealtime = asyncHandler(async (req, res) => {
 
-    const asset = await Solar.findById(req.params.id);
+    const asset = await Solar.findById(req.body.id);
 
     if (!asset) {
 

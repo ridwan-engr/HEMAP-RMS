@@ -568,7 +568,7 @@ export async function getNotificationPreferences(req, res) {
         const preferences =
             await notificationService.getNotificationPreferences(
 
-                req.params.userId
+                req.body.userId
 
             );
 
@@ -608,7 +608,7 @@ export async function updateNotificationPreferences(req, res) {
         const preferences =
             await notificationService.updateNotificationPreferences(
 
-                req.params.userId,
+                req.body.userId,
 
                 req.body
 
@@ -650,9 +650,9 @@ export async function getNotificationHistory(req, res) {
         const history =
             await notificationService.getNotificationHistory({
 
-                userId: req.params.userId,
+                userId: req.body.userId,
 
-                ...req.query
+                ...req.body
 
             });
 
@@ -754,7 +754,7 @@ export async function updateNotificationTemplate(req, res) {
         const template =
             await notificationService.updateNotificationTemplate(
 
-                req.params.templateId,
+                req.body.templateId,
 
                 req.body
 
@@ -789,7 +789,7 @@ export async function deleteNotificationTemplate(req, res) {
 
         await notificationService.deleteNotificationTemplate(
 
-            req.params.templateId
+            req.body.templateId
 
         );
 
@@ -933,7 +933,7 @@ export async function notificationStatistics(req, res) {
     try {
 
         const statistics =
-            await notificationService.getNotificationStatistics(req.query);
+            await notificationService.getNotificationStatistics(req.body);
 
         return res.status(200).json({
 
@@ -1005,7 +1005,7 @@ export async function markNotificationAsRead(req, res) {
         const notification =
             await notificationService.markNotificationAsRead(
 
-                req.params.notificationId
+                req.body.notificationId
 
             );
 
@@ -1043,7 +1043,7 @@ export async function markAllNotificationsAsRead(req, res) {
         const result =
             await notificationService.markAllNotificationsAsRead(
 
-                req.params.userId
+                req.body.userId
 
             );
 
@@ -1080,7 +1080,7 @@ export async function deleteNotification(req, res) {
 
         await notificationService.deleteNotification(
 
-            req.params.notificationId
+            req.body.notificationId
 
         );
 
@@ -1118,7 +1118,7 @@ export async function retryNotification(req, res) {
         const result =
             await notificationService.retryNotification(
 
-                req.params.notificationId
+                req.body.notificationId
 
             );
 
