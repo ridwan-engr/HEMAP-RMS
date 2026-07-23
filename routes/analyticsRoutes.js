@@ -284,7 +284,7 @@ router.get(
     analyticsController.analyticsDashboard
 );
 
-router.post(
+/*router.post(
     "/refresh",
     authenticate,
     authorize("ADMIN"),
@@ -295,6 +295,6 @@ router.get(
     "/history/:site",
     authenticate,
     analyticsController.analyticsHistory
-);
+);*/
 
 export default router;

@@ -1250,7 +1250,7 @@ export const overallKPIs = async (req, res, next) => {
 
     }
 
-export async function findCachedAnalytics(
+/*export async function findCachedAnalytics(
 
     site,
 
@@ -1480,7 +1480,7 @@ export async function analyticsHistory(
 
     }
 
-}
+}*/
 
 };
 export default {
@@ -1562,14 +1562,14 @@ export default {
 
     portfolioAnalytics,
 
-    executiveDashboard,
+    executiveDashboard
 
-    analyticsHistory,
+    //analyticsHistory,
 
-    refreshAnalytics,
+    //refreshAnalytics,
 
-    buildAnalytics,
+    //buildAnalytics,
 
-    findCachedAnalytics
+    //findCachedAnalytics
 
 };

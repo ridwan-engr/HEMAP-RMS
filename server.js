@@ -12,7 +12,7 @@ import logger from "./utils/logger.js";
 
 import { initializeSocket } from "./websocket/socket.js";
 
-import startSchedulers from "./scheduler/index.js";
+import startSchedulers from "./schedulers/index.js";
 
 import mongoose from "mongoose";
 

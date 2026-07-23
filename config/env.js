@@ -85,6 +85,8 @@ export const env = {
 
     smsBaseUrl: process.env.SMS_BASE_URL,
 
+    interval: process.env.OPTIMIZATION_INTERVAL || "15mins"
+
 };
 
 export default env;

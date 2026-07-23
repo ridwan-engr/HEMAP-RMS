@@ -29,6 +29,7 @@ import energyForecastRoutes from "./energyForecastRoutes.js";
 import optimizationResultRoutes from "./optimizationResultRoutes.js";
 import systemSettingRoutes from "./systemSettingRoutes.js";
 import dashboardRoutes from "./dashboardRoutes.js";
+import optimizationRoutes from "./optimizationRoutes.js";
 const router = Router();
 
 /*
@@ -127,5 +128,6 @@ router.use("/forecasts", energyForecastRoutes);
 router.use("/optimization", optimizationResultRoutes);
 router.use("/settings", systemSettingRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use( "/optimization", optimizationRoutes);
 
 export default router;

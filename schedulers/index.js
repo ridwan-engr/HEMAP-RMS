@@ -1,7 +1,7 @@
 import cron from "node-cron";
 
-import { startTelemetryScheduler} from "./telemetryScheduler.js";
-import startAnalyticsScheduler from "./analyticsScheduler.js";
+import { startTelemetryScheduler } from "./telemetryScheduler.js";
+import { startAnalyticsScheduler } from "./analyticsScheduler.js";
 import startOptimizationScheduler from "./optimizationScheduler.js";
 import startDashboardScheduler from "./dashboardScheduler.js";
 import startNotificationScheduler from "./notificationScheduler.js";
