@@ -1,7 +1,18 @@
 /*
 |--------------------------------------------------------------------------
-| Build Optimization Constraints
+| HEMAP Constraint Builder
 |--------------------------------------------------------------------------
+|
+| Builds optimization constraints compatible with the FastAPI
+| OptimizationRequest schema.
+|
+| Output Structure
+| ----------------
+| constraints
+|   ├── battery
+|   ├── generator
+|   └── grid
+|
 */
 
 export function build(userConstraints = {}) {
@@ -10,163 +21,75 @@ export function build(userConstraints = {}) {
 
         /*
         |--------------------------------------------------------------------------
-        | Battery
+        | Battery Constraints
         |--------------------------------------------------------------------------
         */
 
         battery: {
 
-            minimumSOC:
+            // Battery Energy Capacity (kWh)
+            capacity:
+                Number(userConstraints.capacity ?? 100),
 
-                userConstraints.minimumSOC ?? 20,
+            // SOC Limits (%)
+            minimumSOC:
+                Number(userConstraints.minimumSOC ?? 20),
 
             maximumSOC:
+                Number(userConstraints.maximumSOC ?? 95),
 
-                userConstraints.maximumSOC ?? 95,
+            // Initial Battery SOC (%)
+            initialSOC:
+                Number(userConstraints.initialSOC ?? 80),
 
-            reserveSOC:
-
-                userConstraints.reserveSOC ?? 30,
-
+            // Charge / Discharge Limits (kW)
             maximumChargePower:
-
-                userConstraints.maximumChargePower ?? null,
+                Number(userConstraints.maximumChargePower ?? 50),
 
             maximumDischargePower:
+                Number(userConstraints.maximumDischargePower ?? 50),
 
-                userConstraints.maximumDischargePower ?? null,
-
+            // Battery Efficiency
             chargingEfficiency:
-
-                userConstraints.chargingEfficiency ?? 0.95,
+                Number(userConstraints.chargingEfficiency ?? 0.95),
 
             dischargingEfficiency:
-
-                userConstraints.dischargingEfficiency ?? 0.95
+                Number(userConstraints.dischargingEfficiency ?? 0.95)
 
         },
 
         /*
         |--------------------------------------------------------------------------
-        | Generator
+        | Generator Constraints
         |--------------------------------------------------------------------------
         */
 
         generator: {
 
+            minimumPower:
+                Number(userConstraints.minimumGeneratorPower ?? 0),
+
             maximumPower:
+                Number(userConstraints.maximumGeneratorPower ?? 100),
 
-                userConstraints.maximumGeneratorPower ?? null,
-
-            minimumLoading:
-
-                userConstraints.minimumGeneratorLoading ?? 30,
-
-            minimumRuntime:
-
-                userConstraints.minimumRuntime ?? 1,
-
-            startupLimit:
-
-                userConstraints.maximumStartups ?? null
+            startupCost:
+                Number(userConstraints.generatorStartupCost ?? 0)
 
         },
 
         /*
         |--------------------------------------------------------------------------
-        | Grid
+        | Grid Constraints
         |--------------------------------------------------------------------------
         */
 
         grid: {
 
             maximumImport:
-
-                userConstraints.maximumGridImport ?? null,
+                Number(userConstraints.maximumGridImport ?? 1000),
 
             maximumExport:
-
-                userConstraints.maximumGridExport ?? null
-
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Renewable
-        |--------------------------------------------------------------------------
-        */
-
-        renewable: {
-
-            target:
-
-                userConstraints.renewableTarget ?? 0
-
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Reliability
-        |--------------------------------------------------------------------------
-        */
-
-        reliability: {
-
-            maximumENS:
-
-                userConstraints.maximumENS ?? null,
-
-            maximumLOLP:
-
-                userConstraints.maximumLOLP ?? null,
-
-            maximumLOLE:
-
-                userConstraints.maximumLOLE ?? null,
-
-            maximumSAIDI:
-
-                userConstraints.maximumSAIDI ?? null,
-
-            maximumSAIFI:
-
-                userConstraints.maximumSAIFI ?? null
-
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Emissions
-        |--------------------------------------------------------------------------
-        */
-
-        emissions: {
-
-            maximumCO2:
-
-                userConstraints.maximumCO2 ?? null
-
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Solver
-        |--------------------------------------------------------------------------
-        */
-
-        solver: {
-
-            mipGap:
-
-                userConstraints.mipGap ?? 0.001,
-
-            timeLimit:
-
-                userConstraints.timeLimit ?? 300,
-
-            threads:
-
-                userConstraints.threads ?? 4
+                Number(userConstraints.maximumGridExport ?? 1000)
 
         }
 

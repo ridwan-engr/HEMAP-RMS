@@ -1,3 +1,17 @@
+/*
+|--------------------------------------------------------------------------
+| HEMAP Optimization Service
+|--------------------------------------------------------------------------
+|
+| Responsible for:
+| • Collecting optimization data
+| • Building optimization payload
+| • Calling FastAPI Optimization Service
+| • Formatting solver response
+| • Persisting optimization results
+|
+*/
+
 import OptimizationRun from "../../models/OptimizationRun.js";
 
 import logger from "../../utils/logger.js";
@@ -17,6 +31,50 @@ import * as resultFormatter from "./resultFormatter.js";
 
 /*
 |--------------------------------------------------------------------------
+| Retry Helper
+|--------------------------------------------------------------------------
+*/
+
+async function solveWithRetry(payload, retries = 2) {
+
+    let lastError;
+
+    for (let attempt = 1; attempt <= retries + 1; attempt++) {
+
+        try {
+
+            logger.info(`Calling FastAPI (Attempt ${attempt})`);
+
+            return await pyomoClient.solve(payload);
+
+        }
+
+        catch (error) {
+
+            lastError = error;
+
+            logger.warn(
+                `Optimization attempt ${attempt} failed: ${error.message}`
+            );
+
+            if (attempt <= retries) {
+
+                await new Promise(resolve =>
+                    setTimeout(resolve, 1000)
+                );
+
+            }
+
+        }
+
+    }
+
+    throw lastError;
+
+}
+
+/*
+|--------------------------------------------------------------------------
 | Run Optimization
 |--------------------------------------------------------------------------
 */
@@ -25,89 +83,129 @@ export async function runOptimization(
 
     optimizationId,
 
-    options
+    options = {}
+    
+) 
 
-) {
+{
 
     const optimization = await OptimizationRun.findById(
-
+        
         optimizationId
-
+    
     );
 
-    if (!optimization)
+    if (!optimization) {
 
-        throw new Error(
+        throw new Error("Optimization not found.");
 
-            "Optimization not found."
+    }
 
-        );
+    const startedAt = Date.now();
 
     try {
 
+        logger.info(
+
+            `Starting optimization ${optimizationId}`
+        
+        );
+
         optimization.status = "RUNNING";
+        
+        optimization.startedAt = new Date();
 
         await optimization.save();
 
         /*
-        -------------------------------------------------------------
-        Collect Data
-        -------------------------------------------------------------
+        --------------------------------------------------------------
+        Collect Telemetry
+        --------------------------------------------------------------
         */
 
-        const telemetry = await telemetryCollector.collect(
+        logger.info("Collecting telemetry...");
 
-            optimization.site,
-
-            optimization.startDate,
-
-            optimization.endDate
-
-        );
-
-        const forecast = await forecastCollector.collect(
-
-            optimization.site,
-
-            optimization.startDate,
-
-            optimization.endDate
-
-        );
-
-        const tariff = await tariffCollector.collect(
-
-            optimization.site
-
-        );
+        const telemetry =
+            await telemetryCollector.collect(
+                optimization.site,
+                optimization.startDate,
+                optimization.endDate
+            );
 
         /*
-        -------------------------------------------------------------
-        Build Model
-        -------------------------------------------------------------
+        --------------------------------------------------------------
+        Forecast
+        --------------------------------------------------------------
         */
+
+        logger.info("Collecting forecast...");
+
+        const forecast =
+
+            await forecastCollector.collect(
+
+                optimization.site,
+
+                optimization.startDate,
+
+                optimization.endDate
+            );
+
+        /*
+        --------------------------------------------------------------
+        Tariff
+        --------------------------------------------------------------
+        */
+
+        logger.info("Collecting tariff...");
+
+        const tariff =
+
+            await tariffCollector.collect(
+
+                optimization.site
+
+            );
+
+        /*
+        --------------------------------------------------------------
+        Constraints
+        --------------------------------------------------------------
+        */
+
+        logger.info("Building constraints...");
 
         const constraints =
 
             constraintBuilder.build(
 
-                options.constraints
+                options.constraints ?? {}
 
             );
+
+        /*
+        --------------------------------------------------------------
+        Objectives
+        --------------------------------------------------------------
+        */
+
+        logger.info("Building objectives...");
 
         const objectives =
 
             objectiveBuilder.build(
 
-                options.objectives
+                options.objectives ?? {}
 
             );
 
         /*
-        -------------------------------------------------------------
-        Prepare JSON
-        -------------------------------------------------------------
+        --------------------------------------------------------------
+        Build Payload
+        --------------------------------------------------------------
         */
+
+        logger.info("Formatting payload...");
 
         const payload =
 
@@ -125,91 +223,149 @@ export async function runOptimization(
 
                 objectives,
 
-                solver: options.solver
+                solver:
+
+                    options.solver ?? {}
 
             });
 
-        /*
-        -------------------------------------------------------------
-        Run Python
-        -------------------------------------------------------------
-        */
+        optimization.inputs = payload;
 
-        const solverResult =
-
-            await pyomoClient.solve(
-
-                payload
-
-            );
+        await optimization.save();
 
         /*
-        -------------------------------------------------------------
-        Parse Result
-        -------------------------------------------------------------
+        --------------------------------------------------------------
+        Run FastAPI Optimization
+        --------------------------------------------------------------
         */
+
+        logger.info("Sending payload to FastAPI...");
+
+        const solverResponse =
+
+            await solveWithRetry(payload);
+
+        /*
+        --------------------------------------------------------------
+        Format Result
+        --------------------------------------------------------------
+        */
+
+        logger.info("Formatting optimization result...");
 
         const result =
 
             resultFormatter.format(
 
-                solverResult
+                solverResponse
 
             );
 
         /*
-        -------------------------------------------------------------
-        Save
-        -------------------------------------------------------------
+        --------------------------------------------------------------
+        Runtime
+        --------------------------------------------------------------
         */
 
-        optimization.inputs = payload;
+        const executionTime =
 
-        optimization.dispatchSchedule =
+            Date.now() - startedAt;
 
-            result.dispatch;
+        /*
+        --------------------------------------------------------------
+        Save Result
+        --------------------------------------------------------------
+        */
 
-        optimization.objectives =
+        optimization.executionTime =
 
-            result.objectives;
+            executionTime;
 
-        optimization.reliability =
+        optimization.completedAt =
 
-            result.reliability;
-
-        optimization.solver =
-
-            result.solver;
+            new Date();
 
         optimization.status =
 
             "COMPLETED";
 
+        optimization.rawSolverResponse =
+
+            solverResponse;
+
+        optimization.outputs =
+
+            result;
+
+        optimization.dispatchSchedule =
+
+            result.dispatch;
+
+        optimization.energy =
+
+            result.energy;
+
+        optimization.economics =
+
+            result.economics;
+
+        optimization.emissions =
+
+            result.emissions;
+
+        optimization.reliability =
+
+            result.reliability;
+
+        optimization.objectives =
+
+            result.objectives;
+
+        optimization.solver =
+
+            result.solver;
+
         await optimization.save();
 
-        logger.success(
+        logger.info(
 
-            `Optimization ${optimizationId} completed.`
+            `Optimization ${optimizationId} completed successfully in ${executionTime} ms.`
 
         );
 
-        return optimization;
+        return {
+
+            success: true,
+
+            optimization,
+
+            result
+
+        };
 
     }
 
     catch (error) {
 
-        optimization.status = "FAILED";
-
-        optimization.errorMessage =
-
-            error.message;
-
-        await optimization.save();
-
         logger.error(error);
 
-        throw error;
+        optimization.status = "FAILED";
+
+        optimization.failedAt = new Date();
+
+        optimization.error = {
+
+            message: error.message,
+
+            stack: error.stack,
+
+            timestamp: new Date()
+
+        };
+
+    await optimization.save();
+
+    throw error;
 
     }
 

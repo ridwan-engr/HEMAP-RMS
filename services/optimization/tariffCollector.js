@@ -144,20 +144,16 @@ export async function collect(siteId) {
 
     return {
 
-        gridImportTariff,
+    gridImportTariff,
 
-        gridExportTariff,
+    gridExportTariff,
 
-        dieselPrice,
+    dieselPrice,
 
-        generatorMaintenanceCost,
+    batteryCycleCost,
 
-        batteryCycleCost,
+    carbonCost
 
-        carbonCost,
-
-        renewableCredit
-
-    };
+};
 
 }

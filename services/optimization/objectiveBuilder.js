@@ -1,10 +1,10 @@
 /*
 |--------------------------------------------------------------------------
-| Default Objective Weights
+| HEMAP Objective Builder
 |--------------------------------------------------------------------------
 |
-| The weights should sum to 1.0 for a balanced optimization.
-| They can be overridden from the optimization request.
+| Builds an Objectives object compatible with the FastAPI
+| OptimizationRequest schema.
 |
 */
 
@@ -12,73 +12,27 @@ const DEFAULT_WEIGHTS = {
 
     cost: 0.40,
 
-    fuel: 0.15,
+    battery: 0.15,
 
-    emission: 0.10,
+    emission: 0.15,
 
     renewable: 0.15,
 
-    battery: 0.10,
-
-    reliability: 0.10
+    reliability: 0.15
 
 };
 
-/*
-|--------------------------------------------------------------------------
-| Build Objective Function
-|--------------------------------------------------------------------------
-*/
-
 export function build(objectives = {}) {
-
-    const weights = {
-
-        ...DEFAULT_WEIGHTS,
-
-        ...(objectives.weights || {})
-
-    };
 
     return {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Enabled Objectives
-        |--------------------------------------------------------------------------
-        */
+        weights: {
 
-        minimizeCost:
+            ...DEFAULT_WEIGHTS,
 
-            objectives.minimizeCost ?? true,
+            ...(objectives.weights || {})
 
-        minimizeFuel:
-
-            objectives.minimizeFuel ?? false,
-
-        minimizeEmission:
-
-            objectives.minimizeEmission ?? false,
-
-        maximizeRenewable:
-
-            objectives.maximizeRenewable ?? false,
-
-        maximizeBatteryLife:
-
-            objectives.maximizeBatteryLife ?? false,
-
-        maximizeReliability:
-
-            objectives.maximizeReliability ?? false,
-
-        /*
-        |--------------------------------------------------------------------------
-        | Objective Weights
-        |--------------------------------------------------------------------------
-        */
-
-        weights
+        }
 
     };
 

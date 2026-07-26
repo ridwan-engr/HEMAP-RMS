@@ -2,33 +2,30 @@ import mongoose from "mongoose";
 
 /*
 |--------------------------------------------------------------------------
-| Dispatch Schedule
+| Dispatch Interval
 |--------------------------------------------------------------------------
 */
 
 const dispatchSchema = new mongoose.Schema(
     {
-        timestamp: {
-            type: Date,
+        time: {
+            type: Number,
             required: true
         },
 
-        solar: {
+        timestamp: Date,
+
+        load: {
             type: Number,
             default: 0
         },
 
-        batteryCharge: {
+        solarUsed: {
             type: Number,
             default: 0
         },
 
-        batteryDischarge: {
-            type: Number,
-            default: 0
-        },
-
-        generator: {
+        generatorPower: {
             type: Number,
             default: 0
         },
@@ -43,7 +40,12 @@ const dispatchSchema = new mongoose.Schema(
             default: 0
         },
 
-        load: {
+        batteryCharge: {
+            type: Number,
+            default: 0
+        },
+
+        batteryDischarge: {
             type: Number,
             default: 0
         },
@@ -53,52 +55,9 @@ const dispatchSchema = new mongoose.Schema(
             default: 0
         },
 
-        dispatchSchedule: {
-            type: Array,
-            default: []
-        },
-    },
-    {
-        _id: false
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| Objective Results
-|--------------------------------------------------------------------------
-*/
-
-const objectiveSchema = new mongoose.Schema(
-    {
-        operatingCost: {
-            type: Number,
-            default: 0
-        },
-
-        fuelCost: {
-            type: Number,
-            default: 0
-        },
-
-        gridCost: {
-            type: Number,
-            default: 0
-        },
-
-        batteryCost: {
-            type: Number,
-            default: 0
-        },
-
-        emissionCost: {
-            type: Number,
-            default: 0
-        },
-
-        totalCost: {
-            type: Number,
-            default: 0
+        generatorStatus: {
+            type: Boolean,
+            default: false
         }
     },
     {
@@ -108,7 +67,78 @@ const objectiveSchema = new mongoose.Schema(
 
 /*
 |--------------------------------------------------------------------------
-| Reliability Results
+| Objective Summary
+|--------------------------------------------------------------------------
+*/
+
+const objectiveSchema = new mongoose.Schema(
+    {
+        totalCost: Number,
+
+        gridCost: Number,
+
+        dieselCost: Number,
+
+        batteryCost: Number,
+
+        carbonCost: Number,
+
+        exportRevenue: Number,
+
+        renewablePenalty: Number
+    },
+    {
+        _id: false
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| Energy Summary
+|--------------------------------------------------------------------------
+*/
+
+const energySchema = new mongoose.Schema(
+    {
+        load: Number,
+
+        solar: Number,
+
+        generator: Number,
+
+        gridImport: Number,
+
+        gridExport: Number,
+
+        batteryCharge: Number,
+
+        batteryDischarge: Number,
+
+        renewableFraction: Number
+    },
+    {
+        _id: false
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| Emissions
+|--------------------------------------------------------------------------
+*/
+
+const emissionSchema = new mongoose.Schema(
+    {
+        co2: Number
+    },
+    {
+        _id: false
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| Reliability
 |--------------------------------------------------------------------------
 */
 
@@ -137,7 +167,7 @@ const reliabilitySchema = new mongoose.Schema(
 
 /*
 |--------------------------------------------------------------------------
-| Solver Information
+| Solver
 |--------------------------------------------------------------------------
 */
 
@@ -145,16 +175,18 @@ const solverSchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            default: "HiGHS"
+            default: "highs"
         },
 
         status: String,
 
         terminationCondition: String,
 
-        runtime: Number,
+        solveTime: Number,
 
         iterations: Number,
+
+        mipGap: Number,
 
         objectiveValue: Number
     },
@@ -171,17 +203,17 @@ const solverSchema = new mongoose.Schema(
 
 const inputSchema = new mongoose.Schema(
     {
-        weatherForecast: mongoose.Schema.Types.Mixed,
+        telemetry: mongoose.Schema.Types.Mixed,
 
-        loadForecast: mongoose.Schema.Types.Mixed,
-
-        batteryParameters: mongoose.Schema.Types.Mixed,
-
-        generatorParameters: mongoose.Schema.Types.Mixed,
+        forecast: mongoose.Schema.Types.Mixed,
 
         tariff: mongoose.Schema.Types.Mixed,
 
-        constraints: mongoose.Schema.Types.Mixed
+        constraints: mongoose.Schema.Types.Mixed,
+
+        objectives: mongoose.Schema.Types.Mixed,
+
+        solver: mongoose.Schema.Types.Mixed
     },
     {
         _id: false
@@ -195,101 +227,122 @@ const inputSchema = new mongoose.Schema(
 */
 
 const optimizationRunSchema = new mongoose.Schema(
+    
     {
+    
         site: {
+    
             type: mongoose.Schema.Types.ObjectId,
+    
             ref: "Site",
+    
             required: true,
+    
             index: true
+    
         },
 
+    
         createdBy: {
+    
             type: mongoose.Schema.Types.ObjectId,
+    
+    
             ref: "User"
         },
 
         runType: {
+    
             type: String,
+    
             enum: [
-
+    
                 "MANUAL",
-
-                "SCHEDULED",
-
-                "AUTO"
-
+    
+                "AUTO",
+    
+                "SCHEDULED"
+    
             ],
+    
             default: "MANUAL"
+    
         },
 
         optimizationPeriod: {
+    
             type: String,
+    
             enum: [
-
+    
                 "HOURLY",
-
+    
                 "DAILY",
-
+    
                 "WEEKLY",
-
+    
                 "MONTHLY"
-
+    
             ],
+    
             default: "DAILY"
+    
         },
 
-        startDate: {
-            type: Date,
-            required: true
-        },
+        startDate: Date,
 
-        endDate: {
-            type: Date,
-            required: true
+        endDate: Date,
+
+    
+        status: {
+    
+            type: String,
+    
+            enum: [
+    
+                "PENDING",
+    
+                "RUNNING",
+    
+                "COMPLETED",
+    
+                "FAILED",
+    
+                "CANCELLED"
+    
+            ],
+    
+            default: "PENDING",
+    
+            index: true
+    
         },
 
         inputs: inputSchema,
 
-        dispatchSchedule: [
+        rawSolverResponse: mongoose.Schema.Types.Mixed,
 
-            dispatchSchema
-
-        ],
+        dispatchSchedule: [dispatchSchema],
 
         objectives: objectiveSchema,
+
+        energy: energySchema,
+
+        emissions: emissionSchema,
 
         reliability: reliabilitySchema,
 
         solver: solverSchema,
 
-        energy: {
-            type: mongoose.Schema.Types.Mixed
-        },
-
-
-        status: {
-            type: String,
-            enum: [
-
-                "PENDING",
-
-                "RUNNING",
-
-                "COMPLETED",
-
-                "FAILED",
-
-                "CANCELLED"
-
-            ],
-            default: "PENDING"
-        },
-
         errorMessage: String
     },
+    
     {
+    
         timestamps: true
+    
     }
+
 );
 
 /*
@@ -297,6 +350,7 @@ const optimizationRunSchema = new mongoose.Schema(
 | Indexes
 |--------------------------------------------------------------------------
 */
+
 
 optimizationRunSchema.index({
 
@@ -306,11 +360,13 @@ optimizationRunSchema.index({
 
 });
 
+
 optimizationRunSchema.index({
 
     status: 1
 
 });
+
 
 optimizationRunSchema.index({
 
@@ -318,11 +374,20 @@ optimizationRunSchema.index({
 
 });
 
+
 optimizationRunSchema.index({
 
     "solver.status": 1
 
 });
+
+
+optimizationRunSchema.index({
+
+    createdBy: 1
+
+});
+
 
 export default mongoose.model(
 

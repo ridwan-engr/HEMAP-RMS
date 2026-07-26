@@ -82,98 +82,18 @@ export async function collect(
 
     return telemetry.map(point => ({
 
-        timestamp:
+    timestamp: point.timestamp,
 
-            point.timestamp,
+    load: Number(point.loadPower || 0),
 
-        load:
+    solar: Number(point.solarPower || 0),
 
-            Number(
+    batterySOC: Number(point.batterySOC || 0),
 
-                point.loadPower || 0
+    generator: Number(point.generatorPower || 0),
 
-            ),
+    grid: Number(point.gridPower || 0)
 
-        pv:
-
-            Number(
-
-                point.solarPower || 0
-
-            ),
-
-        batteryPower:
-
-            Number(
-
-                point.batteryPower || 0
-
-            ),
-
-        batterySOC:
-
-            Number(
-
-                point.batterySOC || 0
-
-            ),
-
-        batteryVoltage:
-
-            Number(
-
-                point.batteryVoltage || 0
-
-            ),
-
-        batteryCurrent:
-
-            Number(
-
-                point.batteryCurrent || 0
-
-            ),
-
-        generatorPower:
-
-            Number(
-
-                point.generatorPower || 0
-
-            ),
-
-        gridPower:
-
-            Number(
-
-                point.gridPower || 0
-
-            ),
-
-        frequency:
-
-            Number(
-
-                point.frequency || 50
-
-            ),
-
-        voltage:
-
-            Number(
-
-                point.gridVoltage || 230
-
-            ),
-
-        temperature:
-
-            Number(
-
-                point.temperature || 25
-
-            )
-
-    }));
+}));
 
 }

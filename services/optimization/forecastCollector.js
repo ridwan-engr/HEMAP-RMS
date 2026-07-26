@@ -68,82 +68,24 @@ export async function collect(
 
     return forecast.map(item => ({
 
-        timestamp:
+    timestamp: item.timestamp,
 
-            item.timestamp,
+    expectedLoad: Number(
+        item.expectedLoad || 0
+    ),
 
-        expectedLoad:
+    expectedSolar: Number(
+        item.expectedSolar || 0
+    ),
 
-            Number(
+    irradiance: Number(
+        item.irradiance || 0
+    ),
 
-                item.expectedLoad || 0
+    temperature: Number(
+        item.temperature || 25
+    )
 
-            ),
-
-        expectedSolar:
-
-            Number(
-
-                item.expectedSolar || 0
-
-            ),
-
-        expectedWind:
-
-            Number(
-
-                item.expectedWind || 0
-
-            ),
-
-        expectedTemperature:
-
-            Number(
-
-                item.temperature || 25
-
-            ),
-
-        irradiance:
-
-            Number(
-
-                item.irradiance || 0
-
-            ),
-
-        cloudCover:
-
-            Number(
-
-                item.cloudCover || 0
-
-            ),
-
-        humidity:
-
-            Number(
-
-                item.humidity || 0
-
-            ),
-
-        windSpeed:
-
-            Number(
-
-                item.windSpeed || 0
-
-            ),
-
-        rainfall:
-
-            Number(
-
-                item.rainfall || 0
-
-            )
-
-    }));
-
+}));
+    
 }

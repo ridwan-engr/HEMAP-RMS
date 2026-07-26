@@ -70,25 +70,20 @@ export async function createOptimization(
 
         });
 
-        optimizerService
-
+    setImmediate(() => {
+    optimizerService
             .runOptimization(
-
-                optimization._id,
-
-                {
-
-                    solver,
-
-                    objectives,
-
-                    constraints
-
-                }
-
-            )
-
-            .catch(logger.error);
+        optimization._id,
+        {
+            solver,
+            objectives,
+            constraints,
+            userId: req.user._id,
+            siteId: site
+        }
+    )
+    .catch(logger.error);
+});
 
         res.status(202).json({
 
