@@ -125,7 +125,7 @@ router.use("/audit-logs", auditLogRoutes);
 */
 
 router.use("/forecasts", energyForecastRoutes);
-router.use("/optimization", optimizationResultRoutes);
+router.use("/optimization_results", optimizationResultRoutes);
 router.use("/settings", systemSettingRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use( "/optimization", optimizationRoutes);

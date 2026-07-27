@@ -13,10 +13,14 @@ import { env } from "../config/env.js";
 */
 
 export async function authenticate(req, res, next) {
-
+           
+        console.log(req.headers);
+    
     try {
 
         const authHeader = req.headers.authorization;
+
+        console.log("HEAD =:", authHeader);
 
         if (
             !authHeader ||
@@ -35,6 +39,8 @@ export async function authenticate(req, res, next) {
 
         const token = authHeader.split(" ")[1];
 
+        console.log("TOKEN =", token);
+
         const decoded = jwt.verify(
 
             token,
@@ -42,6 +48,8 @@ export async function authenticate(req, res, next) {
             env.jwtSecret
 
         );
+
+        console.log(decoded);
 
         const user = await User.findById(decoded.id)
 

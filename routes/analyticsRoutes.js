@@ -130,7 +130,7 @@ router.post(
 router.post(
     "/optimization/energy",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({ body: optimizationSchema }),
     analyticsController.optimizeEnergy
 );
@@ -138,7 +138,7 @@ router.post(
 router.post(
     "/optimization/generator",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({ body: optimizationSchema }),
     analyticsController.optimizeGeneratorDispatch
 );
@@ -146,7 +146,7 @@ router.post(
 router.post(
     "/optimization/battery",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({ body: optimizationSchema }),
     analyticsController.optimizeBattery
 );
@@ -154,7 +154,7 @@ router.post(
 router.post(
     "/optimization/grid",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({ body: optimizationSchema }),
     analyticsController.optimizeGrid
 );
@@ -162,7 +162,7 @@ router.post(
 router.post(
     "/optimization/hybrid",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({ body: optimizationSchema }),
     analyticsController.optimizeHybridDispatch
 );

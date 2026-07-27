@@ -70,16 +70,13 @@ export const login = asyncHandler(async (req, res) => {
 
 export const refreshToken = asyncHandler(async (req, res) => {
 
-    const accessToken = await authService.refresh(
-        refreshToken
-    );
+    const { refreshToken } = req.body;
+
+    const accessToken = await authService.refresh(refreshToken);
 
     res.json({
-
         success: true,
-
         accessToken
-
     });
 
 });

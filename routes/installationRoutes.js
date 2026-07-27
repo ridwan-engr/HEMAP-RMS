@@ -31,7 +31,7 @@ const router = Router();
 router.post(
     "/",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         body: createInstallationSchema
     }),
@@ -59,7 +59,7 @@ router.get(
 router.put(
     "/:installationId",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema,
         body: updateInstallationSchema
@@ -70,7 +70,7 @@ router.put(
 router.delete(
     "/:installationId",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -86,7 +86,7 @@ router.delete(
 router.patch(
     "/:installationId/site",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -96,7 +96,7 @@ router.patch(
 router.patch(
     "/:installationId/commission",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -106,7 +106,7 @@ router.patch(
 router.patch(
     "/:installationId/decommission",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -122,7 +122,7 @@ router.patch(
 router.post(
     "/:installationId/solar",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -132,7 +132,7 @@ router.post(
 router.post(
     "/:installationId/battery",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -142,7 +142,7 @@ router.post(
 router.post(
     "/:installationId/generator",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -152,7 +152,7 @@ router.post(
 router.post(
     "/:installationId/grid",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -162,7 +162,7 @@ router.post(
 router.post(
     "/:installationId/victron",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -172,7 +172,7 @@ router.post(
 router.post(
     "/:installationId/huawei",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -182,7 +182,7 @@ router.post(
 router.post(
     "/:installationId/smart-meter",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -285,7 +285,7 @@ router.get(
 router.get(
     "/:installationId/export",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -295,7 +295,7 @@ router.get(
 router.post(
     "/:installationId/clone",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -305,7 +305,7 @@ router.post(
 router.post(
     "/:installationId/validate",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -315,7 +315,7 @@ router.post(
 router.patch(
     "/:installationId/archive",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -325,7 +325,7 @@ router.patch(
 router.patch(
     "/:installationId/restore",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     validate({
         params: installationIdSchema
     }),
@@ -335,7 +335,7 @@ router.patch(
 router.get(
     "/statistics",
     authenticate,
-    authorize("admin"),
+    authorize("ADMIN"),
     installationController.installationStatistics
 );
 

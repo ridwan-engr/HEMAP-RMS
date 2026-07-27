@@ -1,5 +1,48 @@
 import * as roleService from "../services/users/roleService.js";
 
+export async function initializeRoles(req, res) {
+
+    try {
+
+        const roles = await roleService.initializeRoles();
+
+        if (!roles.length) {
+
+            return res.status(200).json({
+
+                success: true,
+
+                message: "Roles already initialized."
+
+            });
+
+        }
+
+        return res.status(201).json({
+
+            success: true,
+
+            message: "Default roles created successfully.",
+
+            data: roles
+
+        });
+
+    }
+
+    catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -13,7 +56,7 @@ export async function createRole(
 
     res
 
-){
+) {
 
 
     try {
@@ -31,44 +74,44 @@ export async function createRole(
 
         res.status(201)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            message:
+                message:
 
-                "Role created successfully",
-
-
-            data:
-
-                role
+                    "Role created successfully",
 
 
-        });
+                data:
+
+                    role
+
+
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -89,7 +132,7 @@ export async function getRoles(
 
     res
 
-){
+) {
 
 
     try {
@@ -103,39 +146,39 @@ export async function getRoles(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                roles
+                    roles
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -156,7 +199,7 @@ export async function getRoleById(
 
     res
 
-){
+) {
 
 
     try {
@@ -166,29 +209,27 @@ export async function getRoleById(
 
             await roleService.getRoleById(
 
-                req.body.id
-
+                req.params.id
             );
 
 
-
-        if(!role){
+        if (!role) {
 
 
             return res.status(404)
 
-            .json({
+                .json({
 
 
-                success:false,
+                    success: false,
 
 
-                message:
+                    message:
 
-                    "Role not found"
+                        "Role not found"
 
 
-            });
+                });
 
 
         }
@@ -197,39 +238,39 @@ export async function getRoleById(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                role
+                    role
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -250,7 +291,7 @@ export async function getRoleByName(
 
     res
 
-){
+) {
 
 
     try {
@@ -268,39 +309,39 @@ export async function getRoleByName(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                role
+                    role
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -321,7 +362,7 @@ export async function updateRole(
 
     res
 
-){
+) {
 
 
     try {
@@ -331,7 +372,7 @@ export async function updateRole(
 
             await roleService.updateRole(
 
-                req.body.id,
+                req.params.id,
 
                 req.body
 
@@ -341,51 +382,49 @@ export async function updateRole(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            message:
+                message:
 
-                "Role updated successfully",
-
-
-            data:
-
-                role
+                    "Role updated successfully",
 
 
-        });
+                data:
+
+                    role
+
+
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
 
 }
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -399,55 +438,52 @@ export async function deleteRole(
 
     res
 
-){
-
+) {
 
     try {
 
-
+        
         await roleService.deleteRole(
 
-            req.body.id
+            req.params.id
 
         );
 
-
-
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            message:
+                message:
 
-                "Role deleted successfully"
+                    "Role deleted successfully"
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -466,7 +502,7 @@ export async function addPermissionToRole(
 
     res
 
-){
+) {
 
 
     try {
@@ -475,10 +511,10 @@ export async function addPermissionToRole(
         const role =
 
             await roleService.addPermissionToRole(
+                
+                req.params.id,
 
-                req.body.id,
-
-                req.body.permissionId
+                req.body.permission
 
             );
 
@@ -486,44 +522,44 @@ export async function addPermissionToRole(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            message:
+                message:
 
-                "Permission added successfully",
-
-
-            data:
-
-                role
+                    "Permission added successfully",
 
 
-        });
+                data:
+
+                    role
+
+
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -544,7 +580,7 @@ export async function removePermissionFromRole(
 
     res
 
-){
+) {
 
 
     try {
@@ -554,9 +590,9 @@ export async function removePermissionFromRole(
 
             await roleService.removePermissionFromRole(
 
-                req.body.id,
+                req.params.id,
 
-                req.body.permissionId
+                req.params.permissionId
 
             );
 
@@ -564,44 +600,44 @@ export async function removePermissionFromRole(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            message:
+                message:
 
-                "Permission removed successfully",
-
-
-            data:
-
-                role
+                    "Permission removed successfully",
 
 
-        });
+                data:
+
+                    role
+
+
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -622,7 +658,7 @@ export async function replacePermissions(
 
     res
 
-){
+) {
 
 
     try {
@@ -632,9 +668,9 @@ export async function replacePermissions(
 
             await roleService.replaceRolePermissions(
 
-                req.body.id,
+                req.params.id,
 
-                req.body.permissions
+                req.params.permissions
 
             );
 
@@ -642,44 +678,44 @@ export async function replacePermissions(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            message:
+                message:
 
-                "Role permissions updated successfully",
-
-
-            data:
-
-                role
+                    "Role permissions updated successfully",
 
 
-        });
+                data:
+
+                    role
+
+
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -700,7 +736,7 @@ export async function checkRolePermission(
 
     res
 
-){
+) {
 
 
     try {
@@ -710,9 +746,9 @@ export async function checkRolePermission(
 
             await roleService.roleHasPermission(
 
-                req.body.roleId,
+                req.params.roleId,
 
-                req.body.permission
+                req.params.permission
 
             );
 
@@ -720,39 +756,39 @@ export async function checkRolePermission(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            hasPermission:
+                hasPermission:
 
-                result
+                    result
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -773,7 +809,7 @@ export async function checkUserPermission(
 
     res
 
-){
+) {
 
 
     try {
@@ -783,9 +819,9 @@ export async function checkUserPermission(
 
             await roleService.userHasPermission(
 
-                req.body.userId,
+                req.params.userId,
 
-                req.body.permission
+                req.params.permission
 
             );
 
@@ -793,39 +829,39 @@ export async function checkUserPermission(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            hasPermission:
+                hasPermission:
 
-                result
+                    result
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -844,7 +880,7 @@ export async function getUsersByRole(
 
     res
 
-){
+) {
 
 
     try {
@@ -854,7 +890,7 @@ export async function getUsersByRole(
 
             await roleService.getUsersByRole(
 
-                req.body.roleId
+                req.params.roleId
 
             );
 
@@ -862,39 +898,39 @@ export async function getUsersByRole(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                users
+                    users
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -915,7 +951,7 @@ export async function countUsersByRole(
 
     res
 
-){
+) {
 
 
     try {
@@ -925,7 +961,7 @@ export async function countUsersByRole(
 
             await roleService.countUsersByRole(
 
-                req.body.roleId
+                req.params.roleId
 
             );
 
@@ -933,37 +969,37 @@ export async function countUsersByRole(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            count
+                count
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -984,7 +1020,7 @@ export async function checkAdministrator(
 
     res
 
-){
+) {
 
 
     try {
@@ -994,7 +1030,7 @@ export async function checkAdministrator(
 
             await roleService.isAdministrator(
 
-                req.body.userId
+                req.params.userId
 
             );
 
@@ -1002,39 +1038,39 @@ export async function checkAdministrator(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            isAdministrator:
+                isAdministrator:
 
-                result
+                    result
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -1055,7 +1091,7 @@ export async function roleStatistics(
 
     res
 
-){
+) {
 
 
     try {
@@ -1069,39 +1105,39 @@ export async function roleStatistics(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                statistics
+                    statistics
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -1122,7 +1158,7 @@ export async function permissionStatistics(
 
     res
 
-){
+) {
 
 
     try {
@@ -1136,39 +1172,39 @@ export async function permissionStatistics(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                statistics
+                    statistics
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -1189,7 +1225,7 @@ export async function rbacStatus(
 
     res
 
-){
+) {
 
 
     try {
@@ -1203,116 +1239,43 @@ export async function rbacStatus(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            data:
+                data:
 
-                status
+                    status
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
-
 }
-
-/*
-|--------------------------------------------------------------------------
-| Initialize Default Roles
-|--------------------------------------------------------------------------
-*/
-
-export async function initializeRoles(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const result =
-
-            await roleService.initializeDefaultRoles();
-
-
-
-        res.status(201)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "Default roles initialized successfully",
-
-
-            data:
-
-                result
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(500)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -1326,7 +1289,7 @@ export async function assignDefaultPermissions(
 
     res
 
-){
+) {
 
 
     try {
@@ -1340,44 +1303,44 @@ export async function assignDefaultPermissions(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            message:
+                message:
 
-                "Default permissions assigned successfully",
-
-
-            data:
-
-                result
+                    "Default permissions assigned successfully",
 
 
-        });
+                data:
+
+                    result
+
+
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(500)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }
@@ -1398,7 +1361,7 @@ export async function roleExists(
 
     res
 
-){
+) {
 
 
     try {
@@ -1408,7 +1371,7 @@ export async function roleExists(
 
             await roleService.roleExists(
 
-                req.body.name
+                req.params.name
 
             );
 
@@ -1416,37 +1379,37 @@ export async function roleExists(
 
         res.status(200)
 
-        .json({
+            .json({
 
 
-            success:true,
+                success: true,
 
 
-            exists
+                exists
 
 
-        });
+            });
 
 
     }
 
-    catch(error){
+    catch (error) {
 
 
         res.status(400)
 
-        .json({
+            .json({
 
 
-            success:false,
+                success: false,
 
 
-            message:
+                message:
 
-                error.message
+                    error.message
 
 
-        });
+            });
 
 
     }

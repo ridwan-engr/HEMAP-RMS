@@ -30,11 +30,18 @@ const router = Router();
 
 router.post(
 
+    "/initialize",
+
+    roleController.initializeRoles
+);
+
+router.post(
+
     "/",
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
@@ -52,7 +59,7 @@ router.get(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
@@ -90,7 +97,7 @@ router.put(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
@@ -108,7 +115,7 @@ router.delete(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.deleteRole
 
@@ -126,7 +133,7 @@ router.post(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
@@ -144,7 +151,7 @@ router.delete(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.removePermissionFromRole
 
@@ -156,7 +163,7 @@ router.put(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
@@ -206,7 +213,7 @@ router.get(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.getUsersByRole
 
@@ -218,7 +225,7 @@ router.get(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.countUsersByRole
 
@@ -230,7 +237,7 @@ router.get(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.checkAdministrator
 
@@ -248,7 +255,7 @@ router.get(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.roleStatistics
 
@@ -260,7 +267,7 @@ router.get(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.permissionStatistics
 
@@ -272,7 +279,7 @@ router.get(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.rbacStatus
 
@@ -290,7 +297,7 @@ router.post(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.initializeRoles
 
@@ -302,7 +309,7 @@ router.post(
 
     authenticate,
 
-    authorize("admin"),
+    authorize("ADMIN"),
 
     roleController.assignDefaultPermissions
 
