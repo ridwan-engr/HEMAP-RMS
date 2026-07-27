@@ -3,12 +3,22 @@
 | HEMAP Optimization Service
 |--------------------------------------------------------------------------
 |
-| Responsible for:
-| • Collecting optimization data
-| • Building optimization payload
-| • Calling FastAPI Optimization Service
-| • Formatting solver response
-| • Persisting optimization results
+| Coordinates the optimization workflow.
+|
+| Flow:
+|   OptimizationRun
+|          │
+|          ▼
+| optimizationBuilder
+|          │
+|          ▼
+|     FastAPI Solver
+|          │
+|          ▼
+|   resultFormatter
+|          │
+|          ▼
+| MongoDB
 |
 */
 
@@ -16,22 +26,16 @@ import OptimizationRun from "../../models/OptimizationRun.js";
 
 import logger from "../../utils/logger.js";
 
-import * as telemetryCollector from "./telemetryCollector.js";
-import * as forecastCollector from "./forecastCollector.js";
-import * as tariffCollector from "./tariffCollector.js";
-
-import * as constraintBuilder from "./constraintBuilder.js";
-import * as objectiveBuilder from "./objectiveBuilder.js";
-
-import * as dataFormatter from "./dataFormatter.js";
+import { buildOptimizationPayload } from "./optimizationBuilder.js";
 
 import * as pyomoClient from "./pyomoClient.js";
 
 import * as resultFormatter from "./resultFormatter.js";
 
+
 /*
 |--------------------------------------------------------------------------
-| Retry Helper
+| Retry FastAPI Solver
 |--------------------------------------------------------------------------
 */
 
@@ -73,6 +77,7 @@ async function solveWithRetry(payload, retries = 2) {
 
 }
 
+
 /*
 |--------------------------------------------------------------------------
 | Run Optimization
@@ -80,20 +85,12 @@ async function solveWithRetry(payload, retries = 2) {
 */
 
 export async function runOptimization(
-
     optimizationId,
-
     options = {}
-    
-) 
+) {
 
-{
-
-    const optimization = await OptimizationRun.findById(
-        
-        optimizationId
-    
-    );
+    const optimization =
+        await OptimizationRun.findById(optimizationId);
 
     if (!optimization) {
 
@@ -108,229 +105,150 @@ export async function runOptimization(
         logger.info(
 
             `Starting optimization ${optimizationId}`
-        
+
         );
 
         optimization.status = "RUNNING";
-        
+
         optimization.startedAt = new Date();
 
         await optimization.save();
 
-        /*
-        --------------------------------------------------------------
-        Collect Telemetry
-        --------------------------------------------------------------
-        */
+        io.to(siteId).emit(
 
-        logger.info("Collecting telemetry...");
+            "optimizationStarted",
 
-        const telemetry =
-            await telemetryCollector.collect(
-                optimization.site,
-                optimization.startDate,
-                optimization.endDate
-            );
+            {
 
-        /*
-        --------------------------------------------------------------
-        Forecast
-        --------------------------------------------------------------
-        */
+                optimizationId
 
-        logger.info("Collecting forecast...");
+            }
 
-        const forecast =
+        );
 
-            await forecastCollector.collect(
+        optimizationCompleted
 
-                optimization.site,
-
-                optimization.startDate,
-
-                optimization.endDate
-            );
 
         /*
-        --------------------------------------------------------------
-        Tariff
-        --------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Build Payload
+        |--------------------------------------------------------------------------
         */
 
-        logger.info("Collecting tariff...");
-
-        const tariff =
-
-            await tariffCollector.collect(
-
-                optimization.site
-
-            );
-
-        /*
-        --------------------------------------------------------------
-        Constraints
-        --------------------------------------------------------------
-        */
-
-        logger.info("Building constraints...");
-
-        const constraints =
-
-            constraintBuilder.build(
-
-                options.constraints ?? {}
-
-            );
-
-        /*
-        --------------------------------------------------------------
-        Objectives
-        --------------------------------------------------------------
-        */
-
-        logger.info("Building objectives...");
-
-        const objectives =
-
-            objectiveBuilder.build(
-
-                options.objectives ?? {}
-
-            );
-
-        /*
-        --------------------------------------------------------------
-        Build Payload
-        --------------------------------------------------------------
-        */
-
-        logger.info("Formatting payload...");
+        logger.info(
+            "Building optimization payload..."
+        );
 
         const payload =
+            await buildOptimizationPayload({
 
-            dataFormatter.format({
+                siteId: optimization.site,
 
-                optimization,
+                startDate: optimization.startDate,
 
-                telemetry,
+                endDate: optimization.endDate,
 
-                forecast,
+                scenario:
+                    optimization.scenario || "NORMAL",
 
-                tariff,
+                userId:
+                    optimization.createdBy || null,
 
-                constraints,
+                requestId:
+                    optimization._id.toString(),
 
-                objectives,
-
-                solver:
-
-                    options.solver ?? {}
+                options
 
             });
+
 
         optimization.inputs = payload;
 
         await optimization.save();
 
+
         /*
-        --------------------------------------------------------------
-        Run FastAPI Optimization
-        --------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Call FastAPI
+        |--------------------------------------------------------------------------
         */
 
-        logger.info("Sending payload to FastAPI...");
+        logger.info(
+            "Sending payload to FastAPI..."
+        );
 
         const solverResponse =
-
             await solveWithRetry(payload);
 
+
         /*
-        --------------------------------------------------------------
-        Format Result
-        --------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Format Response
+        |--------------------------------------------------------------------------
         */
 
-        logger.info("Formatting optimization result...");
+        logger.info(
+            "Formatting optimization results..."
+        );
 
         const result =
-
             resultFormatter.format(
-
                 solverResponse
-
             );
 
+
         /*
-        --------------------------------------------------------------
-        Runtime
-        --------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Runtime
+        |--------------------------------------------------------------------------
         */
 
         const executionTime =
-
             Date.now() - startedAt;
 
+
         /*
-        --------------------------------------------------------------
-        Save Result
-        --------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | Save Results
+        |--------------------------------------------------------------------------
         */
 
-        optimization.executionTime =
+        optimization.status = "COMPLETED";
 
-            executionTime;
+        optimization.executionTime = executionTime;
 
-        optimization.completedAt =
+        optimization.completedAt = new Date();
 
-            new Date();
+        optimization.rawSolverResponse = solverResponse;
 
-        optimization.status =
-
-            "COMPLETED";
-
-        optimization.rawSolverResponse =
-
-            solverResponse;
-
-        optimization.outputs =
-
-            result;
+        optimization.outputs = result;
 
         optimization.dispatchSchedule =
-
             result.dispatch;
 
         optimization.energy =
-
             result.energy;
 
         optimization.economics =
-
             result.economics;
 
         optimization.emissions =
-
             result.emissions;
 
         optimization.reliability =
-
             result.reliability;
 
         optimization.objectives =
-
             result.objectives;
 
         optimization.solver =
-
             result.solver;
 
         await optimization.save();
 
+
         logger.info(
-
-            `Optimization ${optimizationId} completed successfully in ${executionTime} ms.`
-
+            `Optimization ${optimizationId} completed successfully in ${executionTime} ms`
         );
 
         return {
@@ -363,10 +281,16 @@ export async function runOptimization(
 
         };
 
-    await optimization.save();
+        await optimization.save();
 
-    throw error;
+        throw error;
 
     }
 
 }
+
+export default {
+
+    runOptimization
+
+};

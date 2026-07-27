@@ -1,61 +1,153 @@
 import { Router } from "express";
 
 import authenticate from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
 
-import {
-
-    createOptimization,
-
-    getOptimizations,
-
-    getOptimization,
-
-    updateOptimization,
-
-    deleteOptimization
-
-} from "../controllers/optimizationResultController.js";
+import optimizationResultController from "../controllers/optimizationResultController.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Optimization
+| Optimization History
 |--------------------------------------------------------------------------
 */
 
-router.post(
+router.get(
+
     "/",
+
     authenticate,
-    authorize("Administrator", "Engineer"),
-    createOptimization
+
+    optimizationResultController.getOptimizationHistory
+
 );
+
+/*
+|--------------------------------------------------------------------------
+| Get Optimization
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-    "/",
+
+    "/:id",
+
     authenticate,
-    getOptimizations
+
+    optimizationResultController.getOptimization
+
 );
+
+/*
+|--------------------------------------------------------------------------
+| Latest Optimization
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-    "/:id",
+
+    "/latest/:siteId",
+
     authenticate,
-    getOptimization
+
+    optimizationResultController.getLatestOptimization
+
 );
 
-router.post(
-    "/:id/run",
+/*
+|--------------------------------------------------------------------------
+| Dispatch Schedule
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+
+    "/:id/dispatch",
+
     authenticate,
-    authorize("Administrator", "Engineer"),
-    updateOptimization
+
+    optimizationResultController.getDispatchSchedule
+
 );
 
-router.delete(
-    "/:id",
+/*
+|--------------------------------------------------------------------------
+| Energy Summary
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+
+    "/:id/energy",
+
     authenticate,
-    authorize("Administrator"),
-    deleteOptimization
+
+    optimizationResultController.getEnergySummary
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Economics
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+
+    "/:id/economics",
+
+    authenticate,
+
+    optimizationResultController.getEconomics
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Emissions
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+
+    "/:id/emissions",
+
+    authenticate,
+
+    optimizationResultController.getEmissions
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Reliability
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+
+    "/:id/reliability",
+
+    authenticate,
+
+    optimizationResultController.getReliability
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Solver Information
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+
+    "/:id/solver",
+
+    authenticate,
+
+    optimizationResultController.getSolver
+
 );
 
 export default router;

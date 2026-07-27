@@ -3,7 +3,15 @@
 | HEMAP Optimization Payload Formatter
 |--------------------------------------------------------------------------
 |
-| Builds the payload expected by the FastAPI Optimization Service.
+| Final payload normalization before sending to the FastAPI
+| Optimization Service.
+|
+| Responsibilities
+| • Validate required sections
+| • Normalize timestamps
+| • Normalize numeric values
+| • Apply safe defaults
+| • Return OptimizationRequest schema
 |
 */
 
@@ -15,6 +23,12 @@ function ensureArray(value, name) {
 
     }
 
+    if (value.length === 0) {
+
+        throw new Error(`${name} cannot be empty.`);
+
+    }
+
     return value;
 
 }
@@ -23,7 +37,7 @@ function ensureObject(value, name) {
 
     if (
 
-        value === null ||
+        !value ||
 
         typeof value !== "object" ||
 
@@ -39,6 +53,36 @@ function ensureObject(value, name) {
 
 }
 
+function number(value, fallback = 0) {
+
+    const n = Number(value);
+
+    return Number.isFinite(n)
+
+        ? n
+
+        : fallback;
+
+}
+
+function timestamp(value) {
+
+    if (!value) {
+
+        return new Date().toISOString();
+
+    }
+
+    return new Date(value).toISOString();
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Formatter
+|--------------------------------------------------------------------------
+*/
+
 export function format({
 
     telemetry,
@@ -53,196 +97,182 @@ export function format({
 
     solver = {},
 
-    optimization = {}
+    metadata = {}
 
 }) {
 
-    const telemetryData = ensureArray(
+    telemetry = ensureArray(
 
         telemetry,
 
         "telemetry"
 
-    );
+    ).map(item => ({
 
-    const forecastData = ensureArray(
+        timestamp:
+
+            timestamp(item.timestamp),
+
+        load:
+
+            number(item.load),
+
+        solar:
+
+            number(item.solar),
+
+        batterySOC:
+
+            number(item.batterySOC),
+
+        generator:
+
+            number(item.generator),
+
+        grid:
+
+            number(item.grid)
+
+    }));
+
+
+    forecast = ensureArray(
 
         forecast,
 
         "forecast"
 
+    ).map(item => ({
+
+        timestamp:
+
+            timestamp(item.timestamp),
+
+        expectedSolar:
+
+            number(item.expectedSolar),
+
+        expectedLoad:
+
+            number(item.expectedLoad),
+
+        irradiance:
+
+            number(item.irradiance),
+
+        temperature:
+
+            number(item.temperature)
+
+    }));
+
+
+    tariff = {
+
+        gridImportTariff:
+
+            number(tariff.gridImportTariff),
+
+        gridExportTariff:
+
+            number(tariff.gridExportTariff),
+
+        dieselPrice:
+
+            number(tariff.dieselPrice),
+
+        batteryCycleCost:
+
+            number(tariff.batteryCycleCost),
+
+        carbonCost:
+
+            number(tariff.carbonCost)
+
+    };
+
+
+    constraints = ensureObject(
+
+        constraints,
+
+        "constraints"
+
     );
 
-    return {
+    objectives = ensureObject(
 
-        /*
-        |--------------------------------------------------------------------------
-        | Solver
-        |--------------------------------------------------------------------------
-        */
+        objectives,
 
-        solver: {
+        "objectives"
 
-            name:
+    );
 
-                (
 
-                    solver.name ||
+    solver = {
 
-                    "highs"
+        name:
 
-                ).toLowerCase(),
+            solver.name || "highs",
 
-            threads:
+        threads:
 
-                solver.threads ?? 4,
+            number(solver.threads, 4),
 
-            mipGap:
+        mipGap:
 
-                solver.mipGap ?? 0.01,
+            number(solver.mipGap, 0.01),
 
-            timeLimit:
+        timeLimit:
 
-                solver.timeLimit ?? 300
+            number(solver.timeLimit, 300)
 
-        },
+    };
 
-        /*
-        |--------------------------------------------------------------------------
-        | Optimization Configuration
-        |--------------------------------------------------------------------------
-        */
 
-        optimization: {
+    metadata = {
 
-            carbonWeight:
+        siteId:
 
-                optimization.carbonWeight ?? 1,
-
-            batteryWeight:
-
-                optimization.batteryWeight ?? 1,
-
-            renewableWeight:
-
-                optimization.renewableWeight ?? 1,
-
-            generatorStartPenalty:
-
-                optimization.generatorStartPenalty ?? 2.5,
-
-            curtailmentPenalty:
-
-                optimization.curtailmentPenalty ?? 0.5,
-
-            dieselEmissionFactor:
-
-                optimization.dieselEmissionFactor ?? 2.68,
-
-            gridEmissionFactor:
-
-                optimization.gridEmissionFactor ?? 0.45
-
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Optional Scenario
-        |--------------------------------------------------------------------------
-        */
+            metadata.siteId ?? null,
 
         scenario:
 
-            optimization.scenario ??
+            metadata.scenario ?? "NORMAL",
 
-            "BASE",
+        userId:
 
-        /*
-        |--------------------------------------------------------------------------
-        | Time Series
-        |--------------------------------------------------------------------------
-        */
+            metadata.userId ?? null,
 
-        telemetry:
+        requestId:
 
-            telemetryData,
+            metadata.requestId ?? null
 
-        forecast:
+    };
 
-            forecastData,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Tariff
-        |--------------------------------------------------------------------------
-        */
+    return {
 
-        tariff:
+        telemetry,
 
-            ensureObject(
+        forecast,
 
-                tariff,
+        tariff,
 
-                "tariff"
+        constraints,
 
-            ),
+        objectives,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Constraints
-        |--------------------------------------------------------------------------
-        */
+        solver,
 
-        constraints:
-
-            ensureObject(
-
-                constraints,
-
-                "constraints"
-
-            ),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Objectives
-        |--------------------------------------------------------------------------
-        */
-
-        objectives:
-
-            ensureObject(
-
-                objectives,
-
-                "objectives"
-
-            ),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Metadata
-        |--------------------------------------------------------------------------
-        */
-
-        metadata: {
-
-            generatedAt:
-
-                new Date().toISOString(),
-
-            horizon:
-
-                telemetryData.length,
-
-            interval:
-
-                optimization.interval ??
-
-                "15mins"
-
-        }
+        metadata
 
     };
 
 }
+
+export default {
+
+    format
+
+};

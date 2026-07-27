@@ -1,159 +1,120 @@
+import Site from "../../models/Site.js";
 import SystemSetting from "../../models/SystemSetting.js";
+import logger from "../../utils/logger.js";
 
 /*
 |--------------------------------------------------------------------------
-| Helpers
+| Helper
 |--------------------------------------------------------------------------
 */
 
 async function getSetting(key, defaultValue = null) {
+    const setting = await SystemSetting.findOne({ key }).lean();
 
-    const setting = await SystemSetting.findOne({ key });
+    if (!setting) {
+        return defaultValue;
+    }
 
-    return setting ? setting.value : defaultValue;
+    const value = Number(setting.value);
 
+    return Number.isFinite(value)
+        ? value
+        : defaultValue;
 }
 
 /*
 |--------------------------------------------------------------------------
 | Collect Tariff Information
 |--------------------------------------------------------------------------
+|
+| Returns the tariff object required by the Python
+| Optimization Service.
+|
 */
 
 export async function collect(siteId) {
 
+    const site = await Site.findById(siteId).lean();
+
+    if (!site) {
+        throw new Error("Site not found.");
+    }
+
     /*
     |--------------------------------------------------------------------------
-    | Grid Tariff
+    | Defaults
     |--------------------------------------------------------------------------
     */
 
-    const gridImportTariff = Number(
+    const defaults = {
 
-        await getSetting(
-
+        gridImportTariff: await getSetting(
             "GRID_IMPORT_TARIFF",
-
             0.25
+        ),
 
-        )
-
-    );
-
-    const gridExportTariff = Number(
-
-        await getSetting(
-
+        gridExportTariff: await getSetting(
             "GRID_EXPORT_TARIFF",
+            0.08
+        ),
 
-            0.10
-
-        )
-
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Diesel
-    |--------------------------------------------------------------------------
-    */
-
-    const dieselPrice = Number(
-
-        await getSetting(
-
+        dieselPrice: await getSetting(
             "DIESEL_PRICE",
+            1.35
+        ),
 
-            1.50
-
-        )
-
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Generator
-    |--------------------------------------------------------------------------
-    */
-
-    const generatorMaintenanceCost = Number(
-
-        await getSetting(
-
-            "GENERATOR_MAINTENANCE_COST",
-
-            0.02
-
-        )
-
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Battery
-    |--------------------------------------------------------------------------
-    */
-
-    const batteryCycleCost = Number(
-
-        await getSetting(
-
+        batteryCycleCost: await getSetting(
             "BATTERY_CYCLE_COST",
+            0.02
+        ),
 
-            0.03
-
-        )
-
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Carbon
-    |--------------------------------------------------------------------------
-    */
-
-    const carbonCost = Number(
-
-        await getSetting(
-
+        carbonCost: await getSetting(
             "CARBON_COST",
-
-            0
-
+            0.01
         )
 
-    );
+    };
 
     /*
     |--------------------------------------------------------------------------
-    | Renewable Incentive
+    | Site Override (Optional)
     |--------------------------------------------------------------------------
+    |
+    | Future-proof:
+    | If later you add tariff information directly to
+    | the Site document, those values automatically
+    | override the global defaults.
+    |
     */
 
-    const renewableCredit = Number(
+    const tariff = {
 
-        await getSetting(
+        gridImportTariff:
+            site.energy?.gridImportTariff ??
+            defaults.gridImportTariff,
 
-            "RENEWABLE_INCENTIVE",
+        gridExportTariff:
+            site.energy?.gridExportTariff ??
+            defaults.gridExportTariff,
 
-            0
+        dieselPrice:
+            site.energy?.dieselPrice ??
+            defaults.dieselPrice,
 
-        )
+        batteryCycleCost:
+            site.energy?.batteryCycleCost ??
+            defaults.batteryCycleCost,
 
+        carbonCost:
+            site.energy?.carbonCost ??
+            defaults.carbonCost
+
+    };
+
+    logger.info(
+        `Optimization tariff collected for site ${siteId}`,
+        tariff
     );
 
-    return {
-
-    gridImportTariff,
-
-    gridExportTariff,
-
-    dieselPrice,
-
-    batteryCycleCost,
-
-    carbonCost
-
-};
-
+    return tariff;
 }

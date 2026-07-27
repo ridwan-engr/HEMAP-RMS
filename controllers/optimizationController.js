@@ -66,24 +66,41 @@ export async function createOptimization(
 
             endDate,
 
+            solver,
+
+            objectives,
+
+            constraints,
+
             status: "PENDING"
 
         });
 
-    setImmediate(() => {
-    optimizerService
-            .runOptimization(
-        optimization._id,
-        {
-            solver,
-            objectives,
-            constraints,
-            userId: req.user._id,
-            siteId: site
-        }
-    )
-    .catch(logger.error);
-});
+        setImmediate(async () => {
+
+            try {
+
+                await optimizerService.runOptimization(
+
+                    optimization._id,
+
+                    {
+                        solver,
+                        objectives,
+                        constraints,
+                        userId: req.user._id,
+                        siteId: site
+                    }
+                )
+            }
+
+            catch (error) {
+
+                logger.error(error);
+
+            }
+
+        });
 
         res.status(202).json({
 
@@ -91,7 +108,17 @@ export async function createOptimization(
 
             message: "Optimization started.",
 
-            data: optimization
+            data: {
+
+                optimizationId: optimization._id,
+
+                status: optimization.status,
+
+                site: optimization.site,
+
+                createdAt: optimization.createdAt
+
+            }
 
         });
 
@@ -125,21 +152,21 @@ export async function getOptimization(
 
         )
 
-        .populate(
+            .populate(
 
-            "site",
+                "site",
 
-            "name siteCode"
+                "name siteCode"
 
-        )
+            )
 
-        .populate(
+            .populate(
 
-            "createdBy",
+                "createdBy",
 
-            "firstName lastName"
+                "firstName lastName"
 
-        );
+            );
 
         if (!optimization) {
 
@@ -216,32 +243,33 @@ export async function getOptimizationHistory(
             filter
 
         )
+            .sort({
 
-        .sort({
+                createdAt: -1,
 
-            createdAt: -1
+                _id: -1
 
-        })
+            })
 
-        .skip(
+            .skip(
 
-            (page - 1) * Number(limit)
+                (page - 1) * Number(limit)
 
-        )
+            )
 
-        .limit(
+            .limit(
 
-            Number(limit)
+                Number(limit)
 
-        )
+            )
 
-        .populate(
+            .populate(
 
-            "site",
+                "site",
 
-            "name"
+                "name"
 
-        );
+            );
 
         res.json({
 
@@ -303,7 +331,9 @@ export async function cancelOptimization(
 
         if (
 
-            optimization.status === "COMPLETED"
+            ["COMPLETED", "FAILED", "CANCELLED"]
+
+                .includes(optimization.status)
 
         ) {
 
@@ -369,7 +399,11 @@ export async function deleteOptimization(
 
         }
 
-        await optimization.deleteOne();
+        await OptimizationRun.findByIdAndDelete(
+
+            req.params.id
+
+        );
 
         res.json({
 
@@ -427,6 +461,56 @@ export async function exportOptimization(
 
 }
 
+export async function getLatestOptimization(req,res,next){
+
+    try{
+
+        const latest=
+
+        await OptimizationRun
+
+        .findOne()
+
+        .sort({
+
+            createdAt:-1
+
+        })
+
+        .populate("site","name")
+
+        .lean();
+
+        if(!latest){
+
+            return res.status(404).json({
+
+                success:false,
+
+                message:"No optimization found."
+
+            });
+
+        }
+
+        res.json({
+
+            success:true,
+
+            data:latest
+
+        });
+
+    }
+
+    catch(error){
+
+        next(error);
+
+    }
+
+}
+
 export default {
 
     createOptimization,
@@ -439,6 +523,8 @@ export default {
 
     deleteOptimization,
 
-    exportOptimization
+    exportOptimization,
+
+    getLatestOptimization
 
 };

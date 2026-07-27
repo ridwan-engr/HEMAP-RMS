@@ -12,7 +12,7 @@ const client = axios.create({
 
         Number(
 
-            process.env.PYOMO_TIMEOUT ||
+            process.env.PYOMO_TIMEOUT ??
 
             300000
 
@@ -30,67 +30,37 @@ const client = axios.create({
 
 /*
 |--------------------------------------------------------------------------
-| Run Optimization
+| Generic Request
 |--------------------------------------------------------------------------
 */
 
-export async function solve(payload) {
+async function post(endpoint, payload) {
+
+    const started = Date.now();
 
     try {
 
         const response = await client.post(
 
-            "/optimize",
+            endpoint,
 
             payload
 
         );
 
-        return response.data;
+        if (!response.data) {
 
-    }
+            throw new Error(
 
-    catch (error) {
+                "Optimization service returned an empty response."
 
-        logger.error({
-            endpoint: "/optimize",
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
-        });
-        
-        if (
-
-            error.response
-
-        ) {
-
-            const message =
-                error.response?.data?.detail ||
-                error.response?.data?.message ||
-                error.message;
-
-            throw new Error(message);
+            );
 
         }
 
-        throw error;
+        logger.info(
 
-    }
-
-}
-
-export async function solveSenario(payload, scenario) {
-
-    try {
-
-        const response = await client.post(
-
-            "/optimize",
-
-            payload,
-
-            scenario
+            `${endpoint} completed in ${Date.now()-started} ms.`
 
         );
 
@@ -101,134 +71,143 @@ export async function solveSenario(payload, scenario) {
     catch (error) {
 
         logger.error({
-            endpoint: "/optimize",
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
+
+            endpoint,
+
+            status:
+
+                error.response?.status,
+
+            data:
+
+                error.response?.data,
+
+            message:
+
+                error.message
+
         });
-        
-        if (
 
-            error.response
+        throw new Error(
 
-        ) {
+            error.response?.data?.detail ||
 
-            const message =
-                error.response?.data?.detail ||
-                error.response?.data?.message ||
-                error.message;
+            error.response?.data?.message ||
 
-            throw new Error(message);
-
-        }
-
-        throw error;
-
-    }
-
-}
-
-export async function pareto(payload) {
-
-    try {
-
-        const response = await client.post(
-
-            "/optimize",
-
-            payload
+            error.message
 
         );
 
-        return response.data;
-
-    }
-
-    catch (error) {
-
-        logger.error({
-            endpoint: "/optimize",
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
-        });
-        
-        if (
-
-            error.response
-
-        ) {
-
-            const message =
-                error.response?.data?.detail ||
-                error.response?.data?.message ||
-                error.message;
-
-            throw new Error(message);
-
-        }
-
-        throw error;
-
     }
 
 }
 
-export async function sensitivity(payload, parameter, values) {
+/*
+|--------------------------------------------------------------------------
+| Optimization
+|--------------------------------------------------------------------------
+*/
 
-    try {
+export function solve(payload) {
 
-        const response = await client.post(
+    return post(
 
-            "/optimize",
+        "/optimize",
 
-            payload,
-            
-            parameter, 
-            
-            values
+        payload
 
-
-        );
-
-        return response.data;
-
-    }
-
-    catch (error) {
-
-        logger.error({
-            endpoint: "/optimize",
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
-        });
-        
-        if (
-
-            error.response
-
-        ) {
-
-            const message =
-                error.response?.data?.detail ||
-                error.response?.data?.message ||
-                error.message;
-
-            throw new Error(message);
-
-        }
-
-        throw error;
-
-    }
+    );
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| Scenario
+|--------------------------------------------------------------------------
+*/
 
+export function solveScenario(
 
+    payload,
+
+    scenario
+
+) {
+
+    return post(
+
+        `/optimize/scenario/${scenario}`,
+
+        payload
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Pareto
+|--------------------------------------------------------------------------
+*/
+
+export function pareto(payload) {
+
+    return post(
+
+        "/optimize/pareto",
+
+        payload
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Sensitivity
+|--------------------------------------------------------------------------
+*/
+
+export function sensitivity(
+
+    payload,
+
+    parameter,
+
+    values
+
+) {
+
+    return post(
+
+        `/optimize/sensitivity?parameter=${parameter}&values=${values.join(",")}`,
+
+        payload
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Health
+|--------------------------------------------------------------------------
+*/
 
 export async function health() {
-    const response = await client.get("/health");
+
+    const response = await client.get(
+
+        "/health",
+
+        {
+
+            timeout: 5000
+
+        }
+
+    );
+
     return response.data;
+
 }

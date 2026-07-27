@@ -1,16 +1,17 @@
 import Site from "../../models/Site.js";
 
-import * as forecastService from "../analytics/forecastService.js";
+import * as solarForecastService from "../analytics/forecastService.js";
+import * as loadForecastService from "./loadForecastService.js";
 
 import logger from "../../utils/logger.js";
 
 /*
 |--------------------------------------------------------------------------
-| Collect Forecast Data
+| Forecast Collector
 |--------------------------------------------------------------------------
 */
 
-export async function collect(
+export async function getForecast(
 
     siteId,
 
@@ -20,7 +21,9 @@ export async function collect(
 
 ) {
 
-    const site = await Site.findById(siteId);
+    logger.info(`Collecting forecast for site ${siteId}`);
+
+    const site = await Site.findById(siteId).lean();
 
     if (!site) {
 
@@ -30,31 +33,67 @@ export async function collect(
 
     /*
     |--------------------------------------------------------------------------
-    | Get Forecast
+    | Collect forecasts in parallel
     |--------------------------------------------------------------------------
     */
 
-    const forecast = await forecastService.generateForecast({
+    const [
 
-        siteId,
+        solarForecast,
 
-        startDate,
+        loadForecast
 
-        endDate
+    ] = await Promise.all([
 
-    });
+        solarForecastService.generateForecast({
+
+            siteId,
+
+            startDate,
+
+            endDate
+
+        }),
+
+        loadForecastService.forecast(
+
+            siteId,
+
+            startDate,
+
+            endDate
+
+        )
+
+    ]);
 
     if (
 
-        !forecast ||
+        !Array.isArray(solarForecast) ||
 
-        forecast.length === 0
+        !solarForecast.length
 
     ) {
 
         throw new Error(
 
-            "Forecast unavailable."
+            "Solar forecast unavailable."
+
+        );
+
+    }
+
+    if (
+
+        !Array.isArray(loadForecast) ||
+
+        !loadForecast.length
+
+    ) {
+
+        throw new Error(
+
+            "Load forecast unavailable."
 
         );
 
@@ -62,30 +101,88 @@ export async function collect(
 
     /*
     |--------------------------------------------------------------------------
-    | Normalize
+    | Merge
     |--------------------------------------------------------------------------
     */
 
-    return forecast.map(item => ({
+    const normalized = solarForecast.map(
 
-    timestamp: item.timestamp,
+        (solar, index) => ({
 
-    expectedLoad: Number(
-        item.expectedLoad || 0
-    ),
+            timestamp:
 
-    expectedSolar: Number(
-        item.expectedSolar || 0
-    ),
+                new Date(
 
-    irradiance: Number(
-        item.irradiance || 0
-    ),
+                    solar.timestamp
 
-    temperature: Number(
-        item.temperature || 25
-    )
+                ).toISOString(),
 
-}));
-    
+            expectedSolar:
+
+                Number(
+
+                    solar.expectedSolar ??
+
+                    0
+
+                ),
+
+            expectedLoad:
+
+                Number(
+
+                    loadForecast[index]?.expectedLoad ??
+
+                    0
+
+                ),
+
+            irradiance:
+
+                Number(
+
+                    solar.irradiance ??
+
+                    0
+
+                ),
+
+            temperature:
+
+                Number(
+
+                    solar.temperature ??
+
+                    25
+
+                )
+
+        })
+
+    );
+
+    logger.info(
+
+        `Collected ${normalized.length} forecast records.`
+
+    );
+
+    return normalized;
+
 }
+
+/*
+|--------------------------------------------------------------------------
+| Backward Compatibility
+|--------------------------------------------------------------------------
+*/
+
+export const collect = getForecast;
+
+export default {
+
+    getForecast,
+
+    collect
+
+};

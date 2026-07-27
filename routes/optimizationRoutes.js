@@ -10,8 +10,6 @@ import {
 
     createOptimizationSchema,
 
-    refreshOptimizationSchema,
-
     historySchema,
 
     exportOptimizationSchema,
@@ -21,12 +19,6 @@ import {
 } from "../validators/optimizationValidator.js";
 
 const router = Router();
-
-/*
-|--------------------------------------------------------------------------
-| Optimization
-|--------------------------------------------------------------------------
-*/
 
 /*
 |--------------------------------------------------------------------------
@@ -62,36 +54,6 @@ router.post(
 
 /*
 |--------------------------------------------------------------------------
-| Refresh Optimization
-|--------------------------------------------------------------------------
-*/
-
-router.post(
-
-    "/refresh",
-
-    authenticate,
-
-    authorize(
-
-        "ADMIN",
-
-        "ENGINEER"
-
-    ),
-
-    validate({
-
-        body: refreshOptimizationSchema
-
-    }),
-
-    optimizationController.createOptimization
-
-);
-
-/*
-|--------------------------------------------------------------------------
 | Optimization History
 |--------------------------------------------------------------------------
 */
@@ -114,7 +76,7 @@ router.get(
 
 /*
 |--------------------------------------------------------------------------
-| Get Optimization By ID
+| Get Optimization
 |--------------------------------------------------------------------------
 */
 
