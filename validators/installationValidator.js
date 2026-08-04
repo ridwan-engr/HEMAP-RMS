@@ -2,247 +2,193 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schema
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
-    .hex()
-    .required();
+
+    .hex();
 
 /*
 |--------------------------------------------------------------------------
-| Solar PV
+| Installation ID
 |--------------------------------------------------------------------------
 */
 
-const solarSchema = Joi.object({
+export const installationIdValidator = Joi.object({
 
-    capacity: Joi.number()
-        .min(0)
-        .required(),
-
-    moduleCount: Joi.number()
-        .integer()
-        .min(0)
-        .default(0),
-
-    moduleRating: Joi.number()
-        .min(0)
-        .default(0),
-
-    manufacturer: Joi.string()
-        .trim()
-        .allow(""),
-
-    model: Joi.string()
-        .trim()
-        .allow("")
+    id: objectId.required()
 
 });
 
 /*
 |--------------------------------------------------------------------------
-| Battery Bank
+| Installation Query
 |--------------------------------------------------------------------------
 */
 
-const batterySchema = Joi.object({
+export const installationQueryValidator = Joi.object({
 
-    chemistry: Joi.string()
-        .valid(
+    siteId: objectId.optional(),
 
-            "Lithium",
+    customer: Joi.string()
 
-            "Lead Acid",
-
-            "AGM",
-
-            "Gel",
-
-            "LFP",
-
-            "Other"
-
-        )
-        .required(),
-
-    nominalVoltage: Joi.number()
-        .min(0)
-        .required(),
-
-    capacityAh: Joi.number()
-        .min(0)
-        .required(),
-
-    numberOfStrings: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
-
-    manufacturer: Joi.string()
         .trim()
-        .allow(""),
 
-    model: Joi.string()
+        .optional(),
+
+    type: Joi.string()
+
         .trim()
-        .allow("")
 
-});
-
-/*
-|--------------------------------------------------------------------------
-| Inverter
-|--------------------------------------------------------------------------
-*/
-
-const inverterSchema = Joi.object({
-
-    rating: Joi.number()
-        .min(0)
-        .required(),
-
-    manufacturer: Joi.string()
-        .trim()
-        .allow(""),
-
-    model: Joi.string()
-        .trim()
-        .allow(""),
-
-    phase: Joi.string()
-        .valid(
-
-            "Single",
-
-            "Three"
-
-        )
-        .default("Single")
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Generator
-|--------------------------------------------------------------------------
-*/
-
-const generatorSchema = Joi.object({
-
-    rating: Joi.number()
-        .min(0)
-        .required(),
-
-    fuelType: Joi.string()
-        .valid(
-
-            "Diesel",
-
-            "Gas",
-
-            "Petrol"
-
-        )
-        .required(),
-
-    manufacturer: Joi.string()
-        .trim()
-        .allow(""),
-
-    model: Joi.string()
-        .trim()
-        .allow("")
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Rectifier
-|--------------------------------------------------------------------------
-*/
-
-const rectifierSchema = Joi.object({
-
-    rating: Joi.number()
-        .min(0)
-        .default(0),
-
-    manufacturer: Joi.string()
-        .trim()
-        .allow(""),
-
-    model: Joi.string()
-        .trim()
-        .allow("")
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Installation
-|--------------------------------------------------------------------------
-*/
-
-export const createInstallationSchema = Joi.object({
-
-    siteId: objectIdSchema,
-
-    installationName: Joi.string()
-        .trim()
-        .min(2)
-        .max(150)
-        .required(),
-
-    installationType: Joi.string()
-        .valid(
-
-            "Hybrid",
-
-            "Solar",
-
-            "Grid",
-
-            "Generator",
-
-            "Battery",
-
-            "OffGrid"
-
-        )
-        .required(),
-
-    solar: solarSchema.optional(),
-
-    battery: batterySchema.optional(),
-
-    inverter: inverterSchema.optional(),
-
-    generator: generatorSchema.optional(),
-
-    rectifier: rectifierSchema.optional(),
-
-    commissioningDate: Joi.date(),
+        .optional(),
 
     status: Joi.string()
+
         .valid(
 
-            "Operational",
+            "ONLINE",
 
-            "Maintenance",
+            "OFFLINE",
 
-            "Offline",
+            "WARNING",
 
-            "Fault"
+            "FAULT",
+
+            "MAINTENANCE"
 
         )
-        .default("Operational"),
 
-    remarks: Joi.string()
+        .optional(),
+
+    page: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .default(1),
+
+    limit: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .max(100)
+
+        .default(20)
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Create Installation
+|--------------------------------------------------------------------------
+*/
+
+export const createInstallationValidator = Joi.object({
+
+    code: Joi.string()
+
         .trim()
+
+        .max(50)
+
+        .required(),
+
+    name: Joi.string()
+
+        .trim()
+
+        .max(150)
+
+        .required(),
+
+    site: objectId.required(),
+
+    customer: Joi.string()
+
+        .trim()
+
         .allow("")
+
+        .default(""),
+
+    type: Joi.string()
+
+        .trim()
+
+        .required(),
+
+    manufacturer: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .default(""),
+
+    model: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .default(""),
+
+    serialNumber: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .default(""),
+
+    vrmInstallationId: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .default(""),
+
+    status: Joi.string()
+
+        .valid(
+
+            "ONLINE",
+
+            "OFFLINE",
+
+            "WARNING",
+
+            "FAULT",
+
+            "MAINTENANCE"
+
+        )
+
+        .default("ONLINE"),
+
+    commissionedDate: Joi.date()
+
+        .iso()
+
+        .optional(),
+
+    description: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .default("")
 
 });
 
@@ -252,146 +198,120 @@ export const createInstallationSchema = Joi.object({
 |--------------------------------------------------------------------------
 */
 
-export const updateInstallationSchema = Joi.object({
+export const updateInstallationValidator = Joi.object({
 
-    installationName: Joi.string()
+    code: Joi.string()
+
         .trim()
-        .min(2)
-        .max(150),
 
-    installationType: Joi.string()
-        .valid(
+        .max(50)
 
-            "Hybrid",
+        .optional(),
 
-            "Solar",
+    name: Joi.string()
 
-            "Grid",
+        .trim()
 
-            "Generator",
+        .max(150)
 
-            "Battery",
+        .optional(),
 
-            "OffGrid"
+    site: objectId.optional(),
 
-        ),
+    customer: Joi.string()
 
-    solar: solarSchema,
+        .trim()
 
-    battery: batterySchema,
+        .allow("")
 
-    inverter: inverterSchema,
+        .optional(),
 
-    generator: generatorSchema,
+    type: Joi.string()
 
-    rectifier: rectifierSchema,
+        .trim()
 
-    commissioningDate: Joi.date(),
+        .optional(),
+
+    manufacturer: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .optional(),
+
+    model: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .optional(),
+
+    serialNumber: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .optional(),
+
+    vrmInstallationId: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .optional(),
 
     status: Joi.string()
+
         .valid(
 
-            "Operational",
+            "ONLINE",
 
-            "Maintenance",
+            "OFFLINE",
 
-            "Offline",
+            "WARNING",
 
-            "Fault"
+            "FAULT",
 
-        ),
+            "MAINTENANCE"
 
-    remarks: Joi.string()
+        )
+
+        .optional(),
+
+    commissionedDate: Joi.date()
+
+        .iso()
+
+        .optional(),
+
+    description: Joi.string()
+
         .trim()
+
         .allow("")
+
+        .optional()
 
 }).min(1);
 
 /*
 |--------------------------------------------------------------------------
-| Route Parameters
+| Default Export
 |--------------------------------------------------------------------------
 */
-
-export const installationIdSchema = Joi.object({
-
-    installationId: objectIdSchema
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Query Parameters
-|--------------------------------------------------------------------------
-*/
-
-export const installationQuerySchema = Joi.object({
-
-    page: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
-
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(100)
-        .default(20),
-
-    siteId: Joi.string()
-        .hex()
-        .length(24),
-
-    installationType: Joi.string(),
-
-    status: Joi.string(),
-
-    search: Joi.string()
-        .allow(""),
-
-    sortBy: Joi.string()
-        .default("createdAt"),
-
-    order: Joi.string()
-        .valid("asc", "desc")
-        .default("desc")
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Update Installation Status
-|--------------------------------------------------------------------------
-*/
-
-export const installationStatusSchema = Joi.object({
-
-    status: Joi.string()
-        .valid(
-
-            "Operational",
-
-            "Maintenance",
-
-            "Offline",
-
-            "Fault"
-
-        )
-        .required()
-
-});
 
 export default {
 
-    createInstallationSchema,
+    installationIdValidator,
 
-    updateInstallationSchema,
+    installationQueryValidator,
 
-    installationIdSchema,
+    createInstallationValidator,
 
-    installationQuerySchema,
-
-    installationStatusSchema
+    updateInstallationValidator
 
 };

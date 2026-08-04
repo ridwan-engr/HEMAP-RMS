@@ -1,51 +1,6 @@
-import * as installationService from "../services/sites/installationService.js";
-import * as solarService from "../services/sites/solarService.js";
-import * as batteryService from "../services/sites/batteryService.js";
-import * as generatorService from "../services/sites/generatorService.js";
-import * as gridService from "../services/sites/gridService.js";
-import * as telemetryService from "../services/telemetry/telemetryService.js";
-import * as alarmService from "../services/telemetry/alarmService.js";
-import * as statisticsService from "../services/analytics/statisticsService.js";
-import * as reliabilityService from "../services/analytics/reliabilityService.js";
-/*
-|--------------------------------------------------------------------------
-| Create Installation
-|--------------------------------------------------------------------------
-*/
+import asyncHandler from "../utils/asyncHandler.js";
 
-export async function createInstallation(req, res) {
-
-    try {
-
-        const installation =
-            await installationService.createInstallation(
-                req.body
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Installation created successfully.",
-
-            data: installation
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
+import * as installationService from "../services/installation/installationService.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -53,95 +8,77 @@ export async function createInstallation(req, res) {
 |--------------------------------------------------------------------------
 */
 
-export async function getInstallations(req, res) {
+export const getInstallations = asyncHandler(async (req, res) => {
 
-    try {
+    const installations = await installationService.getInstallations(
 
-        const installations =
-            await installationService.getInstallations({
+        req.query
 
-                page: Number(req.body.page) || 1,
+    );
 
-                limit: Number(req.body.limit) || 20,
+    return res.status(200).json({
 
-                siteId: req.body.siteId,
+        success: true,
 
-                status: req.body.status
+        message: "Installations retrieved successfully.",
 
-            });
+        data: installations
 
-        return res.status(200).json({
+    });
 
-            success: true,
-
-            data: installations
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
+});
 
 /*
 |--------------------------------------------------------------------------
-| Get Installation By ID
+| Get Installation
 |--------------------------------------------------------------------------
 */
 
-export async function getInstallation(req, res) {
+export const getInstallation = asyncHandler(async (req, res) => {
 
-    try {
+    const { id } = req.params;
 
-        const installation =
-            await installationService.getInstallationById(
-                req.body.id
-            );
+    const installation = await installationService.getInstallation(id);
 
-        if (!installation) {
+    return res.status(200).json({
 
-            return res.status(404).json({
+        success: true,
 
-                success: false,
+        message: "Installation retrieved successfully.",
 
-                message: "Installation not found."
+        data: installation
 
-            });
+    });
 
-        }
+});
 
-        return res.status(200).json({
+/*
+|--------------------------------------------------------------------------
+| Create Installation
+|--------------------------------------------------------------------------
+*/
 
-            success: true,
+export const createInstallation = asyncHandler(async (req, res) => {
 
-            data: installation
+    const installation = await installationService.createInstallation(
 
-        });
+        req.body,
 
-    } catch (error) {
+        req.user
 
-        return res.status(500).json({
+    );
 
-            success: false,
+    return res.status(201).json({
 
-            message: error.message
+        success: true,
 
-        });
+        message: "Installation created successfully.",
 
-    }
+        data: installation
 
-}
+    });
 
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -149,43 +86,31 @@ export async function getInstallation(req, res) {
 |--------------------------------------------------------------------------
 */
 
-export async function updateInstallation(req, res) {
+export const updateInstallation = asyncHandler(async (req, res) => {
 
-    try {
+    const { id } = req.params;
 
-        const installation =
-            await installationService.updateInstallation(
+    const installation = await installationService.updateInstallation(
 
-                req.body.id,
+        id,
 
-                req.body
+        req.body,
 
-            );
+        req.user
 
-        return res.status(200).json({
+    );
 
-            success: true,
+    return res.status(200).json({
 
-            message: "Installation updated successfully.",
+        success: true,
 
-            data: installation
+        message: "Installation updated successfully.",
 
-        });
+        data: installation
 
-    } catch (error) {
+    });
 
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -193,958 +118,57 @@ export async function updateInstallation(req, res) {
 |--------------------------------------------------------------------------
 */
 
-export async function deleteInstallation(req, res) {
+export const deleteInstallation = asyncHandler(async (req, res) => {
 
-    try {
+    const { id } = req.params;
 
-        await installationService.deleteInstallation(
+    await installationService.deleteInstallation(
 
-            req.body.id
+        id,
 
-        );
+        req.user
 
-        return res.status(200).json({
+    );
 
-            success: true,
+    return res.status(200).json({
 
-            message: "Installation deleted successfully."
+        success: true,
 
-        });
+        message: "Installation deleted successfully."
 
-    } catch (error) {
+    });
 
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
+});
 
 /*
 |--------------------------------------------------------------------------
-| Assign Installation To Site
+| Synchronize Installation
 |--------------------------------------------------------------------------
 */
 
-export async function assignToSite(req, res) {
+export const synchronizeInstallation = asyncHandler(async (req, res) => {
 
-    try {
+    const { id } = req.params;
 
-        const installation =
-            await installationService.assignToSite(
+    const result = await installationService.synchronizeInstallation(
 
-                req.body.id,
+        id,
 
-                req.body.siteId
+        req.user
 
-            );
+    );
 
-        return res.status(200).json({
+    return res.status(200).json({
 
-            success: true,
+        success: true,
 
-            message: "Installation assigned successfully.",
+        message: "Installation synchronized successfully.",
 
-            data: installation
+        data: result
 
-        });
+    });
 
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Commission Installation
-|--------------------------------------------------------------------------
-*/
-
-export async function commissionInstallation(req, res) {
-
-    try {
-
-        const installation =
-            await installationService.commissionInstallation(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Installation commissioned successfully.",
-
-            data: installation
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Decommission Installation
-|--------------------------------------------------------------------------
-*/
-
-export async function decommissionInstallation(req, res) {
-
-    try {
-
-        const installation =
-            await installationService.decommissionInstallation(
-
-                req.body.id,
-
-                req.body.reason
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Installation decommissioned successfully.",
-
-            data: installation
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Register Solar Array
-|--------------------------------------------------------------------------
-*/
-
-export async function registerSolarArray(req, res) {
-
-    try {
-
-        const solar =
-            await solarService.registerSolarArray(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Solar array registered successfully.",
-
-            data: solar
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Register Battery Bank
-|--------------------------------------------------------------------------
-*/
-
-export async function registerBatteryBank(req, res) {
-
-    try {
-
-        const battery =
-            await batteryService.registerBatteryBank(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Battery bank registered successfully.",
-
-            data: battery
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Register Generator
-|--------------------------------------------------------------------------
-*/
-
-export async function registerGenerator(req, res) {
-
-    try {
-
-        const generator =
-            await generatorService.registerGenerator(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Generator registered successfully.",
-
-            data: generator
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Register Grid Connection
-|--------------------------------------------------------------------------
-*/
-
-export async function registerGrid(req, res) {
-
-    try {
-
-        const grid =
-            await gridService.registerGridConnection(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Grid connection registered successfully.",
-
-            data: grid
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Register Victron GX Device
-|--------------------------------------------------------------------------
-*/
-
-export async function registerVictronGX(req, res) {
-
-    try {
-
-        const device =
-            await installationService.registerVictronGX(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Victron GX device registered successfully.",
-
-            data: device
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Register Huawei Rectifier
-|--------------------------------------------------------------------------
-*/
-
-export async function registerHuaweiRectifier(req, res) {
-
-    try {
-
-        const rectifier =
-            await installationService.registerHuaweiRectifier(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Huawei rectifier registered successfully.",
-
-            data: rectifier
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Register Smart Meter
-|--------------------------------------------------------------------------
-*/
-
-export async function registerSmartMeter(req, res) {
-
-    try {
-
-        const meter =
-            await installationService.registerSmartMeter(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Smart meter registered successfully.",
-
-            data: meter
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Installation Dashboard
-|--------------------------------------------------------------------------
-*/
-
-export async function installationDashboard(req, res) {
-
-    try {
-
-        const dashboard =
-            await installationService.getInstallationDashboard(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: dashboard
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Installation Health
-|--------------------------------------------------------------------------
-*/
-
-export async function installationHealth(req, res) {
-
-    try {
-
-        const health =
-            await installationService.getInstallationHealth(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: health
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Configuration Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function configurationSummary(req, res) {
-
-    try {
-
-        const summary =
-            await installationService.getConfigurationSummary(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: summary
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Asset Inventory
-|--------------------------------------------------------------------------
-*/
-
-export async function assetInventory(req, res) {
-
-    try {
-
-        const inventory =
-            await installationService.getAssetInventory(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: inventory
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Energy Configuration Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function energyConfiguration(req, res) {
-
-    try {
-
-        const configuration =
-            await installationService.getEnergyConfiguration(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: configuration
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Communication Status
-|--------------------------------------------------------------------------
-*/
-
-export async function communicationStatus(req, res) {
-
-    try {
-
-        const status =
-            await telemetryService.getCommunicationStatus(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: status
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Installation Alarm Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function installationAlarms(req, res) {
-
-    try {
-
-        const alarms =
-            await alarmService.getInstallationAlarms(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: alarms
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Installation Performance Metrics
-|--------------------------------------------------------------------------
-*/
-
-export async function installationPerformance(req, res) {
-
-    try {
-
-        const performance =
-            await statisticsService.getInstallationPerformance(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: performance
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Installation Reliability Metrics
-|--------------------------------------------------------------------------
-*/
-
-export async function installationReliability(req, res) {
-
-    try {
-
-        const metrics =
-            await reliabilityService.generateReliabilityMetrics(
-                req.body.id
-            );
-
-        return res.status(200).json({
-            success: true,
-            data: metrics
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Export Installation Configuration
-|--------------------------------------------------------------------------
-*/
-
-export async function exportInstallation(req, res) {
-
-    try {
-
-        const result =
-            await installationService.exportInstallation(
-                req.body.id,
-                req.body.format || "json"
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Installation exported successfully.",
-
-            data: result
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Clone Installation
-|--------------------------------------------------------------------------
-*/
-
-export async function cloneInstallation(req, res) {
-
-    try {
-
-        const installation =
-            await installationService.cloneInstallation(
-
-                req.body.id,
-
-                req.body.siteId
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Installation cloned successfully.",
-
-            data: installation
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Validate Installation
-|--------------------------------------------------------------------------
-*/
-
-export async function validateInstallation(req, res) {
-
-    try {
-
-        const validation =
-            await installationService.validateInstallation(
-
-                req.body.id
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: validation
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Archive Installation
-|--------------------------------------------------------------------------
-*/
-
-export async function archiveInstallation(req, res) {
-
-    try {
-
-        const installation =
-            await installationService.archiveInstallation(
-
-                req.body.id
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Installation archived successfully.",
-
-            data: installation
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Restore Installation
-|--------------------------------------------------------------------------
-*/
-
-export async function restoreInstallation(req, res) {
-
-    try {
-
-        const installation =
-            await installationService.restoreInstallation(
-
-                req.body.id
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Installation restored successfully.",
-
-            data: installation
-
-        });
-
-    } catch (error) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -1152,82 +176,38 @@ export async function restoreInstallation(req, res) {
 |--------------------------------------------------------------------------
 */
 
-export async function installationStatistics(req, res) {
+export const getInstallationStatistics = asyncHandler(async (req, res) => {
 
-    try {
+    const { id } = req.params;
 
-        const statistics =
-            await installationService.getInstallationStatistics();
+    const statistics = await installationService.getInstallationStatistics(id);
 
-        return res.status(200).json({
+    return res.status(200).json({
 
-            success: true,
+        success: true,
 
-            data: statistics
+        message: "Installation statistics retrieved successfully.",
 
-        });
+        data: statistics
 
-    } catch (error) {
+    });
 
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Default Export
-|--------------------------------------------------------------------------
-*/
+});
 
 export default {
 
-    // CRUD
-    createInstallation,
     getInstallations,
+
     getInstallation,
+
+    createInstallation,
+
     updateInstallation,
+
     deleteInstallation,
 
-    // Lifecycle
-    assignToSite,
-    commissionInstallation,
-    decommissionInstallation,
+    synchronizeInstallation,
 
-    // Assets
-    registerSolarArray,
-    registerBatteryBank,
-    registerGenerator,
-    registerGrid,
-    registerVictronGX,
-    registerHuaweiRectifier,
-    registerSmartMeter,
-
-    // Monitoring
-    installationDashboard,
-    installationHealth,
-    configurationSummary,
-    assetInventory,
-    energyConfiguration,
-    communicationStatus,
-    installationAlarms,
-    installationPerformance,
-    installationReliability,
-
-    // Administration
-    exportInstallation,
-    cloneInstallation,
-    validateInstallation,
-    archiveInstallation,
-    restoreInstallation,
-    installationStatistics
+    getInstallationStatistics
 
 };

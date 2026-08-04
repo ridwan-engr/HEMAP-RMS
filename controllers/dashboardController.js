@@ -1,199 +1,182 @@
+import asyncHandler from "../utils/asyncHandler.js";
+
 import * as dashboardService from "../services/dashboard/dashboardService.js";
 
-/**
- * ============================================================================
- * Dashboard Controller
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| Dashboard
+|--------------------------------------------------------------------------
+*/
 
-/**
- * GET /dashboard
- */
-export async function getDashboard(req, res, next) {
+export const getDashboard = asyncHandler(async (req, res) => {
 
-    try {
+    const data = await dashboardService.getDashboard(req.query);
 
-        const dashboard = await dashboardService.getDashboard(req.body);
+    return res.status(200).json({
 
-        return res.status(200).json({
+        success: true,
 
-            success: true,
+        message: "Dashboard retrieved successfully.",
 
-            message: "Dashboard retrieved successfully.",
+        data
 
-            data: dashboard
+    });
 
-        });
+});
 
-    } catch (error) {
+/*
+|--------------------------------------------------------------------------
+| Executive Dashboard
+|--------------------------------------------------------------------------
+*/
 
-        next(error);
+export const getExecutiveDashboard = asyncHandler(async (req, res) => {
 
-    }
+    const data = await dashboardService.getExecutiveDashboard(req.query);
 
-}
+    return res.status(200).json({
 
-/**
- * GET /dashboard/executive
- */
-export async function getExecutiveDashboard(req, res, next) {
+        success: true,
 
-    try {
+        message: "Executive dashboard retrieved successfully.",
 
-        const dashboard = await dashboardService.getExecutiveDashboard(req.body);
+        data
 
-        return res.status(200).json({
+    });
 
-            success: true,
+});
 
-            message: "Executive dashboard retrieved successfully.",
+/*
+|--------------------------------------------------------------------------
+| Dashboard Cards
+|--------------------------------------------------------------------------
+*/
 
-            data: dashboard
+export const getDashboardCards = asyncHandler(async (req, res) => {
 
-        });
+    const data = await dashboardService.getDashboardCards(req.query);
 
-    } catch (error) {
+    return res.status(200).json({
 
-        next(error);
+        success: true,
 
-    }
+        message: "Dashboard cards retrieved successfully.",
 
-}
+        data
 
-/**
- * GET /dashboard/cards
- */
-export async function getDashboardCards(req, res, next) {
+    });
 
-    try {
+});
 
-        const cards = await dashboardService.getDashboardCards(req.body);
+/*
+|--------------------------------------------------------------------------
+| KPIs
+|--------------------------------------------------------------------------
+*/
 
-        return res.status(200).json({
+export const getKPIs = asyncHandler(async (req, res) => {
 
-            success: true,
+    const data = await dashboardService.getKPIs(req.query);
 
-            message: "Dashboard cards retrieved successfully.",
+    return res.status(200).json({
 
-            data: cards
+        success: true,
 
-        });
+        message: "KPIs retrieved successfully.",
 
-    } catch (error) {
+        data
 
-        next(error);
+    });
 
-    }
+});
 
-}
+/*
+|--------------------------------------------------------------------------
+| Map
+|--------------------------------------------------------------------------
+*/
 
-/**
- * GET /dashboard/kpis
- */
-export async function getKPIs(req, res, next) {
+export const getMap = asyncHandler(async (req, res) => {
 
-    try {
+    const data = await dashboardService.getMap(req.query);
 
-        const kpis = await dashboardService.getKPIs(req.body);
+    return res.status(200).json({
 
-        return res.status(200).json({
+        success: true,
 
-            success: true,
+        message: "Dashboard map retrieved successfully.",
 
-            message: "KPIs retrieved successfully.",
+        data
 
-            data: kpis
+    });
 
-        });
+});
 
-    } catch (error) {
+/*
+|--------------------------------------------------------------------------
+| Optimization Summary
+|--------------------------------------------------------------------------
+*/
 
-        next(error);
+export const getOptimizationSummary = asyncHandler(async (req, res) => {
 
-    }
+    const data = await dashboardService.getOptimizationSummary(req.query);
 
-}
+    return res.status(200).json({
 
-/**
- * GET /dashboard/map
- */
-export async function getMap(req, res, next) {
+        success: true,
 
-    try {
+        message: "Optimization summary retrieved successfully.",
 
-        const map = await dashboardService.getMap(req.body);
+        data
 
-        return res.status(200).json({
+    });
 
-            success: true,
+});
 
-            message: "Dashboard map retrieved successfully.",
+/*
+|--------------------------------------------------------------------------
+| Refresh Dashboard
+|--------------------------------------------------------------------------
+*/
 
-            data: map
+export const refreshDashboard = asyncHandler(async (req, res) => {
 
-        });
+    const data = await dashboardService.refreshDashboard(req.body);
 
-    } catch (error) {
+    return res.status(200).json({
 
-        next(error);
+        success: true,
 
-    }
+        message: "Dashboard refreshed successfully.",
 
-}
+        data
 
-/**
- * POST /dashboard/refresh
- */
-export async function refreshDashboard(req, res, next) {
+    });
 
-    try {
+});
 
-        const dashboard = await dashboardService.refreshDashboard(req.body);
+/*
+|--------------------------------------------------------------------------
+| Dashboard Charts
+|--------------------------------------------------------------------------
+*/
 
-        return res.status(200).json({
+export const getDashboardCharts = asyncHandler(async (req, res) => {
 
-            success: true,
+    const data = await dashboardService.getDashboardCharts(req.query);
 
-            message: "Dashboard refreshed successfully.",
+    return res.status(200).json({
 
-            data: dashboard
+        success: true,
 
-        });
+        message: "Dashboard charts retrieved successfully.",
 
-    } catch (error) {
+        data
 
-        next(error);
+    });
 
-    }
-
-}
-
-/**
- * GET /dashboard/optimization
- */
-export async function getOptimizationSummary(req, res, next) {
-
-    try {
-
-        const summary = await dashboardService.getOptimizationSummary(req.body);
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Optimization summary retrieved successfully.",
-
-            data: summary
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-}
+});
 
 export default {
 
@@ -207,8 +190,10 @@ export default {
 
     getMap,
 
-    refreshDashboard,
+    getOptimizationSummary,
 
-    getOptimizationSummary
+    getDashboardCharts,
+
+    refreshDashboard
 
 };

@@ -7,9 +7,12 @@ import logger from "../../utils/logger.js";
 
 class SyncService {
 
-    /**
-     * Retrieve all active VRM installations
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Installations
+    |--------------------------------------------------------------------------
+    */
+
     async getInstallations() {
 
         try {
@@ -20,13 +23,13 @@ class SyncService {
 
         catch (error) {
 
-            logger.error(
+            logger.error({
 
-                "Unable to retrieve installations.",
+                message: "Unable to retrieve installations.",
 
-                error
+                error: error.message
 
-            );
+            });
 
             return [];
 
@@ -34,10 +37,17 @@ class SyncService {
 
     }
 
-    /**
-     * Retrieve telemetry from one installation
-     */
-    async getTelemetry(installationId) {
+    /*
+    |--------------------------------------------------------------------------
+    | Live Telemetry
+    |--------------------------------------------------------------------------
+    */
+
+    async getTelemetry(
+
+        installationId
+
+    ) {
 
         try {
 
@@ -51,13 +61,15 @@ class SyncService {
 
         catch (error) {
 
-            logger.error(
+            logger.error({
 
-                `Telemetry retrieval failed: ${installationId}`,
+                installationId,
 
-                error
+                message: "Telemetry retrieval failed.",
 
-            );
+                error: error.message
+
+            });
 
             return null;
 
@@ -65,16 +77,21 @@ class SyncService {
 
     }
 
-    /**
-     * Retrieve historical telemetry
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Historical Telemetry
+    |--------------------------------------------------------------------------
+    */
+
     async getHistoricalTelemetry(
 
         installationId,
 
-        from,
+        start,
 
-        to
+        end,
+
+        interval = "15mins"
 
     ) {
 
@@ -84,9 +101,15 @@ class SyncService {
 
                 installationId,
 
-                from,
+                {
 
-                to
+                    start,
+
+                    end,
+
+                    interval
+
+                }
 
             );
 
@@ -94,7 +117,15 @@ class SyncService {
 
         catch (error) {
 
-            logger.error(error);
+            logger.error({
+
+                installationId,
+
+                message: "Historical telemetry retrieval failed.",
+
+                error: error.message
+
+            });
 
             return [];
 
@@ -102,10 +133,17 @@ class SyncService {
 
     }
 
-    /**
-     * Retrieve alarms
-     */
-    async getAlarms(installationId) {
+    /*
+    |--------------------------------------------------------------------------
+    | Alarms
+    |--------------------------------------------------------------------------
+    */
+
+    async getAlarms(
+
+        installationId
+
+    ) {
 
         try {
 
@@ -119,7 +157,15 @@ class SyncService {
 
         catch (error) {
 
-            logger.error(error);
+            logger.error({
+
+                installationId,
+
+                message: "Alarm retrieval failed.",
+
+                error: error.message
+
+            });
 
             return [];
 
@@ -127,97 +173,115 @@ class SyncService {
 
     }
 
-    /**
-     * Retrieve statistics
-     */
-    async getStatistics(installationId) {
+    /*
+    |--------------------------------------------------------------------------
+    | Statistics
+    |--------------------------------------------------------------------------
+    */
 
-    const [
+    async getStatistics(
 
-        energy,
+        installationId
 
-        battery,
+    ) {
 
-        solar,
+        try {
 
-        grid,
+            const [
 
-        generator
+                energy,
 
-    ] = await Promise.all([
+                battery,
 
-        statisticsService.energyStatistics(
+                solar,
 
-            installationId
+                grid,
 
-        ),
+                generator
 
-        statisticsService.batteryStatistics(
+            ] = await Promise.all([
 
-            installationId
+                statisticsService.energyStatistics(
 
-        ),
+                    installationId
 
-        statisticsService.solarStatistics(
+                ),
 
-            installationId
+                statisticsService.batteryStatistics(
 
-        ),
+                    installationId
 
-        statisticsService.gridStatistics(
+                ),
 
-            installationId
+                statisticsService.solarStatistics(
 
-        ),
+                    installationId
 
-        statisticsService.generatorStatistics(
+                ),
 
-            installationId
+                statisticsService.gridStatistics(
 
-        )
+                    installationId
 
-    ]);
+                ),
 
-    return {
+                statisticsService.generatorStatistics(
 
-        energy,
+                    installationId
 
-        battery,
+                )
 
-        solar,
+            ]);
 
-        grid,
+            return {
 
-        generator
+                energy,
 
-    };
+                battery,
 
-}
+                solar,
 
-catch (error) {
+                grid,
 
-        logger.error(
+                generator
 
-            `Statistics retrieval failed: ${installationId}`,
+            };
 
-            error
+        }
 
-        );
+        catch (error) {
 
-        return null;
+            logger.error({
+
+                installationId,
+
+                message: "Statistics retrieval failed.",
+
+                error: error.message
+
+            });
+
+            return null;
+
+        }
 
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Synchronize One Installation
+    |--------------------------------------------------------------------------
+    */
 
-
-    /**
-     * Synchronize one installation
-     */
     async synchronizeInstallation(
 
         installation
 
     ) {
+
+        const installationId =
+
+            installation.installationId;
 
         const [
 
@@ -231,19 +295,19 @@ catch (error) {
 
             this.getTelemetry(
 
-                installation.InstallationId
+                installationId
 
             ),
 
             this.getAlarms(
 
-                installation.InstallationId
+                installationId
 
             ),
 
             this.getStatistics(
 
-                installation.InstallationId
+                installationId
 
             )
 
@@ -259,17 +323,18 @@ catch (error) {
 
             statistics,
 
-            synchronizedAt:
-
-                new Date()
+            synchronizedAt: new Date()
 
         };
 
     }
 
-    /**
-     * Synchronize every installation
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Synchronize All Installations
+    |--------------------------------------------------------------------------
+    */
+
     async synchronizeAll() {
 
         const installations =
@@ -278,7 +343,13 @@ catch (error) {
 
         const results = [];
 
-        for (const installation of installations) {
+        for (
+
+            const installation
+
+            of installations
+
+        ) {
 
             try {
 
@@ -296,13 +367,21 @@ catch (error) {
 
             catch (error) {
 
-                logger.error(
+                logger.error({
 
-                    installation.name,
+                    installationId:
 
-                    error
+                        installation.installationId,
 
-                );
+                    message:
+
+                        "Installation synchronization failed.",
+
+                    error:
+
+                        error.message
+
+                });
 
             }
 

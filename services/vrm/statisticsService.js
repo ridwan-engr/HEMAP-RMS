@@ -1,4 +1,83 @@
 import { get } from "./apiClient.js";
+import logger from "../../utils/logger.js";
+
+/*
+|--------------------------------------------------------------------------
+| Constants
+|--------------------------------------------------------------------------
+*/
+
+const ALLOWED_INTERVALS = [
+
+    "15mins",
+
+    "hour",
+
+    "day"
+
+];
+
+/*
+|--------------------------------------------------------------------------
+| Validation
+|--------------------------------------------------------------------------
+*/
+
+function validateRequest(
+
+    installationId,
+
+    start,
+
+    end,
+
+    interval
+
+) {
+
+    if (!installationId) {
+
+        throw new Error(
+
+            "Installation ID is required."
+
+        );
+
+    }
+
+    if (
+
+        start &&
+
+        end &&
+
+        new Date(start) > new Date(end)
+
+    ) {
+
+        throw new Error(
+
+            "Start date cannot be later than end date."
+
+        );
+
+    }
+
+    if (
+
+        !ALLOWED_INTERVALS.includes(interval)
+
+    ) {
+
+        throw new Error(
+
+            `Unsupported interval: ${interval}`
+
+        );
+
+    }
+
+}
 
 /**
  * Get installation statistics.
@@ -21,13 +100,17 @@ export async function energyStatistics(
 
 ) {
 
-    if (!installationId) {
+    validateRequest(
 
-        throw new Error(
-            "Installation ID is required."
-        );
+        installationId,
 
-    }
+        start,
+
+        end,
+
+        interval
+
+    );
 
     try {
 
@@ -51,9 +134,35 @@ export async function energyStatistics(
 
     catch (error) {
 
+        logger.error({
+
+            installationId,
+
+            endpoint: "/stats",
+
+            start,
+
+            end,
+
+            interval,
+
+            message: error.message,
+
+            status: error.response?.status,
+
+            data: error.response?.data
+
+        });
+
         throw new Error(
 
-            `Unable to retrieve energy statistics: ${error.message}`
+            `Unable to retrieve energy statistics: ${error.message}`,
+
+            {
+
+                cause: error
+
+            }
 
         );
 

@@ -7,116 +7,95 @@ import authorize from "../middlewares/authorize.js";
 import validate from "../middlewares/validate.js";
 
 import {
-
-    reportFilterSchema,
-
-    exportReportSchema,
-
-    permissionSchema
-
+    reportQueryValidator,
+    reportIdValidator,
+    generateReportValidator
 } from "../validators/reportValidator.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Report Generation
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Generate Report
 |--------------------------------------------------------------------------
 */
 
 router.post(
-    "/generate/site-overview",
-    authenticate,
-    validate({ body: reportFilterSchema }),
-    reportController.siteOverviewReport
-);
-
-router.post(
-    "/generate/energy",
-    authenticate,
-    validate({ body: reportFilterSchema }),
-    reportController.energyReport
-);
-
-router.post(
-    "/generate/battery",
-    authenticate,
-    validate({ body: reportFilterSchema }),
-    reportController.batteryReport
-);
-
-router.post(
-    "/generate/reliability",
-    authenticate,
-    validate({ body: reportFilterSchema }),
-    reportController.reliabilityReport
-);
-
-router.post(
-    "/generate/alarms",
-    authenticate,
-    validate({ body: reportFilterSchema }),
-    reportController.alarmReport
-);
-
-router.post(
-    "/generate/maintenance",
-    authenticate,
-    validate({ body: reportFilterSchema }),
-    reportController.maintenanceReport
-);
-
-router.post(
-    "/generate/dashboard",
-    authenticate,
-    validate({ body: reportFilterSchema }),
-    reportController.dashboardReport
-);
-
-router.post(
-    "/generate/executive",
-    authenticate,
-    authorize("admin"),
-    validate({ body: reportFilterSchema }),
-    reportController.executiveReport
+    "/",
+    authorize(
+        "ADMIN",
+        "SUPERVISOR",
+        "ENGINEER"
+    ),
+    validate({
+        body: generateReportValidator
+    }),
+    reportController.generateReport
 );
 
 /*
 |--------------------------------------------------------------------------
-| Export
-|--------------------------------------------------------------------------
-*/
-
-router.post(
-    "/export",
-    authenticate,
-    validate({ body: exportReportSchema }),
-    reportController.exportReport
-);
-
-/*
-|--------------------------------------------------------------------------
-| Permissions
-|--------------------------------------------------------------------------
-*/
-
-router.post(
-    "/permission/check",
-    authenticate,
-    validate({ body: permissionSchema }),
-    reportController.checkReportPermission
-);
-
-/*
-|--------------------------------------------------------------------------
-| Report Response
+| Get Reports
 |--------------------------------------------------------------------------
 */
 
 router.get(
-    "/response/:reportId",
-    authenticate,
-    reportController.reportResponse
+    "/",
+    validate({
+        query: reportQueryValidator
+    }),
+    reportController.getReports
+);
+
+/*
+|--------------------------------------------------------------------------
+| Get Report By ID
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:reportId",
+    validate({
+        params: reportIdValidator
+    }),
+    reportController.getReportById
+);
+
+/*
+|--------------------------------------------------------------------------
+| Download Report
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:reportId/download",
+    validate({
+        params: reportIdValidator
+    }),
+    reportController.downloadReport
+);
+
+/*
+|--------------------------------------------------------------------------
+| Delete Report
+|--------------------------------------------------------------------------
+*/
+
+router.delete(
+    "/:reportId",
+    authorize("ADMIN"),
+    validate({
+        params: reportIdValidator
+    }),
+    reportController.deleteReport
 );
 
 export default router;

@@ -1,56 +1,117 @@
-import cron from "node-cron";
+import Site from "../models/Site.js";
+
 import dashboardService from "../services/dashboard/dashboardService.js";
-import Installation from "../models/Installation.js";
-import { emitDashboardUpdate } from "../websocket/socketEmitter.js";
+
+import {
+
+    emitDashboardUpdate
+
+} from "../websocket/eventEmitters.js";
+
 import logger from "../utils/logger.js";
 
-async function updateDashboard() {
+/*
+|--------------------------------------------------------------------------
+| Dashboard Scheduler
+|--------------------------------------------------------------------------
+*/
 
-    try {
+export async function runDashboardScheduler() {
 
-        const installations = await Installation.find({
+    const started = Date.now();
 
-            isActive: true
+    let processed = 0;
 
-        }).select("site");
+    let successful = 0;
 
-        for (const installation of installations) {
+    let failed = 0;
+
+    const sites = await Site.find({
+
+        status: "ACTIVE"
+
+    }).select("_id name");
+
+    for (const site of sites) {
+
+        processed++;
+
+        try {
 
             const dashboard =
-                await dashboardService.getDashboard(
-                    installation.site
-                );
 
-            emitDashboardUpdate(dashboard);
+                await dashboardService.getDashboard({
 
-        }
+                    siteId: site._id.toString()
 
-        logger.info("Dashboard updated successfully.");
+                });
 
-    }
+            emitDashboardUpdate(
 
-    catch (error) {
+                site._id.toString(),
 
-        logger.error("Dashboard scheduler failed.", error);
+                dashboard
 
-    }
+            );
 
-}
-
-export default function startDashboardScheduler() {
-
-    cron.schedule(
-
-        "*/2 * * * *",
-
-        updateDashboard,
-
-        {
-
-            timezone: "Africa/Lagos"
+            successful++;
 
         }
 
-    );
+        catch (error) {
+
+            failed++;
+
+            logger.error({
+
+                message:
+
+                    "Dashboard Scheduler Failed.",
+
+                siteId:
+
+                    site._id,
+
+                error:
+
+                    error.message
+
+            });
+
+        }
+
+    }
+
+    const summary = {
+
+        processed,
+
+        successful,
+
+        failed,
+
+        duration:
+
+            Date.now() - started
+
+    };
+
+    logger.info({
+
+        message:
+
+            "Dashboard Scheduler Completed.",
+
+        ...summary
+
+    });
+
+    return summary;
 
 }
+
+export default {
+
+    runDashboardScheduler
+
+};

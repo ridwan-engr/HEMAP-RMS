@@ -2,6 +2,10 @@ import Fault from "../../models/Fault.js";
 import Statistic from "../../models/Statistics.js";
 import Telemetry from "../../models/Telemetry.js";
 import Site from "../../models/Site.js";
+import {
+    emitStatistics,
+    emitAnalytics
+} from "../../websocket/eventEmitters.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -142,11 +146,11 @@ export async function calculateAvailability(siteId) {
 
         })
 
-        .sort({
+            .sort({
 
-            timestamp: -1
+                timestamp: -1
 
-        });
+            });
 
     if (!latest) {
 
@@ -181,7 +185,7 @@ export async function calculateAvailability(siteId) {
                 demand
             ) / demand
 
-        * 100
+            * 100
 
         ).toFixed(2)
 
@@ -904,19 +908,19 @@ export async function calculateReliabilityTrend(siteId) {
 
         })
 
-        .sort({
+            .sort({
 
-            timestamp: -1
+                timestamp: -1
 
-        })
+            })
 
-        .limit(30)
+            .limit(30)
 
-        .select(
+            .select(
 
-            "timestamp reliability"
+                "timestamp reliability"
 
-        );
+            );
 
     return history.reverse();
 
@@ -1060,6 +1064,104 @@ export async function buildReliabilityKPIs(siteId) {
 
 /*
 |--------------------------------------------------------------------------
+| Reliability Indices
+|--------------------------------------------------------------------------
+*/
+
+export async function calculateReliabilityIndices(siteId) {
+
+    const [
+
+        saidi,
+
+        saifi,
+
+        caidi,
+
+        asai,
+
+        asui,
+
+        ens,
+
+        eens,
+
+        lolp,
+
+        lole,
+
+        mtbf,
+
+        mttr,
+
+        availability
+
+    ] = await Promise.all([
+
+        calculateSAIDI(siteId),
+
+        calculateSAIFI(siteId),
+
+        calculateCAIDI(siteId),
+
+        calculateASAI(siteId),
+
+        calculateASUI(siteId),
+
+        calculateENS(siteId),
+
+        calculateEENS(siteId),
+
+        calculateLOLP(siteId),
+
+        calculateLOLE(siteId),
+
+        calculateMTBF(siteId),
+
+        calculateMTTR(siteId),
+
+        calculateAvailability(siteId)
+
+    ]);
+
+    return {
+
+        availability,
+
+        mtbf,
+
+        mttr,
+
+        saidi,
+
+        saifi,
+
+        caidi,
+
+        asai,
+
+        asui,
+
+        ens,
+
+        eens,
+
+        lolp,
+
+        lole
+
+    };
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Save Reliability Snapshot
+|--------------------------------------------------------------------------
+*/
+
+/*
+|--------------------------------------------------------------------------
 | Save Reliability Snapshot
 |--------------------------------------------------------------------------
 */
@@ -1068,7 +1170,7 @@ export async function saveReliabilitySnapshot(siteId) {
 
     const kpis = await buildReliabilityKPIs(siteId);
 
-    return await Statistic.create({
+    const snapshot = await Statistic.create({
 
         site: siteId,
 
@@ -1106,6 +1208,21 @@ export async function saveReliabilitySnapshot(siteId) {
 
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | Emit live updates
+    |--------------------------------------------------------------------------
+    */
+
+    emitStatistics(siteId, kpis);
+
+    emitAnalytics(siteId, {
+        module: "reliability",
+        ...kpis
+    });
+
+    return snapshot;
+
 }
 
 /*
@@ -1132,11 +1249,11 @@ export async function getReliabilityDashboard(siteId) {
 
         })
 
-        .sort({
+            .sort({
 
-            timestamp: -1
+                timestamp: -1
 
-        }),
+            }),
 
         buildReliabilityKPIs(siteId),
 
@@ -1144,7 +1261,7 @@ export async function getReliabilityDashboard(siteId) {
 
     ]);
 
-    return {
+    const dashboard = {
 
         generatedAt: new Date(),
 
@@ -1156,8 +1273,16 @@ export async function getReliabilityDashboard(siteId) {
 
     };
 
-}
+    emitAnalytics(siteId, {
 
+        module: "reliability",
+
+        dashboard
+
+    });
+
+    return dashboard;
+}
 /*
 |--------------------------------------------------------------------------
 | Reliability Report
@@ -1169,6 +1294,14 @@ export async function generateReliabilityReport(siteId) {
     const dashboard =
 
         await getReliabilityDashboard(siteId);
+
+    emitAnalytics(siteId, {
+
+        module: "reliability-report",
+
+        generatedAt: new Date()
+
+    });
 
     return {
 
@@ -1210,7 +1343,7 @@ export async function generateReliabilityReport(siteId) {
 
         },
 
-        details: dashboard
+        details: dashboard,
 
     };
 
@@ -1402,27 +1535,50 @@ export async function getReliabilityHealth(siteId) {
 
 export async function getDashboardReliability(filters = {}) {
 
-    return getReliabilityDashboard(filters);
+    return getReliabilityDashboard(
+
+        filters.siteId
+
+    );
 
 }
 
 // reliability metrics
-export async function getReliabilityMetrics(siteId) {
 
-    return {
+export async function getReliabilityMetrics(filters = {}) {
 
-        dashboard: await getReliabilityDashboard(siteId),
+    const siteId =
+        typeof filters === "string"
+            ? filters
+            : filters?.siteId;
 
-        indices: await getReliabilityIndices(siteId),
+    const [
 
-        saidi: await calculateSAIDI(siteId),
+        dashboard,
 
-        saifi: await calculateSAIFI(siteId),
+        indices
 
-        ens: await calculateENS(siteId)
+    ] = await Promise.all([
+
+        getReliabilityDashboard(filters.siteId),
+
+        calculateReliabilityIndices(filters.siteId)
+
+    ]);
+
+    const metrics = {
+
+        dashboard,
+
+        indices,
+
+        ...indices
 
     };
 
+    emitStatistics(siteId, metrics);
+
+    return metrics;
 }
 
 /*
@@ -1482,6 +1638,8 @@ export default {
     calculateReliabilityTrend,
 
     buildReliabilityKPIs,
+
+    calculateReliabilityIndices,
 
     saveReliabilitySnapshot,
 

@@ -4,7 +4,7 @@ import { env } from "../../config/env.js";
 
 /*
 |--------------------------------------------------------------------------
-| Generate Access Token
+| Access Token
 |--------------------------------------------------------------------------
 */
 
@@ -13,15 +13,21 @@ export function generateAccessToken(user) {
     return jwt.sign(
 
         {
+
             id: user._id,
+
             email: user.email,
+
             role: user.role
+
         },
 
         env.jwtSecret,
 
         {
+
             expiresIn: env.jwtExpiresIn
+
         }
 
     );
@@ -30,7 +36,7 @@ export function generateAccessToken(user) {
 
 /*
 |--------------------------------------------------------------------------
-| Generate Refresh Token
+| Refresh Token
 |--------------------------------------------------------------------------
 */
 
@@ -39,13 +45,17 @@ export function generateRefreshToken(user) {
     return jwt.sign(
 
         {
+
             id: user._id
+
         },
 
         env.jwtSecret,
 
         {
+
             expiresIn: "30d"
+
         }
 
     );
@@ -54,7 +64,7 @@ export function generateRefreshToken(user) {
 
 /*
 |--------------------------------------------------------------------------
-| Verify Token
+| Verify
 |--------------------------------------------------------------------------
 */
 
@@ -72,7 +82,7 @@ export function verifyToken(token) {
 
 /*
 |--------------------------------------------------------------------------
-| Decode Token
+| Decode
 |--------------------------------------------------------------------------
 */
 

@@ -6,9 +6,9 @@ import roleRoutes from "./roleRoutes.js";
 
 import siteRoutes from "./siteRoutes.js";
 import installationRoutes from "./installationRoutes.js";
-import telemetryRoutes from "./telemetryRoutes.js"
+import telemetryRoutes from "./telemetryRoutes.js";
 import analyticsRoutes from "./analyticsRoutes.js";
-import statisticRoutes from "./statisticRoutes.js";
+import statisticsRoutes from "./statisticsRoutes.js";
 import alarmRoutes from "./alarmRoutes.js";
 
 import batteryRoutes from "./batteryRoutes.js";
@@ -30,6 +30,7 @@ import optimizationResultRoutes from "./optimizationResultRoutes.js";
 import systemSettingRoutes from "./systemSettingRoutes.js";
 import dashboardRoutes from "./dashboardRoutes.js";
 import optimizationRoutes from "./optimizationRoutes.js";
+
 const router = Router();
 
 /*
@@ -37,8 +38,8 @@ const router = Router();
 | API Information
 |--------------------------------------------------------------------------
 */
-
-/*router.get("/", (req, res) => {
+/*
+router.get("/", (req, res) => {
 
     res.status(200).json({
 
@@ -55,6 +56,7 @@ const router = Router();
     });
 
 });
+*/
 
 /*
 |--------------------------------------------------------------------------
@@ -83,7 +85,7 @@ router.use("/sites", siteRoutes);
 router.use("/installations", installationRoutes);
 router.use("/telemetry", telemetryRoutes);
 router.use("/analytics", analyticsRoutes);
-router.use("/statistics", statisticRoutes);
+router.use("/statistics", statisticsRoutes);
 router.use("/alarms", alarmRoutes);
 
 /*
@@ -125,9 +127,9 @@ router.use("/audit-logs", auditLogRoutes);
 */
 
 router.use("/forecasts", energyForecastRoutes);
-router.use("/optimization_results", optimizationResultRoutes);
+router.use("/optimization-results", optimizationResultRoutes);
 router.use("/settings", systemSettingRoutes);
 router.use("/dashboard", dashboardRoutes);
-router.use( "/optimization", optimizationRoutes);
+router.use("/optimizations", optimizationRoutes);
 
 export default router;

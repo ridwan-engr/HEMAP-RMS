@@ -1,7 +1,5 @@
 import { Router } from "express";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
 
 import {
 
@@ -14,49 +12,86 @@ import {
     updateGrid,
 
     deleteGrid
-
-    //getGridBySite
-
+    
 } from "../controllers/gridController.js";
+
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
 
 const router = Router();
 
-/*router.get(
-    "/site/:siteId",
-    authenticate,
-    getGridBySite
-);*/
+/*
+|--------------------------------------------------------------------------
+| All Grid Routes Require Authentication
+|--------------------------------------------------------------------------
+*/
 
-router.post(
-    "/",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    createGrid
-);
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Get All Grids
+|--------------------------------------------------------------------------
+*/
 
 router.get(
     "/",
-    authenticate,
+
     getGrids
 );
 
+/*
+|--------------------------------------------------------------------------
+| Get Grid By ID
+|--------------------------------------------------------------------------
+*/
+
 router.get(
     "/:id",
-    authenticate,
+
     getGrid
 );
 
+/*
+|--------------------------------------------------------------------------
+| Create Grid
+|--------------------------------------------------------------------------
+*/
+
+router.post(
+    "/",
+    authorize(
+        "ADMIN",
+        "ENGINEER"
+    ),
+    createGrid
+);
+
+/*
+|--------------------------------------------------------------------------
+| Update Grid
+|--------------------------------------------------------------------------
+*/
+
 router.put(
     "/:id",
-    authenticate,
-    authorize("Administrator", "Engineer"),
+    authorize(
+        "ADMIN",
+        "ENGINEER"
+    ),
     updateGrid
 );
 
+/*
+|--------------------------------------------------------------------------
+| Delete Grid
+|--------------------------------------------------------------------------
+*/
+
 router.delete(
     "/:id",
-    authenticate,
-    authorize("Administrator"),
+
+    authorize("ADMIN"),
     deleteGrid
 );
 

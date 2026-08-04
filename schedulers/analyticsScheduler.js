@@ -1,190 +1,80 @@
-import cron from "node-cron";
-
-import dotenv from "dotenv";
-
 import Site from "../models/Site.js";
+
+import * as analyticsService from "../services/analytics/analyticsService.js";
 
 import logger from "../utils/logger.js";
 
 import {
-
-    statisticsService,
-
-    forecastService,
-
-    optimizationService,
-
-    reliabilityService,
-
-    insightsService,
-
-    cacheService
-
-} from "../services/analytics/index.js";
-
-dotenv.config();
+    emitAnalytics
+} from "../websocket/eventEmitters.js";
 
 /*
 |--------------------------------------------------------------------------
-| Build Analytics
-|--------------------------------------------------------------------------
-*/
-
-async function buildAnalytics(site) {
-
-    const endDate = new Date();
-
-    const startDate = new Date();
-
-    startDate.setHours(
-
-        startDate.getHours() - 24
-
-    );
-
-    const statistics = await statisticsService.calculateStatistics({
-
-        site: site._id,
-
-        startDate,
-
-        endDate
-
-    });
-
-    const forecast = await forecastService.generateForecast({
-
-        site: site._id,
-
-        startDate,
-
-        endDate
-
-    });
-
-    const optimization = await optimizationService.optimize({
-
-        site: site._id,
-
-        startDate,
-
-        endDate
-
-    });
-
-    const reliability = await reliabilityService.calculate({
-
-        site: site._id,
-
-        startDate,
-
-        endDate
-
-    });
-
-    const insights = await insightsService.generateInsights({
-
-        site,
-
-        statistics,
-
-        forecast,
-
-        optimization,
-
-        reliability
-
-    });
-
-    return {
-
-        site: site._id,
-
-        period: "DAILY",
-
-        startDate,
-
-        endDate,
-
-        energy: statistics.energy,
-
-        battery: statistics.battery,
-
-        generator: statistics.generator,
-
-        weather: statistics.weather,
-
-        reliability,
-
-        forecast,
-
-        optimization,
-
-        insights
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Scheduler
+| Analytics Scheduler
 |--------------------------------------------------------------------------
 */
 
 export async function runAnalyticsScheduler() {
 
-    logger.info(
+    const started = Date.now();
 
-        "Analytics Scheduler Started"
+    let processed = 0;
 
-    );
-
-    const sites = await Site.find({
-
-        isActive: true
-
-    });
-
-    let success = 0;
+    let successful = 0;
 
     let failed = 0;
 
+    const sites = await Site.find({
+
+        status: "ACTIVE"
+
+    }).select("_id name");
+
     for (const site of sites) {
+
+        processed++;
 
         try {
 
-            const analytics = await buildAnalytics(
+            const analytics =
 
-                site
+                await analyticsService.getDashboardAnalytics({
+
+                    siteId: site._id.toString()
+
+                });
+
+            emitAnalytics(
+
+                site._id.toString(),
+
+                {
+
+                    module: "analytics",
+
+                    analytics
+
+                }
 
             );
 
-            await cacheService.deleteAnalytics({
+            successful++;
 
-                site: site._id,
+            logger.info({
 
-                period: analytics.period,
+                message:
 
-                startDate: analytics.startDate,
+                    "Analytics generated.",
 
-                endDate: analytics.endDate
+                siteId:
+
+                    site._id,
+
+                site:
+
+                    site.name
 
             });
-
-            await cacheService.saveAnalytics(
-
-                analytics
-
-            );
-
-            success++;
-
-            logger.success(
-
-                `Analytics updated for ${site.name}`
-
-            );
 
         }
 
@@ -192,70 +82,64 @@ export async function runAnalyticsScheduler() {
 
             failed++;
 
-            logger.error(
+            logger.error({
 
-                `${site.name}: ${error.message}`
+                message:
 
-            );
+                    "Analytics Scheduler Failed.",
+
+                siteId:
+
+                    site._id,
+
+                error:
+
+                    error.message
+
+            });
 
         }
 
     }
 
-    await cacheService.cleanupAnalytics(
+    const summary = {
 
-        365
+        processed,
 
-    );
+        successful,
 
-    logger.info(
+        failed,
 
-        `Analytics Scheduler Finished
+        duration:
 
-Sites : ${sites.length}
+            Date.now() - started
 
-Success : ${success}
+    };
 
-Failed : ${failed}`
+    logger.info({
 
-    );
+        message:
+
+            "Analytics Scheduler Completed.",
+
+        ...summary
+
+    });
+
+    return summary;
+
+}
+
+export async function runAnalyticsNow() {
+
+    return runAnalyticsScheduler();
 
 }
 
-/*
-|--------------------------------------------------------------------------
-| Register Scheduler
-|--------------------------------------------------------------------------
-*/
+export default {
 
-export function startAnalyticsScheduler() {
+    runAnalyticsScheduler,
 
-    cron.schedule(
+    runAnalyticsNow
 
-        process.env.ANALYTICS_CRON,
-
-        async () => {
-
-            try {
-
-                await runAnalyticsScheduler();
-
-            }
-
-            catch (error) {
-
-                logger.error(error);
-
-            }
-
-        }
-
-    );
-
-    logger.success(
-
-        "Analytics Scheduler Registered"
-
-    );
-
-}
+};

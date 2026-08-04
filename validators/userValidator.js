@@ -2,44 +2,119 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schemas
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
+
     .hex()
+
     .required();
 
-export const paginationSchema = Joi.object({
+/*
+|--------------------------------------------------------------------------
+| Password Policy
+|--------------------------------------------------------------------------
+*/
+
+const password = Joi.string()
+
+    .min(8)
+
+    .max(64)
+
+    .pattern(
+
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/
+
+    )
+
+    .messages({
+
+        "string.pattern.base":
+
+            "Password must contain uppercase, lowercase, number and special character."
+
+    });
+
+/*
+|--------------------------------------------------------------------------
+| User Query
+|--------------------------------------------------------------------------
+*/
+
+export const userQuerySchema = Joi.object({
 
     page: Joi.number()
+
         .integer()
+
         .min(1)
+
         .default(1),
 
     limit: Joi.number()
+
         .integer()
+
         .min(1)
+
         .max(100)
+
         .default(20),
 
     search: Joi.string()
+
         .trim()
+
         .allow("")
+
         .optional(),
 
-    sortBy: Joi.string()
-        .trim()
-        .default("createdAt"),
+    role: objectId.optional(),
 
-    order: Joi.string()
-        .valid("asc", "desc")
-        .default("desc")
+    status: Joi.string()
 
-});
+        .valid(
 
+            "ACTIVE",
+
+            "INACTIVE"
+
+        )
+
+        .optional(),
+
+    sort: Joi.string()
+
+        .valid(
+
+            "asc",
+
+            "desc"
+
+        )
+
+        .default("asc")
+
+}).unknown(false);
+
+/*
+|--------------------------------------------------------------------------
+| User ID
+|--------------------------------------------------------------------------
+*/
+
+export const userIdSchema = Joi.object({
+
+    id: objectId
+
+}).unknown(false);
 
 /*
 |--------------------------------------------------------------------------
@@ -50,51 +125,54 @@ export const paginationSchema = Joi.object({
 export const createUserSchema = Joi.object({
 
     firstName: Joi.string()
+
         .trim()
+
         .min(2)
-        .max(100)
+
+        .max(50)
+
         .required(),
 
     lastName: Joi.string()
+
         .trim()
+
         .min(2)
-        .max(100)
+
+        .max(50)
+
         .required(),
 
     email: Joi.string()
+
+        .trim()
+
         .email()
+
         .lowercase()
+
         .required(),
 
-    password: Joi.string()
-        .min(8)
-        .max(128)
-        .required(),
+    phone: Joi.string()
 
-    phoneNumber: Joi.string()
         .trim()
+
+        .pattern(/^[+]?[0-9]{7,20}$/)
+
         .allow("")
+
         .optional(),
 
-    role: Joi.string()
-        .trim()
-        .optional(),
+    password: password.required(),
 
-    department: Joi.string()
-        .trim()
-        .allow("")
-        .optional(),
-
-    designation: Joi.string()
-        .trim()
-        .allow("")
-        .optional(),
+    role: objectId,
 
     isActive: Joi.boolean()
+
         .default(true)
 
-});
-
+}).unknown(false);
 
 /*
 |--------------------------------------------------------------------------
@@ -105,123 +183,59 @@ export const createUserSchema = Joi.object({
 export const updateUserSchema = Joi.object({
 
     firstName: Joi.string()
+
         .trim()
+
         .min(2)
-        .max(100),
+
+        .max(50),
 
     lastName: Joi.string()
+
         .trim()
+
         .min(2)
-        .max(100),
 
-    phoneNumber: Joi.string()
+        .max(50),
+
+    email: Joi.string()
+
         .trim()
-        .allow(""),
 
-    department: Joi.string()
+        .email()
+
+        .lowercase(),
+
+    phone: Joi.string()
+
         .trim()
+
+        .pattern(/^[+]?[0-9]{7,20}$/)
+
         .allow(""),
 
-    designation: Joi.string()
-        .trim()
-        .allow(""),
+    password,
 
-    profileImage: Joi.string()
-        .uri()
-        .allow(""),
+    role: objectId.optional(),
 
     isActive: Joi.boolean()
 
-}).min(1);
-
-
-/*
-|--------------------------------------------------------------------------
-| Update Profile
-|--------------------------------------------------------------------------
-*/
-
-export const updateProfileSchema = Joi.object({
-
-    firstName: Joi.string()
-        .trim()
-        .min(2)
-        .max(100),
-
-    lastName: Joi.string()
-        .trim()
-        .min(2)
-        .max(100),
-
-    phoneNumber: Joi.string()
-        .trim()
-        .allow(""),
-
-    profileImage: Joi.string()
-        .uri()
-        .allow("")
-
-}).min(1);
-
+}).min(1).unknown(false);
 
 /*
 |--------------------------------------------------------------------------
-| Assign Role
+| Default Export
 |--------------------------------------------------------------------------
 */
-
-export const assignRoleSchema = Joi.object({
-
-    role: Joi.string()
-        .trim()
-        .required()
-
-});
-
-
-/*
-|--------------------------------------------------------------------------
-| Activate / Deactivate User
-|--------------------------------------------------------------------------
-*/
-
-export const statusSchema = Joi.object({
-
-    isActive: Joi.boolean()
-        .required()
-
-});
-
-
-/*
-|--------------------------------------------------------------------------
-| Route Parameters
-|--------------------------------------------------------------------------
-*/
-
-export const userIdSchema = Joi.object({
-
-    userId: objectIdSchema
-
-});
-
 
 export default {
 
-    objectIdSchema,
+    userQuerySchema,
 
-    paginationSchema,
+    userIdSchema,
 
     createUserSchema,
 
-    updateUserSchema,
-
-    updateProfileSchema,
-
-    assignRoleSchema,
-
-    statusSchema,
-
-    userIdSchema
+    updateUserSchema
 
 };

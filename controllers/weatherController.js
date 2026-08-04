@@ -1,476 +1,151 @@
-import Weather from "../models/Weather.js";
-import Site from "../models/Site.js";
-import AuditLog from "../models/AuditLog.js";
-import logger from "../utils/logger.js";
+import asyncHandler from "../utils/asyncHandler.js";
+
+import * as weatherService from "../services/weather/weatherService.js";
 
 /*
 |--------------------------------------------------------------------------
-| Create Weather Record
+| Current Weather
 |--------------------------------------------------------------------------
 */
 
-export async function createWeather(req, res, next) {
+export const getCurrentWeather = asyncHandler(async (req, res) => {
 
-    try {
+    const weather = await weatherService.getCurrentWeather(req.query);
 
-        const {
+    return res.status(200).json({
 
-            site,
+        success: true,
 
-            timestamp,
+        message: "Current weather retrieved successfully.",
 
-            temperature,
+        data: weather
 
-            humidity,
+    });
 
-            solarIrradiance,
-
-            windSpeed,
-
-            windDirection,
-
-            rainfall,
-
-            pressure,
-
-            cloudCover,
-
-            weatherCondition
-
-        } = req.body;
-
-        const siteExists = await Site.findById(site);
-
-        if (!siteExists) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Site not found."
-
-            });
-
-        }
-
-        const weather = await Weather.create({
-
-            site,
-
-            timestamp,
-
-            temperature,
-
-            humidity,
-
-            solarIrradiance,
-
-            windSpeed,
-
-            windDirection,
-
-            rainfall,
-
-            pressure,
-
-            cloudCover,
-
-            weatherCondition
-
-        });
-
-        await AuditLog.create({
-
-            action: "WEATHER_CREATED",
-
-            module: "WEATHER",
-
-            performedBy: req.user.id,
-
-            details: `Weather record created for ${siteExists.name}.`
-
-        });
-
-        logger.success("Weather record created.");
-
-        return res.status(201).json({
-
-            success: true,
-
-            data: weather
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+});
 
 /*
 |--------------------------------------------------------------------------
-| Get Latest Weather
+| Weather Forecast
 |--------------------------------------------------------------------------
 */
 
-export async function getLatestWeather(req, res, next) {
+export const getForecast = asyncHandler(async (req, res) => {
 
-    try {
+    const forecast = await weatherService.getForecast(req.query);
 
-        const weather = await Weather
+    return res.status(200).json({
 
-            .findOne({
+        success: true,
 
-                site: req.body.siteId
+        message: "Weather forecast retrieved successfully.",
 
-            })
+        data: forecast
 
-            .sort({
+    });
 
-                timestamp: -1
-
-            })
-
-            .populate("site");
-
-        if (!weather) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Weather data not found."
-
-            });
-
-        }
-
-        return res.json({
-
-            success: true,
-
-            data: weather
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+});
 
 /*
 |--------------------------------------------------------------------------
-| Weather History
+| Historical Weather
 |--------------------------------------------------------------------------
 */
 
-export async function getWeatherHistory(req, res, next) {
+export const getHistory = asyncHandler(async (req, res) => {
 
-    try {
+    const history = await weatherService.getHistory(req.query);
 
-        const {
+    return res.status(200).json({
 
-            page = 1,
+        success: true,
 
-            limit = 100,
+        message: "Historical weather retrieved successfully.",
 
-            start,
+        data: history
 
-            end
+    });
 
-        } = req.body;
-
-        const filter = {
-
-            site: req.body.siteId
-
-        };
-
-        if (start || end) {
-
-            filter.timestamp = {};
-
-            if (start)
-
-                filter.timestamp.$gte = new Date(start);
-
-            if (end)
-
-                filter.timestamp.$lte = new Date(end);
-
-        }
-
-        const weather = await Weather
-
-            .find(filter)
-
-            .populate("site")
-
-            .sort({
-
-                timestamp: -1
-
-            })
-
-            .skip(
-
-                (Number(page) - 1) *
-
-                Number(limit)
-
-            )
-
-            .limit(
-
-                Number(limit)
-
-            );
-
-        const total = await Weather.countDocuments(
-
-            filter
-
-        );
-
-        return res.json({
-
-            success: true,
-
-            total,
-
-            page: Number(page),
-
-            limit: Number(limit),
-
-            data: weather
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+});
 
 /*
 |--------------------------------------------------------------------------
-| Get Weather By ID
+| Solar Irradiance
 |--------------------------------------------------------------------------
 */
 
-export async function getWeatherById(req, res, next) {
+export const getSolarIrradiance = asyncHandler(async (req, res) => {
 
-    try {
+    const irradiance = await weatherService.getSolarIrradiance(req.query);
 
-        const weather = await Weather
+    return res.status(200).json({
 
-            .findById(req.body.id)
+        success: true,
 
-            .populate("site");
+        message: "Solar irradiance retrieved successfully.",
 
-        if (!weather) {
+        data: irradiance
 
-            return res.status(404).json({
+    });
 
-                success: false,
-
-                message: "Weather record not found."
-
-            });
-
-        }
-
-        return res.json({
-
-            success: true,
-
-            data: weather
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+});
 
 /*
 |--------------------------------------------------------------------------
-| Update Weather
+| Wind Data
 |--------------------------------------------------------------------------
 */
 
-export async function updateWeather(req, res, next) {
+export const getWindData = asyncHandler(async (req, res) => {
 
-    try {
+    const wind = await weatherService.getWindData(req.query);
 
-        const weather = await Weather.findByIdAndUpdate(
+    return res.status(200).json({
 
-            req.body.id,
+        success: true,
 
-            req.body,
+        message: "Wind data retrieved successfully.",
 
-            {
+        data: wind
 
-                new: true,
+    });
 
-                runValidators: true
-
-            }
-
-        );
-
-        if (!weather) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Weather record not found."
-
-            });
-
-        }
-
-        await AuditLog.create({
-
-            action: "WEATHER_UPDATED",
-
-            module: "WEATHER",
-
-            performedBy: req.user.id,
-
-            details: `Updated weather ${weather._id}.`
-
-        });
-
-        logger.success("Weather updated.");
-
-        return res.json({
-
-            success: true,
-
-            data: weather
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+});
 
 /*
 |--------------------------------------------------------------------------
-| Delete Weather
+| Weather Summary
 |--------------------------------------------------------------------------
 */
 
-export async function deleteWeather(req, res, next) {
+export const getWeatherSummary = asyncHandler(async (req, res) => {
 
-    try {
+    const summary = await weatherService.getWeatherSummary(req.query);
 
-        const weather = await Weather.findByIdAndDelete(
+    return res.status(200).json({
 
-            req.body.id
+        success: true,
 
-        );
+        message: "Weather summary retrieved successfully.",
 
-        if (!weather) {
+        data: summary
 
-            return res.status(404).json({
+    });
 
-                success: false,
-
-                message: "Weather record not found."
-
-            });
-
-        }
-
-        await AuditLog.create({
-
-            action: "WEATHER_DELETED",
-
-            module: "WEATHER",
-
-            performedBy: req.user.id,
-
-            details: `Deleted weather ${weather._id}.`
-
-        });
-
-        logger.success("Weather deleted.");
-
-        return res.json({
-
-            success: true,
-
-            message: "Weather record deleted successfully."
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Export Controller
-|--------------------------------------------------------------------------
-*/
+});
 
 export default {
 
-    createWeather,
+    getCurrentWeather,
 
-    getLatestWeather,
+    getForecast,
 
-    getWeatherHistory,
+    getHistory,
 
-    getWeatherById,
+    getSolarIrradiance,
 
-    updateWeather,
+    getWindData,
 
-    deleteWeather
+    getWeatherSummary
 
 };

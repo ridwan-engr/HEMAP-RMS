@@ -1,6 +1,37 @@
-import faultService from "../services/faults/faultService.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import * as faultService from "../services/faults/faultService.js";
 
-import logger from "../utils/logger.js";
+/*
+|--------------------------------------------------------------------------
+| Fault List
+|--------------------------------------------------------------------------
+*/
+
+export const getFaults = asyncHandler(async (req, res) => {
+    const faults = await faultService.getFaults(req.query);
+
+    return res.status(200).json({
+        success: true,
+        message: "Faults retrieved successfully.",
+        data: faults
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Fault Details
+|--------------------------------------------------------------------------
+*/
+
+export const getFaultById = asyncHandler(async (req, res) => {
+    const fault = await faultService.getFaultById(req.params.faultId);
+
+    return res.status(200).json({
+        success: true,
+        message: "Fault retrieved successfully.",
+        data: fault
+    });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -8,121 +39,15 @@ import logger from "../utils/logger.js";
 |--------------------------------------------------------------------------
 */
 
-export async function createFault(req, res, next) {
+export const createFault = asyncHandler(async (req, res) => {
+    const fault = await faultService.createFault(req.body, req.user);
 
-    try {
-
-        const fault = await faultService.createFault(
-
-            req.body
-
-        );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Fault created successfully.",
-
-            data: fault
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get All Faults
-|--------------------------------------------------------------------------
-*/
-
-export async function getFaults(req, res, next) {
-
-    try {
-
-        const faults =
-
-            await faultService.getFaults();
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: faults
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Fault By ID
-|--------------------------------------------------------------------------
-*/
-
-export async function getFaultById(req, res, next) {
-
-    try {
-
-        const fault =
-
-            await faultService.getFaultById(
-
-                req.body.id
-
-            );
-
-        if (!fault) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Fault not found."
-
-            });
-
-        }
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: fault
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+    return res.status(201).json({
+        success: true,
+        message: "Fault created successfully.",
+        data: fault
+    });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -130,53 +55,39 @@ export async function getFaultById(req, res, next) {
 |--------------------------------------------------------------------------
 */
 
-export async function updateFault(req, res, next) {
+export const updateFault = asyncHandler(async (req, res) => {
+    const fault = await faultService.updateFault(
+        req.params.faultId,
+        req.body,
+        req.user
+    );
 
-    try {
+    return res.status(200).json({
+        success: true,
+        message: "Fault updated successfully.",
+        data: fault
+    });
+});
 
-        const fault =
+/*
+|--------------------------------------------------------------------------
+| Resolve Fault
+|--------------------------------------------------------------------------
+*/
 
-            await faultService.updateFault(
+export const resolveFault = asyncHandler(async (req, res) => {
+    const fault = await faultService.resolveFault(
+        req.params.faultId,
+        req.body,
+        req.user
+    );
 
-                req.body.id,
-
-                req.body
-
-            );
-
-        if (!fault) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Fault not found."
-
-            });
-
-        }
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Fault updated successfully.",
-
-            data: fault
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+    return res.status(200).json({
+        success: true,
+        message: "Fault resolved successfully.",
+        data: fault
+    });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -184,100 +95,27 @@ export async function updateFault(req, res, next) {
 |--------------------------------------------------------------------------
 */
 
-export async function deleteFault(req, res, next) {
+export const deleteFault = asyncHandler(async (req, res) => {
+    await faultService.deleteFault(req.params.faultId);
 
-    try {
-
-        const deleted =
-
-            await faultService.deleteFault(
-
-                req.body.id
-
-            );
-
-        if (!deleted) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Fault not found."
-
-            });
-
-        }
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Fault deleted successfully."
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Faults By Site
-|--------------------------------------------------------------------------
-*/
-
-export async function getFaultsBySite(req, res, next) {
-
-    try {
-
-        const faults =
-
-            await faultService.getFaultsBySite(
-
-                req.body.siteId
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: faults
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+    return res.status(200).json({
+        success: true,
+        message: "Fault deleted successfully."
+    });
+});
 
 export default {
-
-    createFault,
 
     getFaults,
 
     getFaultById,
 
+    createFault,
+
     updateFault,
 
-    deleteFault,
+    resolveFault,
 
-    getFaultsBySite
+    deleteFault
 
 };

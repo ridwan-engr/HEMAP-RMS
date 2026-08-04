@@ -1,910 +1,141 @@
+import asyncHandler from "../utils/asyncHandler.js";
+
 import * as reportService from "../services/reports/reportService.js";
 
-
 /*
 |--------------------------------------------------------------------------
-| Generate Site Overview Report
+| Generate Report
 |--------------------------------------------------------------------------
 */
 
-export async function siteOverviewReport(
+export const generateReport = asyncHandler(async (req, res) => {
 
-    req,
+    const report = await reportService.generateReport(
 
-    res
+        req.body,
 
-) {
-
-
-    try {
-
-
-        const report =
-
-            await reportService.generateSiteOverviewReport(
-
-                req.body.siteId
-
-            );
-
-
-
-        res.status(200)
-
-            .json({
-
-
-                success: true,
-
-
-                data:
-
-                    report
-
-
-            });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(400)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Generate Energy Performance Report
-|--------------------------------------------------------------------------
-*/
-
-export async function energyReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const {
-
-            startDate,
-
-            endDate
-
-        } = req.body;
-
-
-
-        const report =
-
-            await reportService.generateEnergyReport({
-
-                siteId:
-
-                    req.body.siteId,
-
-
-                startDate:
-
-                    new Date(startDate),
-
-
-                endDate:
-
-                    new Date(endDate)
-
-            });
-
-
-
-        res.json({
-
-
-            success: true,
-
-
-            data:
-
-                report
-
-
-        });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(400)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Generate Battery Report
-|--------------------------------------------------------------------------
-*/
-
-export async function batteryReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const report =
-
-            await reportService.generateBatteryReport(
-
-                req.body.siteId
-
-            );
-
-
-
-        res.json({
-
-
-            success: true,
-
-
-            data:
-
-                report
-
-
-        });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(400)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Generate Reliability Report
-|--------------------------------------------------------------------------
-*/
-
-export async function reliabilityReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const report =
-
-            await reportService.generateReliabilityReport({
-
-                siteId:
-
-                    req.body.siteId,
-
-
-                startDate:
-
-                    new Date(
-
-                        req.body.startDate
-
-                    ),
-
-
-                endDate:
-
-                    new Date(
-
-                        req.body.endDate
-
-                    )
-
-            });
-
-
-
-        res.json({
-
-
-            success: true,
-
-
-            data:
-
-                report
-
-
-        });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(400)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Generate Alarm Report
-|--------------------------------------------------------------------------
-*/
-
-export async function alarmReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const report =
-
-            await reportService.generateAlarmReport({
-
-                siteId:
-
-                    req.body.siteId,
-
-
-                startDate:
-
-                    new Date(
-
-                        req.body.startDate
-
-                    ),
-
-
-                endDate:
-
-                    new Date(
-
-                        req.body.endDate
-
-                    )
-
-            });
-
-
-
-        res.status(200)
-
-            .json({
-
-
-                success: true,
-
-
-                data:
-
-                    report
-
-
-            });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(400)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Generate Maintenance Report
-|--------------------------------------------------------------------------
-*/
-
-export async function maintenanceReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const report =
-
-            await reportService.generateMaintenanceReport(
-
-                req.body.siteId
-
-            );
-
-
-
-        res.status(200)
-
-            .json({
-
-
-                success: true,
-
-
-                data:
-
-                    report
-
-
-            });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(400)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Dashboard Summary Report
-|--------------------------------------------------------------------------
-*/
-
-export async function dashboardReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const report =
-
-            await reportService.generateDashboardReport();
-
-
-
-        res.status(200)
-
-            .json({
-
-
-                success: true,
-
-
-                data:
-
-                    report
-
-
-            });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(500)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Executive Management Report
-|--------------------------------------------------------------------------
-*/
-
-export async function executiveReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const report =
-
-            await reportService.generateExecutiveReport();
-
-
-
-        res.status(200)
-
-            .json({
-
-
-                success: true,
-
-
-                data:
-
-                    report
-
-
-            });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(500)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Export Report Data
-|--------------------------------------------------------------------------
-*/
-
-export async function exportReport(
-
-    req,
-
-    res
-
-) {
-
-
-    try {
-
-
-        const exported =
-
-            await reportService.exportReportData(
-
-                req.body.report
-
-            );
-
-
-
-        res.status(200)
-
-            .json({
-
-
-                success: true,
-
-
-                data:
-
-                    exported
-
-
-            });
-
-
-    }
-
-    catch (error) {
-
-
-        res.status(400)
-
-            .json({
-
-
-                success: false,
-
-
-                message:
-
-                    error.message
-
-
-            });
-
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Validate Report Date Range
-|--------------------------------------------------------------------------
-*/
-
-function validateDateRange(
-
-    startDate,
-
-    endDate
-
-) {
-
-
-    if (!startDate || !endDate) {
-
-
-        throw new Error(
-
-            "Start date and end date are required"
-
-        );
-
-    }
-
-
-
-    const start =
-
-        new Date(startDate);
-
-
-
-    const end =
-
-        new Date(endDate);
-
-
-
-    if (
-
-        isNaN(start) ||
-
-        isNaN(end)
-
-    ) {
-
-
-        throw new Error(
-
-            "Invalid date format"
-
-        );
-
-    }
-
-
-
-    if (
-
-        start > end
-
-    ) {
-
-
-        throw new Error(
-
-            "Start date cannot be greater than end date"
-
-        );
-
-    }
-
-
-
-    return {
-
-        start,
-
-        end
-
-    };
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Validate Site Parameter
-|--------------------------------------------------------------------------
-*/
-
-function validateSiteId(
-
-    siteId
-
-) {
-
-
-    if (!siteId) {
-
-
-        throw new Error(
-
-            "Site ID is required"
-
-        );
-
-    }
-
-
-
-    return siteId;
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Report Permission Hook
-|--------------------------------------------------------------------------
-|
-| Used with authorize middleware
-|
-| Example:
-|
-| authorize("VIEW_REPORTS")
-|
-|--------------------------------------------------------------------------
-*/
-
-export function checkReportPermission(
-
-    permission = "VIEW_REPORTS"
-
-) {
-
-
-    return permission;
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Standard Report Response
-|--------------------------------------------------------------------------
-*/
-
-export async function reportResponse(req, res) {
-
-    const report = await Report.findById(
-
-        req.body.reportId
+        req.user
 
     );
 
-    return res.status(200)
+    return res.status(201).json({
 
-        .json({
+        success: true,
 
+        message: "Report generated successfully.",
 
-            success: true,
+        data: report
 
+    });
 
-            message,
-
-
-            generatedAt:
-
-                new Date(),
-
-
-            data
-
-
-        });
-
-}
-
+});
 
 /*
 |--------------------------------------------------------------------------
-| Default Export
+| Get Reports
 |--------------------------------------------------------------------------
 */
 
+export const getReports = asyncHandler(async (req, res) => {
+
+    const reports = await reportService.getReports(
+
+        req.query
+
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Reports retrieved successfully.",
+
+        data: reports
+
+    });
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Get Report
+|--------------------------------------------------------------------------
+*/
+
+export const getReportById = asyncHandler(async (req, res) => {
+
+    const report = await reportService.getReportById(
+
+        req.params.reportId
+
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Report retrieved successfully.",
+
+        data: report
+
+    });
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Download Report
+|--------------------------------------------------------------------------
+*/
+
+export const downloadReport = asyncHandler(async (req, res) => {
+
+    const filePath = await reportService.downloadReport(
+
+        req.params.reportId,
+
+        req.query.format
+
+    );
+
+    return res.download(filePath);
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Delete Report
+|--------------------------------------------------------------------------
+*/
+
+export const deleteReport = asyncHandler(async (req, res) => {
+
+    await reportService.deleteReport(
+
+        req.params.reportId
+
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Report deleted successfully."
+
+    });
+
+});
+
 export default {
 
+    generateReport,
 
-    siteOverviewReport,
+    getReports,
 
+    getReportById,
 
-    energyReport,
+    downloadReport,
 
-
-    batteryReport,
-
-
-    reliabilityReport,
-
-
-    alarmReport,
-
-
-    maintenanceReport,
-
-
-    dashboardReport,
-
-
-    executiveReport,
-
-
-    exportReport,
-
-
-    checkReportPermission,
-
-
-    reportResponse
+    deleteReport
 
 };

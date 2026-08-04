@@ -8,7 +8,9 @@ import {
 
     joinDashboard,
 
-    leaveDashboard
+    leaveDashboard,
+
+    joinUserRoom
 
 } from "./roomManager.js";
 
@@ -16,92 +18,111 @@ export default function registerSocketEvents(io) {
 
     io.on("connection", socket => {
 
-        logger.info(
-
-            `Socket Connected: ${socket.id}`
-
-        );
+        logger.info(`Socket Connected: ${socket.id}`);
 
         /*
         |--------------------------------------------------------------------------
-        | Dashboard
+        | Dashboard Events
         |--------------------------------------------------------------------------
         */
 
-        socket.on(
+        socket.on("dashboard:join", () => {
 
-            "dashboard:join",
+            joinDashboard(socket);
 
-            () => {
+        });
 
-                joinDashboard(socket);
+        socket.on("dashboard:leave", () => {
 
-            }
+            leaveDashboard(socket);
 
-        );
-
-        socket.on(
-
-            "dashboard:leave",
-
-            () => {
-
-                leaveDashboard(socket);
-
-            }
-
-        );
+        });
 
         /*
         |--------------------------------------------------------------------------
-        | Site Rooms
+        | User Room
         |--------------------------------------------------------------------------
         */
 
-        socket.on(
+        socket.on("user:join", userId => {
 
-            "site:join",
+            if (!userId) {
 
-            siteId => {
+                logger.warn(`Invalid userId from ${socket.id}`);
 
-                if (!siteId) {
-
-                    logger.warn(
-                        `Invalid siteId from ${socket.id}`
-                    );
-
-                    return;
-                }
-
-                joinSiteRoom(
-
-                    socket,
-
-                    siteId
-
-                );
+                return;
 
             }
 
-        );
+            joinUserRoom(socket, userId);
 
-        socket.on(
+        });
 
-            "site:leave",
+        /*
+        |--------------------------------------------------------------------------
+        | Site Room
+        |--------------------------------------------------------------------------
+        */
 
-            siteId => {
+        socket.on("site:join", siteId => {
 
-                leaveSiteRoom(
+            if (!siteId) {
 
-                    socket,
+                logger.warn(`Invalid siteId from ${socket.id}`);
 
-                    siteId
-
-                );
+                return;
 
             }
 
-        );
+            joinSiteRoom(socket, siteId);
+
+        });
+
+        socket.on("site:leave", siteId => {
+
+            if (!siteId) {
+
+                return;
+
+            }
+
+            leaveSiteRoom(socket, siteId);
+
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Heartbeat
+        |--------------------------------------------------------------------------
+        */
+
+        socket.on("heartbeat", () => {
+
+            socket.emit("heartbeat:ack", {
+
+                timestamp: Date.now()
+
+            });
+
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Errors
+        |--------------------------------------------------------------------------
+        */
+
+        socket.on("error", error => {
+
+            logger.error(
+
+                `Socket Error (${socket.id})`,
+
+                error
+
+            );
+
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -109,57 +130,16 @@ export default function registerSocketEvents(io) {
         |--------------------------------------------------------------------------
         */
 
-        socket.on(
+        socket.on("disconnect", reason => {
 
-            "disconnect",
+            logger.info(
 
-            () => {
+                `Socket Disconnected: ${socket.id} (${reason})`
 
-                logger.info(
-
-                    `Socket Disconnected: ${socket.id}`
-
-                );
-
-            }
-
-        );
-
-    socket.on("error", error => {
-
-        logger.error(
-            `Socket Error: ${socket.id}`,
-            error
-        );
-
-    });
-
-    socket.on("heartbeat", () => {
-
-        socket.emit("heartbeat:ack", {
-
-            timestamp: Date.now()
+            );
 
         });
 
     });
 
-    socket.on(
-
-    "user:join",
-
-    userId => {
-
-        joinUserRoom(
-
-            socket,
-
-            userId
-
-        );
-
-    });
-
-    });
-    
 }

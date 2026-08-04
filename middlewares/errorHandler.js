@@ -1,46 +1,24 @@
 import logger from "../utils/logger.js";
 
-/*
-|--------------------------------------------------------------------------
-| Global Error Handler
-|--------------------------------------------------------------------------
-*/
-
-export default function errorHandler(
-
-    err,
-
-    req,
-
-    res,
-
-    next
-
-) {
+export default function errorHandler(err, req, res, next) {
 
     logger.error({
 
         message: err.message,
 
-        name: err.name,
+        stack: err.stack,
 
-        stack: err.stack
+        name: err.name
 
     });
 
     /*
-    ----------------------------------------------------
-    Mongoose Validation
-    ----------------------------------------------------
+    |--------------------------------------------------------------------------
+    | Joi Validation
+    |--------------------------------------------------------------------------
     */
 
-    if (
-
-        err.name ===
-
-        "ValidationError"
-
-    ) {
+    if (err.isJoi) {
 
         return res.status(400).json({
 
@@ -48,31 +26,51 @@ export default function errorHandler(
 
             message: "Validation failed.",
 
-            errors: Object.values(
+            errors: err.details.map(item => ({
 
-                err.errors
+                field: item.path.join("."),
 
-            ).map(
+                message: item.message
 
-                e => e.message
-
-            )
+            }))
 
         });
 
     }
 
     /*
-    ----------------------------------------------------
-    Duplicate Key
-    ----------------------------------------------------
+    |--------------------------------------------------------------------------
+    | Mongoose Validation
+    |--------------------------------------------------------------------------
     */
 
-    if (
+    if (err.name === "ValidationError") {
 
-        err.code === 11000
+        return res.status(400).json({
 
-    ) {
+            success: false,
+
+            message: "Validation failed.",
+
+            errors: Object.values(err.errors).map(e => ({
+
+                field: e.path,
+
+                message: e.message
+
+            }))
+
+        });
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Duplicate Key
+    |--------------------------------------------------------------------------
+    */
+
+    if (err.code === 11000) {
 
         return res.status(409).json({
 
@@ -80,31 +78,19 @@ export default function errorHandler(
 
             message: "Duplicate record.",
 
-            field:
-
-                Object.keys(
-
-                    err.keyPattern
-
-                )[0]
+            field: Object.keys(err.keyPattern)[0]
 
         });
 
     }
 
     /*
-    ----------------------------------------------------
-    Cast Error
-    ----------------------------------------------------
+    |--------------------------------------------------------------------------
+    | Invalid ObjectId
+    |--------------------------------------------------------------------------
     */
 
-    if (
-
-        err.name ===
-
-        "CastError"
-
-    ) {
+    if (err.name === "CastError") {
 
         return res.status(400).json({
 
@@ -117,16 +103,16 @@ export default function errorHandler(
     }
 
     /*
-    ----------------------------------------------------
-    JWT Errors
-    ----------------------------------------------------
+    |--------------------------------------------------------------------------
+    | JWT
+    |--------------------------------------------------------------------------
     */
 
     if (
 
-        err.name ===
+        err.name === "JsonWebTokenError" ||
 
-        "JsonWebTokenError"
+        err.name === "TokenExpiredError"
 
     ) {
 
@@ -134,84 +120,34 @@ export default function errorHandler(
 
             success: false,
 
-            message: "Invalid authentication token."
-
-        });
-
-    }
-
-    if (
-
-        err.name ===
-
-        "TokenExpiredError"
-
-    ) {
-
-        return res.status(401).json({
-
-            success: false,
-
-            message: "Authentication token expired."
+            message: err.message
 
         });
 
     }
 
     /*
-    ----------------------------------------------------
-    Axios Errors
-    ----------------------------------------------------
+    |--------------------------------------------------------------------------
+    | Default
+    |--------------------------------------------------------------------------
     */
 
-    if (
+    /*return res.status(
 
-        err.response
-
-    ) {
-
-        return res.status(
-
-            err.response.status ||
-
-            500
-
-        ).json({
-
-            success: false,
-
-            message:
-
-                err.response.data ||
-
-                err.message
-
-        });
-
-    }
-
-    /*
-    ----------------------------------------------------
-    Default
-    ----------------------------------------------------
-    */
-
-    return res.status(
-
-        err.status ||
-
-        500
+        err.status || 500
 
     ).json({
 
         success: false,
 
-        message:
+        message: err.message || "Internal Server Error."
 
-            err.message ||
+    });*/
 
-            "Internal Server Error."
-
-    });
+    return res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error.",
+    stack: err.stack
+});
 
 }

@@ -1,9 +1,6 @@
 import { Server } from "socket.io";
 
-import env from "../config/env.js";
 import logger from "../utils/logger.js";
-
-import registerSocketEvents from "./socketEvents.js";
 
 let io = null;
 
@@ -19,7 +16,11 @@ export function initializeSocket(server) {
 
         cors: {
 
-            origin: env.clientOrigins,
+            origin: process.env.CLIENT_ORIGIN
+
+                ? process.env.CLIENT_ORIGIN.split(",")
+
+                : "*",
 
             credentials: true,
 
@@ -43,9 +44,157 @@ export function initializeSocket(server) {
 
     });
 
-    registerSocketEvents(io);
+    io.on(
 
-    logger.info("Socket.IO initialized.");
+        "connection",
+
+        socket => {
+
+            logger.info(
+
+                `Socket Connected: ${socket.id}`
+
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Join User Room
+            |--------------------------------------------------------------------------
+            */
+
+            socket.on(
+
+                "join-user",
+
+                userId => {
+
+                    if (!userId) {
+
+                        return;
+
+                    }
+
+                    socket.join(
+
+                        `user:${userId}`
+
+                    );
+
+                }
+
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Join Site Room
+            |--------------------------------------------------------------------------
+            */
+
+            socket.on(
+
+                "join-site",
+
+                siteId => {
+
+                    if (!siteId) {
+
+                        return;
+
+                    }
+
+                    socket.join(
+
+                        `site:${siteId}`
+
+                    );
+
+                }
+
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Leave Site
+            |--------------------------------------------------------------------------
+            */
+
+            socket.on(
+
+                "leave-site",
+
+                siteId => {
+
+                    socket.leave(
+
+                        `site:${siteId}`
+
+                    );
+
+                }
+
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ping
+            |--------------------------------------------------------------------------
+            */
+
+            socket.on(
+
+                "ping",
+
+                () => {
+
+                    socket.emit(
+
+                        "pong",
+
+                        {
+
+                            timestamp:
+
+                                Date.now()
+
+                        }
+
+                    );
+
+                }
+
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Disconnect
+            |--------------------------------------------------------------------------
+            */
+
+            socket.on(
+
+                "disconnect",
+
+                reason => {
+
+                    logger.info(
+
+                        `Socket Disconnected: ${socket.id} (${reason})`
+
+                    );
+
+                }
+
+            );
+
+        }
+
+    );
+
+    logger.info(
+
+        "Socket.IO initialized."
+
+    );
 
     return io;
 
@@ -57,7 +206,7 @@ export function initializeSocket(server) {
 |--------------------------------------------------------------------------
 */
 
-export function getIO() {
+export function getSocketIO() {
 
     if (!io) {
 
@@ -73,10 +222,118 @@ export function getIO() {
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| Emit To User
+|--------------------------------------------------------------------------
+*/
+
+export function emitToUser(
+
+    userId,
+
+    event,
+
+    payload
+
+) {
+
+    if (!io) {
+
+        return;
+
+    }
+
+    io.to(
+
+        `user:${userId}`
+
+    ).emit(
+
+        event,
+
+        payload
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Emit To Site
+|--------------------------------------------------------------------------
+*/
+
+export function emitToSite(
+
+    siteId,
+
+    event,
+
+    payload
+
+) {
+
+    if (!io) {
+
+        return;
+
+    }
+
+    io.to(
+
+        `site:${siteId}`
+
+    ).emit(
+
+        event,
+
+        payload
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Broadcast
+|--------------------------------------------------------------------------
+*/
+
+export function broadcast(
+
+    event,
+
+    payload
+
+) {
+
+    if (!io) {
+
+        return;
+
+    }
+
+    io.emit(
+
+        event,
+
+        payload
+
+    );
+
+}
+
 export default {
 
     initializeSocket,
 
-    getIO
+    getSocketIO,
+
+    emitToUser,
+
+    emitToSite,
+
+    broadcast
 
 };

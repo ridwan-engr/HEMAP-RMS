@@ -1,107 +1,13 @@
 import Notification from "../../models/Notification.js";
 import User from "../../models/User.js";
-import Site from "../../models/Site.js";
 
-/*
-|--------------------------------------------------------------------------
-| Create Notification
-|--------------------------------------------------------------------------
-*/
+import logger from "../../utils/logger.js";
 
-export async function createNotification(data) {
+import {
 
-    const notification = await Notification.create({
+    emitNotification
 
-        user: data.user ?? null,
-
-        site: data.site ?? null,
-
-        title: data.title,
-
-        message: data.message,
-
-        type: data.type ?? "INFO",
-
-        priority: data.priority ?? "NORMAL",
-
-        category: data.category ?? "SYSTEM",
-
-        metadata: data.metadata ?? {},
-
-        isRead: false,
-
-        isArchived: false,
-
-        expiresAt: data.expiresAt ?? null
-
-    });
-
-    return notification.populate([
-        { path: "user", select: "firstName lastName email" },
-        { path: "site", select: "name code" }
-    ]);
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Bulk Create Notifications
-|--------------------------------------------------------------------------
-*/
-
-export async function createBulkNotifications(notifications = []) {
-
-    if (!notifications.length) {
-
-        return [];
-
-    }
-
-    const docs = notifications.map(item => ({
-
-        user: item.user ?? null,
-
-        site: item.site ?? null,
-
-        title: item.title,
-
-        message: item.message,
-
-        type: item.type ?? "INFO",
-
-        priority: item.priority ?? "NORMAL",
-
-        category: item.category ?? "SYSTEM",
-
-        metadata: item.metadata ?? {},
-
-        isRead: false,
-
-        isArchived: false,
-
-        expiresAt: item.expiresAt ?? null
-
-    }));
-
-    return Notification.insertMany(docs);
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Notification By ID
-|--------------------------------------------------------------------------
-*/
-
-export async function getNotificationById(id) {
-
-    return Notification.findById(id)
-
-        .populate("user", "firstName lastName email")
-
-        .populate("site", "name code");
-
-}
+} from "../../websocket/eventEmitters.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -109,93 +15,277 @@ export async function getNotificationById(id) {
 |--------------------------------------------------------------------------
 */
 
-export async function getNotifications({
-
-    page = 1,
-
-    limit = 20,
-
-    user,
-
-    site,
-
-    type,
-
-    priority,
-
-    isRead,
-
-    isArchived = false
-
-} = {}) {
+export async function getNotifications(filters = {}, user) {
 
     const query = {
 
-        isArchived
+        recipient: user._id
 
     };
 
-    if (user) query.user = user;
+    if (filters.type) {
 
-    if (site) query.site = site;
-
-    if (type) query.type = type;
-
-    if (priority) query.priority = priority;
-
-    if (typeof isRead === "boolean") {
-
-        query.isRead = isRead;
+        query.type = filters.type;
 
     }
 
-    const skip =
+    if (filters.priority) {
 
-        (page - 1) * limit;
+        query.priority = filters.priority;
 
-    const [
+    }
 
-        notifications,
+    if (filters.read !== undefined) {
 
-        total
+        query.read = filters.read === "true";
 
-    ] = await Promise.all([
+    }
 
-        Notification.find(query)
+    if (filters.startDate || filters.endDate) {
 
-            .populate("user", "firstName lastName")
+        query.createdAt = {};
 
-            .populate("site", "name")
+        if (filters.startDate) {
 
-            .sort({
+            query.createdAt.$gte = new Date(
 
-                createdAt: -1
+                filters.startDate
 
-            })
+            );
 
-            .skip(skip)
+        }
 
-            .limit(limit),
+        if (filters.endDate) {
 
-        Notification.countDocuments(query)
+            query.createdAt.$lte = new Date(
 
-    ]);
+                filters.endDate
+
+            );
+
+        }
+
+    }
+
+    return Notification.find(query)
+
+        .populate(
+
+            "recipient",
+
+            "firstName lastName email"
+
+        )
+
+        .populate(
+
+            "createdBy",
+
+            "firstName lastName"
+
+        )
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Notification Details
+|--------------------------------------------------------------------------
+*/
+
+export async function getNotificationById(
+
+    notificationId,
+
+    user
+
+) {
+
+    const notification = await Notification.findOne({
+
+        _id: notificationId,
+
+        recipient: user._id
+
+    })
+
+    .populate(
+
+        "recipient",
+
+        "firstName lastName email"
+
+    )
+
+    .populate(
+
+        "createdBy",
+
+        "firstName lastName"
+
+    );
+
+    if (!notification) {
+
+        throw new Error(
+
+            "Notification not found."
+
+        );
+
+    }
+
+    return notification;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Create Notification
+|--------------------------------------------------------------------------
+*/
+
+export async function createNotification(
+
+    payload,
+
+    user
+
+) {
+
+    const notification = await Notification.create({
+
+        ...payload,
+
+        createdBy: user?._id ?? null
+
+    });
+
+    const populated = await Notification.findById(
+
+        notification._id
+
+    )
+
+    .populate(
+
+        "recipient",
+
+        "firstName lastName email"
+
+    )
+
+    .populate(
+
+        "createdBy",
+
+        "firstName lastName"
+
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Realtime Notification
+    |--------------------------------------------------------------------------
+    */
+
+    emitNotification(
+
+        String(populated.recipient._id),
+
+        populated
+
+    );
+
+    logger.info({
+
+        message:
+
+            "Notification created.",
+
+        notificationId:
+
+            populated._id
+
+    });
+
+    return populated;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Mark As Read
+|--------------------------------------------------------------------------
+*/
+
+export async function markAsRead(
+
+    notificationId,
+
+    user
+
+) {
+
+    const notification = await getNotificationById(
+
+        notificationId,
+
+        user
+
+    );
+
+    notification.read = true;
+
+    notification.readAt = new Date();
+
+    await notification.save();
+
+    return notification;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Mark All As Read
+|--------------------------------------------------------------------------
+*/
+
+export async function markAllAsRead(user) {
+
+    const result = await Notification.updateMany(
+
+        {
+
+            recipient: user._id,
+
+            read: false
+
+        },
+
+        {
+
+            $set: {
+
+                read: true,
+
+                readAt: new Date()
+
+            }
+
+        }
+
+    );
 
     return {
 
-        notifications,
-
-        pagination: {
-
-            total,
-
-            page,
-
-            limit,
-
-            pages: Math.ceil(total / limit)
-
-        }
+        modifiedCount: result.modifiedCount
 
     };
 
@@ -203,245 +293,207 @@ export async function getNotifications({
 
 /*
 |--------------------------------------------------------------------------
-| Get Notifications By User
+| Delete Notification
 |--------------------------------------------------------------------------
 */
 
-export async function getUserNotifications(
+export async function deleteNotification(
 
-    userId,
+    notificationId,
 
-    options = {}
-
-) {
-
-    return getNotifications({
-
-        ...options,
-
-        user: userId
-
-    });
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Notifications By Site
-|--------------------------------------------------------------------------
-*/
-
-export async function getSiteNotifications(
-
-    siteId,
-
-    options = {}
+    user
 
 ) {
 
-    return getNotifications({
+    const notification = await getNotificationById(
 
-        ...options,
+        notificationId,
 
-        site: siteId
-
-    });
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Broadcast Notification To Site
-|--------------------------------------------------------------------------
-*/
-
-export async function broadcastToSite(
-
-    siteId,
-
-    notification
-
-) {
-
-    const users = await User.find({
-
-        assignedSites: siteId,
-
-        isActive: true
-
-    }).select("_id");
-
-    const ids = users.map(
-
-        user => user._id
+        user
 
     );
 
-    return broadcastToUsers(
+    await notification.deleteOne();
 
-        ids,
-
-        {
-
-            ...notification,
-
-            site: siteId
-
-        }
-
-    );
+    return true;
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Broadcast Notification To Role
+| Broadcast Notification
 |--------------------------------------------------------------------------
 */
 
-export async function broadcastToRole(
+export async function broadcastNotification(
 
-    roleName,
+    payload,
 
-    notification
+    user = null
 
 ) {
 
-    const role = await Role.findOne({
+    const users = await User.find()
 
-        name: roleName
+        .select("_id");
 
-    });
+    const notifications = [];
 
-    if (!role) {
+    for (const recipient of users) {
 
-        return [];
+        const notification = await createNotification(
+
+            {
+
+                ...payload,
+
+                recipient: recipient._id
+
+            },
+
+            user
+
+        );
+
+        notifications.push(notification);
 
     }
 
-    const users = await User.find({
-
-        role: role._id,
-
-        isActive: true
-
-    }).select("_id");
-
-    return broadcastToUsers(
-
-        users.map(
-
-            user => user._id
-
-        ),
-
-        notification
-
-    );
+    return notifications;
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| System Notification
+| Site Notification
 |--------------------------------------------------------------------------
 */
 
-export async function sendSystemNotification(
-
-    notification
-
-) {
-
-    return broadcastToRole(
-
-        "Administrator",
-
-        {
-
-            ...notification,
-
-            category: "SYSTEM",
-
-            type: "INFO"
-
-        }
-
-    );
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Alarm Notification
-|--------------------------------------------------------------------------
-*/
-
-export async function sendAlarmNotification(
+export async function sendSiteNotification(
 
     siteId,
 
-    alarm
+    recipients = [],
+
+    payload,
+
+    user = null
 
 ) {
 
-    return broadcastToSite(
+    const notifications = [];
 
-        siteId,
+    for (const recipient of recipients) {
 
-        {
+        const notification = await createNotification(
 
-            title: "Alarm Triggered",
+            {
 
-            message: alarm.message,
+                ...payload,
 
-            priority: "HIGH",
+                site: siteId,
 
-            type: "WARNING",
+                recipient
 
-            category: "ALARM",
+            },
 
-            metadata: alarm
+            user
 
-        }
+        );
 
-    );
+        notifications.push(notification);
+
+    }
+
+    return notifications;
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Fault Notification
+| Critical Alarm Notification
 |--------------------------------------------------------------------------
 */
 
-export async function sendFaultNotification(
+export async function sendCriticalAlarm(
 
     siteId,
 
-    fault
+    recipient,
+
+    alarm,
+
+    user = null
 
 ) {
 
-    return broadcastToSite(
-
-        siteId,
+    return createNotification(
 
         {
 
-            title: "Fault Detected",
+            recipient,
 
-            message: fault.description,
+            site: siteId,
+
+            type: "ALARM",
 
             priority: "CRITICAL",
 
-            type: "ERROR",
+            title: "Critical Alarm",
 
-            category: "FAULT",
+            message: alarm.message,
 
-            metadata: fault
+            metadata: alarm
 
-        }
+        },
+
+        user
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Report Ready Notification
+|--------------------------------------------------------------------------
+*/
+
+export async function sendReportReady(
+
+    recipient,
+
+    report,
+
+    user = null
+
+) {
+
+    return createNotification(
+
+        {
+
+            recipient,
+
+            type: "REPORT",
+
+            priority: "NORMAL",
+
+            title: "Report Ready",
+
+            message:
+
+                `${report.type} report is ready.`,
+
+            metadata: {
+
+                reportId: report._id
+
+            }
+
+        },
+
+        user
 
     );
 
@@ -455,33 +507,35 @@ export async function sendFaultNotification(
 
 export async function sendForecastNotification(
 
-    siteId,
+    recipient,
 
-    forecast
+    forecast,
+
+    user = null
 
 ) {
 
-    return broadcastToSite(
-
-        siteId,
+    return createNotification(
 
         {
+
+            recipient,
+
+            type: "FORECAST",
+
+            priority: "LOW",
 
             title: "Forecast Update",
 
             message:
 
-                "New forecast generated.",
-
-            priority: "LOW",
-
-            type: "INFO",
-
-            category: "FORECAST",
+                "New forecast available.",
 
             metadata: forecast
 
-        }
+        },
+
+        user
 
     );
 
@@ -495,33 +549,35 @@ export async function sendForecastNotification(
 
 export async function sendOptimizationNotification(
 
-    siteId,
+    recipient,
 
-    optimization
+    optimization,
+
+    user = null
 
 ) {
 
-    return broadcastToSite(
-
-        siteId,
+    return createNotification(
 
         {
+
+            recipient,
+
+            type: "OPTIMIZATION",
+
+            priority: "LOW",
 
             title: "Optimization Completed",
 
             message:
 
-                "A new dispatch recommendation is available.",
-
-            priority: "NORMAL",
-
-            type: "SUCCESS",
-
-            category: "OPTIMIZATION",
+                "New optimization results are available.",
 
             metadata: optimization
 
-        }
+        },
+
+        user
 
     );
 
@@ -535,444 +591,107 @@ export async function sendOptimizationNotification(
 
 export async function sendReliabilityNotification(
 
-    siteId,
+    recipient,
 
-    reliability
+    reliability,
+
+    user = null
 
 ) {
 
-    if (
-
-        reliability.risk !== "HIGH"
-
-    ) {
-
-        return null;
-
-    }
-
-    return broadcastToSite(
-
-        siteId,
+    return createNotification(
 
         {
 
-            title: "Reliability Warning",
+            recipient,
+
+            type: "RELIABILITY",
+
+            priority: "MEDIUM",
+
+            title: "Reliability Alert",
 
             message:
 
-                "System reliability has degraded.",
-
-            priority: "CRITICAL",
-
-            type: "WARNING",
-
-            category: "RELIABILITY",
+                "Reliability KPI exceeded threshold.",
 
             metadata: reliability
 
-        }
-
-    );
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Broadcast System Wide Notification
-|--------------------------------------------------------------------------
-*/
-
-export async function broadcastSystemWide(
-
-    notification
-
-) {
-
-    const users = await User.find({
-
-        isActive: true
-
-    })
-
-        .select("_id");
-
-
-    return broadcastToUsers(
-
-        users.map(
-
-            user => user._id
-
-        ),
-
-        {
-
-            ...notification,
-
-            category: "SYSTEM"
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Notify Maintenance Team
-|--------------------------------------------------------------------------
-*/
-
-export async function notifyMaintenanceTeam(
-
-    siteId,
-
-    message,
-
-    metadata = {}
-
-) {
-
-    return broadcastToRole(
-
-        "Maintenance",
-
-        {
-
-            site: siteId,
-
-            title:
-
-                "Maintenance Notification",
-
-            message,
-
-            type:
-
-                "INFO",
-
-            priority:
-
-                "NORMAL",
-
-            category:
-
-                "MAINTENANCE",
-
-            metadata
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Notify Site Engineers
-|--------------------------------------------------------------------------
-*/
-
-export async function notifySiteEngineers(
-
-    siteId,
-
-    message,
-
-    metadata = {}
-
-) {
-
-    return broadcastToSite(
-
-        siteId,
-
-        {
-
-            title:
-
-                "Engineering Alert",
-
-            message,
-
-            type:
-
-                "WARNING",
-
-            priority:
-
-                "HIGH",
-
-            category:
-
-                "ENGINEERING",
-
-            metadata
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Notify Administrators
-|--------------------------------------------------------------------------
-*/
-
-export async function notifyAdministrators(
-
-    message,
-
-    metadata = {}
-
-) {
-
-    return sendSystemNotification({
-
-        title:
-
-            "Administrator Alert",
-
-        message,
-
-        priority:
-
-            "HIGH",
-
-        metadata
-
-    });
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Schedule Notification
-|--------------------------------------------------------------------------
-*/
-
-export async function scheduleNotification(
-
-    data
-
-) {
-
-    return Notification.create({
-
-        ...data,
-
-        scheduled: true,
-
-        scheduledAt:
-
-            data.scheduledAt,
-
-        status:
-
-            "PENDING"
-
-    });
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Cancel Scheduled Notification
-|--------------------------------------------------------------------------
-*/
-
-export async function cancelScheduledNotification(
-
-    notificationId
-
-) {
-
-    return Notification.findByIdAndUpdate(
-
-        notificationId,
-
-        {
-
-            status:
-
-                "CANCELLED"
-
         },
 
-        {
-
-            new: true
-
-        }
+        user
 
     );
 
 }
 
-
 /*
 |--------------------------------------------------------------------------
-| Process Scheduled Notifications
+| Maintenance Reminder
 |--------------------------------------------------------------------------
 */
 
-export async function processScheduledNotifications() {
+export async function sendMaintenanceReminder(
 
-    const notifications =
+    recipient,
 
-        await Notification.find({
+    maintenance,
 
-            scheduled: true,
+    user = null
 
-            status: "PENDING",
+) {
 
-            scheduledAt: {
+    return createNotification(
 
-                $lte: new Date()
+        {
 
-            }
+            recipient,
 
-        });
+            type: "MAINTENANCE",
 
+            priority: "MEDIUM",
 
-    for (
-
-        const notification of notifications
-
-    ) {
-
-        await createNotification({
-
-            user:
-
-                notification.user,
-
-            site:
-
-                notification.site,
-
-            title:
-
-                notification.title,
+            title: "Scheduled Maintenance",
 
             message:
 
-                notification.message,
+                maintenance.description,
 
-            type:
-
-                notification.type,
-
-            priority:
-
-                notification.priority,
-
-            category:
-
-                notification.category,
-
-            metadata:
-
-                notification.metadata
-
-        });
-
-
-        notification.status = "SENT";
-
-
-        await notification.save();
-
-    }
-
-
-    return notifications.length;
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Cleanup Notifications
-|--------------------------------------------------------------------------
-*/
-
-export async function cleanupNotifications(
-
-    days = 90
-
-) {
-
-    const expiryDate =
-
-        new Date(
-
-            Date.now() -
-
-            days *
-
-            24 *
-
-            60 *
-
-            60 *
-
-            1000
-
-        );
-
-
-    return Notification.deleteMany({
-
-        createdAt: {
-
-            $lt: expiryDate
+            metadata: maintenance
 
         },
 
-        isArchived: true
+        user
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Unread Count
+|--------------------------------------------------------------------------
+*/
+
+export async function getUnreadCount(user) {
+
+    return Notification.countDocuments({
+
+        recipient: user._id,
+
+        read: false
 
     });
 
 }
 
-
 /*
 |--------------------------------------------------------------------------
-| Notification Statistics
+| Notification Summary
 |--------------------------------------------------------------------------
 */
 
-export async function getNotificationStatistics(
-
-    filters = {}
-
-) {
-
-    const query = {};
-
-
-    if (filters.site) {
-
-        query.site = filters.site;
-
-    }
-
-
-    if (filters.user) {
-
-        query.user = filters.user;
-
-    }
-
+export async function getNotificationSummary(user) {
 
     const [
 
@@ -980,55 +699,33 @@ export async function getNotificationStatistics(
 
         unread,
 
-        critical,
-
-        warnings,
-
-        errors
+        critical
 
     ] = await Promise.all([
 
-
-        Notification.countDocuments(query),
-
-
         Notification.countDocuments({
 
-            ...query,
-
-            isRead: false
+            recipient: user._id
 
         }),
 
+        Notification.countDocuments({
+
+            recipient: user._id,
+
+            read: false
+
+        }),
 
         Notification.countDocuments({
 
-            ...query,
+            recipient: user._id,
 
             priority: "CRITICAL"
-
-        }),
-
-
-        Notification.countDocuments({
-
-            ...query,
-
-            type: "WARNING"
-
-        }),
-
-
-        Notification.countDocuments({
-
-            ...query,
-
-            type: "ERROR"
 
         })
 
     ]);
-
 
     return {
 
@@ -1036,51 +733,62 @@ export async function getNotificationStatistics(
 
         unread,
 
-        critical,
-
-        warnings,
-
-        errors,
-
-        generatedAt:
-
-            new Date()
+        critical
 
     };
 
 }
 
-
 /*
 |--------------------------------------------------------------------------
-| Default Export
+| Archive Notification
 |--------------------------------------------------------------------------
 */
 
+export async function archiveNotification(
+
+    notificationId,
+
+    user
+
+) {
+
+    const notification =
+
+        await getNotificationById(
+
+            notificationId,
+
+            user
+
+        );
+
+    notification.archived = true;
+
+    notification.archivedAt = new Date();
+
+    await notification.save();
+
+    return notification;
+
+}
+
+
 export default {
-
-    createNotification,
-
-    createBulkNotifications,
-
-    getNotificationById,
 
     getNotifications,
 
-    getUserNotifications,
+    getNotificationById,
 
-    getSiteNotifications,
+    createNotification,
 
-    broadcastToSite,
+    broadcastNotification,
 
-    broadcastToRole,
+    sendSiteNotification,
 
+    sendCriticalAlarm,
 
-    sendSystemNotification,
-
-    sendAlarmNotification,
-
-    sendFaultNotification,
+    sendReportReady,
 
     sendForecastNotification,
 
@@ -1088,25 +796,18 @@ export default {
 
     sendReliabilityNotification,
 
+    sendMaintenanceReminder,
 
-    broadcastSystemWide,
+    markAsRead,
 
-    notifyMaintenanceTeam,
+    markAllAsRead,
 
-    notifySiteEngineers,
+    archiveNotification,
 
-    notifyAdministrators,
+    deleteNotification,
 
+    getUnreadCount,
 
-    scheduleNotification,
-
-    cancelScheduledNotification,
-
-    processScheduledNotifications,
-
-
-    cleanupNotifications,
-
-    getNotificationStatistics
+    getNotificationSummary
 
 };

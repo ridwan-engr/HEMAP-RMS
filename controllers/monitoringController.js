@@ -5,296 +5,182 @@ import Statistic from "../models/Statistics.js";
 
 import { runManualSync } from "../jobs/vrmScheduler.js";
 
-/**
- * Dashboard Summary
- */
+/*
+|--------------------------------------------------------------------------
+| Dashboard Summary
+|--------------------------------------------------------------------------
+*/
+
 export async function getDashboard(req, res, next) {
-
     try {
-
         const [
-
             totalSites,
-
             onlineSites,
-
             activeAlarms,
-
             latestTelemetry,
-
             latestStatistic
-
         ] = await Promise.all([
-
             Site.countDocuments(),
-
-            Site.countDocuments({
-
-                status: "ONLINE"
-
-            }),
-
-            Alarm.countDocuments({
-
-                status: "ACTIVE"
-
-            }),
-
+            Site.countDocuments({ status: "ONLINE" }),
+            Alarm.countDocuments({ status: "ACTIVE" }),
             Telemetry.findOne()
-
-                .sort({
-
-                    timestamp: -1
-
-                })
-
+                .sort({ timestamp: -1 })
                 .populate("site"),
-
             Statistic.findOne()
-
-                .sort({
-
-                    timestamp: -1
-
-                })
-
+                .sort({ timestamp: -1 })
                 .populate("site")
-
         ]);
 
         return res.status(200).json({
-
             success: true,
-
-            dashboard: {
-
+            message: "Dashboard retrieved successfully.",
+            data: {
                 totalSites,
-
                 onlineSites,
-
-                offlineSites:
-
-                    totalSites -
-
-                    onlineSites,
-
+                offlineSites: totalSites - onlineSites,
                 activeAlarms,
-
-                telemetry:
-
-                    latestTelemetry,
-
-                statistics:
-
-                    latestStatistic
-
+                telemetry: latestTelemetry,
+                statistics: latestStatistic
             }
-
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         next(error);
-
     }
-
 }
 
-/**
- * Get all monitored sites
- */
+/*
+|--------------------------------------------------------------------------
+| Get Sites
+|--------------------------------------------------------------------------
+*/
+
 export async function getSites(req, res, next) {
-
     try {
+        const sites = await Site.find().sort({ name: 1 });
 
-        const sites = await Site.find()
-
-            .sort({
-
-                name: 1
-
-            });
-
-        res.status(200).json({
-
+        return res.status(200).json({
             success: true,
-
-            count: sites.length,
-
-            sites
-
+            message: "Sites retrieved successfully.",
+            data: sites
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         next(error);
-
     }
-
 }
 
-/**
- * Latest telemetry
- */
+/*
+|--------------------------------------------------------------------------
+| Latest Telemetry
+|--------------------------------------------------------------------------
+*/
+
 export async function getTelemetry(req, res, next) {
-
     try {
-
-        const {
-
-            site
-
-        } = req.body;
+        const { site } = req.query;
 
         const filter = {};
 
         if (site) {
-
             filter.site = site;
-
         }
 
         const telemetry = await Telemetry.find(filter)
-
             .populate("site")
-
-            .sort({
-
-                timestamp: -1
-
-            })
-
+            .sort({ timestamp: -1 })
             .limit(100);
 
-        res.status(200).json({
-
+        return res.status(200).json({
             success: true,
-
-            count: telemetry.length,
-
-            telemetry
-
+            message: "Telemetry retrieved successfully.",
+            data: telemetry
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         next(error);
-
     }
-
 }
 
-/**
- * Active alarms
- */
+/*
+|--------------------------------------------------------------------------
+| Active Alarms
+|--------------------------------------------------------------------------
+*/
+
 export async function getAlarms(req, res, next) {
-
     try {
-
         const alarms = await Alarm.find({
-
             status: "ACTIVE"
-
         })
+            .populate("site")
+            .sort({
+                createdAt: -1
+            });
 
-        .populate("site")
-
-        .sort({
-
-            createdAt: -1
-
-        });
-
-        res.status(200).json({
-
+        return res.status(200).json({
             success: true,
-
-            count: alarms.length,
-
-            alarms
-
+            message: "Active alarms retrieved successfully.",
+            data: alarms
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         next(error);
-
     }
-
 }
 
-/**
- * Statistics
- */
+/*
+|--------------------------------------------------------------------------
+| Statistics
+|--------------------------------------------------------------------------
+*/
+
 export async function getStatistics(req, res, next) {
-
     try {
-
         const statistics = await Statistic.find()
-
             .populate("site")
-
             .sort({
-
                 timestamp: -1
-
             })
-
             .limit(50);
 
-        res.status(200).json({
-
+        return res.status(200).json({
             success: true,
-
-            count: statistics.length,
-
-            statistics
-
+            message: "Statistics retrieved successfully.",
+            data: statistics
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         next(error);
-
     }
-
 }
 
-/**
- * Manual synchronization
- */
+/*
+|--------------------------------------------------------------------------
+| Manual Synchronization
+|--------------------------------------------------------------------------
+*/
+
 export async function syncMonitoring(req, res, next) {
-
     try {
-
         await runManualSync();
 
-        res.status(200).json({
-
+        return res.status(200).json({
             success: true,
-
-            message:
-
-                "VRM synchronization started."
-
+            message: "VRM synchronization started."
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         next(error);
-
     }
-
 }
+
+export default {
+
+    getDashboard,
+
+    getSites,
+
+    getTelemetry,
+
+    getAlarms,
+
+    getStatistics,
+
+    syncMonitoring
+    
+};

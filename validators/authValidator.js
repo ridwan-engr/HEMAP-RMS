@@ -1,5 +1,4 @@
 import Joi from "joi";
-//import PasswordComplexity from "joi-password-complexity";
 
 /*
 |--------------------------------------------------------------------------
@@ -14,15 +13,19 @@ const passwordSchema = Joi.string()
     .max(64)
 
     .pattern(
+
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/
+
     )
 
     .messages({
 
         "string.pattern.base":
+
             "Password must contain uppercase, lowercase, number and special character."
 
     });
+
 /*
 |--------------------------------------------------------------------------
 | Register
@@ -32,30 +35,67 @@ const passwordSchema = Joi.string()
 export const registerValidator = Joi.object({
 
     firstName: Joi.string()
+
         .trim()
+
         .min(2)
+
         .max(100)
+
         .required(),
 
     lastName: Joi.string()
+
         .trim()
+
         .min(2)
+
         .max(100)
+
         .required(),
 
     email: Joi.string()
+
         .email()
+
         .lowercase()
+
         .required(),
 
     password: passwordSchema.required(),
 
+    confirmPassword: Joi.string()
+
+        .valid(Joi.ref("password"))
+
+        .required()
+
+        .messages({
+
+            "any.only": "Passwords do not match."
+
+        }),
+
     phone: Joi.string()
+
         .trim()
+
         .allow("", null),
 
     role: Joi.string()
-        .trim()
+
+        .valid(
+
+            "ADMIN",
+
+            "SUPERVISOR",
+
+            "ENGINEER",
+
+            "VIEWER"
+
+        )
+
         .required()
 
 });
@@ -69,11 +109,15 @@ export const registerValidator = Joi.object({
 export const loginValidator = Joi.object({
 
     email: Joi.string()
+
         .email()
+
         .lowercase()
+
         .required(),
 
     password: Joi.string()
+
         .required()
 
 });
@@ -87,8 +131,11 @@ export const loginValidator = Joi.object({
 export const forgotPasswordValidator = Joi.object({
 
     email: Joi.string()
+
         .email()
+
         .lowercase()
+
         .required()
 
 });
@@ -102,9 +149,22 @@ export const forgotPasswordValidator = Joi.object({
 export const resetPasswordValidator = Joi.object({
 
     token: Joi.string()
+
         .required(),
 
-    password: passwordSchema.required()
+    password: passwordSchema.required(),
+
+    confirmPassword: Joi.string()
+
+        .valid(Joi.ref("password"))
+
+        .required()
+
+        .messages({
+
+            "any.only": "Passwords do not match."
+
+        })
 
 });
 
@@ -117,9 +177,22 @@ export const resetPasswordValidator = Joi.object({
 export const changePasswordValidator = Joi.object({
 
     currentPassword: Joi.string()
+
         .required(),
 
-    newPassword: passwordSchema.required()
+    newPassword: passwordSchema.required(),
+
+    confirmPassword: Joi.string()
+
+        .valid(Joi.ref("newPassword"))
+
+        .required()
+
+        .messages({
+
+            "any.only": "Passwords do not match."
+
+        })
 
 });
 

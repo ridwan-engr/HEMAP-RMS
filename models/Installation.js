@@ -212,13 +212,13 @@ const installationSchema = new mongoose.Schema(
 
 );
 
-installationSchema.index({
+/*installationSchema.index({
 
     installationId: 1,
 
     status: 1
 
-});
+});*/
 
 export default mongoose.model(
 

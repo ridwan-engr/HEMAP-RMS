@@ -1,76 +1,129 @@
 import { Router } from "express";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import faultController from "../controllers/faultController.js";
+
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
+import validate from "../middlewares/validate.js";
 
 import {
-    createFault,
-    getFaults,
-    getFaultById,
-    getFaultsBySite,
-    //acknowledgeFault,
-    updateFault,
-    deleteFault
-} from "../controllers/faultController.js";
+    faultQueryValidator,
+    faultIdValidator,
+    createFaultValidator,
+    updateFaultValidator,
+    resolveFaultValidator
+} from "../validators/faultValidator.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Site Faults
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Get Faults
 |--------------------------------------------------------------------------
 */
 
 router.get(
-    "/site/:siteId",
-    authenticate,
-    getFaultsBySite
+    "/",
+    validate({
+        query: faultQueryValidator
+    }),
+    faultController.getFaults
 );
 
 /*
 |--------------------------------------------------------------------------
-| CRUD
+| Get Fault By ID
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:faultId",
+    validate({
+        params: faultIdValidator
+    }),
+    faultController.getFaultById
+);
+
+/*
+|--------------------------------------------------------------------------
+| Create Fault
 |--------------------------------------------------------------------------
 */
 
 router.post(
     "/",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    createFault
+    authorize(
+        "ADMIN",
+        "SUPERVISOR",
+        "ENGINEER"
+    ),
+    validate({
+        body: createFaultValidator
+    }),
+    faultController.createFault
 );
 
-router.get(
-    "/",
-    authenticate,
-    getFaults
+/*
+|--------------------------------------------------------------------------
+| Update Fault
+|--------------------------------------------------------------------------
+*/
+
+router.put(
+    "/:faultId",
+    authorize(
+        "ADMIN",
+        "SUPERVISOR",
+        "ENGINEER"
+    ),
+    validate({
+        params: faultIdValidator,
+        body: updateFaultValidator
+    }),
+    faultController.updateFault
 );
 
-router.get(
-    "/:id",
-    authenticate,
-    getFaultById
-);
-
-/*router.patch(
-    "/:id/acknowledge",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    acknowledgeFault
-);*/
+/*
+|--------------------------------------------------------------------------
+| Resolve Fault
+|--------------------------------------------------------------------------
+*/
 
 router.patch(
-    "/:id/resolve",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    updateFault
+    "/:faultId/resolve",
+    authorize(
+        "ADMIN",
+        "SUPERVISOR",
+        "ENGINEER"
+    ),
+    validate({
+        params: faultIdValidator,
+        body: resolveFaultValidator
+    }),
+    faultController.resolveFault
 );
 
+/*
+|--------------------------------------------------------------------------
+| Delete Fault
+|--------------------------------------------------------------------------
+*/
+
 router.delete(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
-    deleteFault
+    "/:faultId",
+    authorize("ADMIN"),
+    validate({
+        params: faultIdValidator
+    }),
+    faultController.deleteFault
 );
 
 export default router;

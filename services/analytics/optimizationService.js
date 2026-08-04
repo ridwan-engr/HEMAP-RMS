@@ -12,6 +12,12 @@ import {
     forecastBatterySOC
 } from "./forecastService.js";
 
+import {
+    emitOptimization
+} from "../../websocket/eventEmitters.js";
+
+import mongoose from "mongoose";
+
 /*
 |--------------------------------------------------------------------------
 | Current System State
@@ -147,7 +153,7 @@ export function calculateGridCapacity(state) {
 
         available:
 
-            state.grid?.status === "ONLINE",
+            state.telemetry?.gridStatus === "ONLINE",
 
         power:
 
@@ -574,7 +580,7 @@ export function validateGridConstraints(
 
         available:
 
-            grid?.status === "ONLINE",
+            telemetry?.gridStatus === "ONLINE",
 
         power:
 
@@ -777,7 +783,7 @@ export function optimizeGeneratorDispatch(state) {
 
 export function optimizeGridDispatch(state) {
 
-    if (state.grid?.status !== "ONLINE") {
+    if (state.telemetry?.gridStatus !== "ONLINE") {
 
         return {
 
@@ -959,39 +965,41 @@ export async function saveOptimizationResult(
 
 ) {
 
-    return await OptimizationResult.create({
+    const result = await OptimizationResult.create({
 
         site: siteId,
 
         timestamp: new Date(),
 
-        objectiveValue:
+        objectiveValue: optimization.objectiveValue,
 
-            optimization.objectiveValue,
+        batteryDispatch: optimization.battery,
 
-        batteryDispatch:
+        generatorDispatch: optimization.generator,
 
-            optimization.battery,
+        gridDispatch: optimization.grid,
 
-        generatorDispatch:
+        solarDispatch: optimization.solar,
 
-            optimization.generator,
-
-        gridDispatch:
-
-            optimization.grid,
-
-        solarDispatch:
-
-            optimization.solar,
-
-        constraints:
-
-            optimization.constraints,
+        constraints: optimization.constraints,
 
         status: "COMPLETED"
 
     });
+
+    emitOptimization(siteId, result);
+
+    function validateSite(siteId) {
+
+        if (!mongoose.Types.ObjectId.isValid(siteId)) {
+
+            throw new Error("Invalid siteId");
+
+        }
+
+    }
+
+    return result;
 
 }
 
@@ -1006,6 +1014,14 @@ export async function performRuleBasedDispatch(siteId) {
     const state =
 
         await getCurrentSystemState(siteId);
+
+    if(!state.telemetry) {
+
+        throw new Error(
+            "No telemetry available for optimization."
+        );
+
+    }
 
     const battery =
 
@@ -1067,7 +1083,7 @@ export async function performRuleBasedDispatch(siteId) {
 
         calculateObjectiveFunction(costs);
 
-    return {
+    const optimization = {
 
         battery,
 
@@ -1095,6 +1111,28 @@ export async function performRuleBasedDispatch(siteId) {
 
     };
 
+    await saveOptimizationResult(
+        siteId,
+        optimization
+    );
+
+    function validateSite(siteId) {
+
+        if (!mongoose.Types.ObjectId.isValid(siteId)) {
+
+            throw new Error("Invalid siteId");
+
+        }
+
+    }
+
+    return {
+
+        timestamp: new Date(),
+        
+        optimization
+}
+
 }
 
 /*
@@ -1110,6 +1148,16 @@ export async function optimizeWithForecast(siteId) {
 
     const forecasts =
         await getForecastInputs(siteId);
+
+    function validateSite(siteId) {
+
+        if (!mongoose.Types.ObjectId.isValid(siteId)) {
+
+            throw new Error("Invalid siteId");
+
+        }
+
+    }
 
     return {
 
@@ -1279,6 +1327,16 @@ export async function exportPyomoData(siteId) {
     const forecasts =
         await getForecastInputs(siteId);
 
+    function validateSite(siteId) {
+
+        if (!mongoose.Types.ObjectId.isValid(siteId)) {
+
+            throw new Error("Invalid siteId");
+
+        }
+
+    }
+
     return {
 
         telemetry:
@@ -1343,13 +1401,13 @@ export function performNMinusOneAnalysis(state) {
 
                 : source === "Battery"
 
-                ? (state.telemetry?.batterySOC ?? 0) > 20
+                    ? (state.telemetry?.batterySOC ?? 0) > 20
 
-                : source === "Generator"
+                    : source === "Generator"
 
-                ? (state.generator?.status === "ONLINE")
+                        ? (state.telemetry?.generatorStatus === "ONLINE")
 
-                : (state.grid?.status === "ONLINE")
+                        : (state.telemetry?.gridStatus === "ONLINE")
 
     }));
 
@@ -1406,6 +1464,16 @@ export async function generateOptimizationReport(siteId) {
     const dashboard =
         await getOptimizationDashboard(siteId);
 
+    function validateSite(siteId) {
+
+        if (!mongoose.Types.ObjectId.isValid(siteId)) {
+
+            throw new Error("Invalid siteId");
+
+        }
+
+    }
+
     return {
 
         generatedAt: new Date(),
@@ -1448,7 +1516,19 @@ export async function generateOptimizationReport(siteId) {
 
 export async function getDashboardOptimization(filters = {}) {
 
-    return getOptimizationDashboard(filters);
+    function validateSite(siteId) {
+
+        if (!mongoose.Types.ObjectId.isValid(siteId)) {
+
+            throw new Error("Invalid siteId");
+
+        }
+
+    }
+
+    return getOptimizationDashboard(
+        filters.siteId
+    );
 
 }
 

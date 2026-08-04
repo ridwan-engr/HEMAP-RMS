@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 
 import authService from "../services/auth/authService.js";
+import tokenService from "../services/auth/tokenService.js";
 
 import logger from "../utils/logger.js";
 
@@ -14,7 +15,15 @@ export const register = asyncHandler(async (req, res) => {
 
     const user = await authService.register(req.body);
 
-    res.status(201).json({
+    logger.info({
+
+        message: "User registered successfully.",
+
+        email: user.email
+
+    });
+
+    return res.status(201).json({
 
         success: true,
 
@@ -50,7 +59,15 @@ export const login = asyncHandler(async (req, res) => {
 
     );
 
-    res.json({
+    logger.info({
+
+        message: "User logged in.",
+
+        email
+
+    });
+
+    return res.status(200).json({
 
         success: true,
 
@@ -70,13 +87,40 @@ export const login = asyncHandler(async (req, res) => {
 
 export const refreshToken = asyncHandler(async (req, res) => {
 
-    const { refreshToken } = req.body;
+    const refreshTokenValue = req.body?.refreshToken;
 
-    const accessToken = await authService.refresh(refreshToken);
+    if (!refreshTokenValue) {
 
-    res.json({
+        return res.status(400).json({
+
+            success: false,
+
+            message: "Refresh token is required."
+
+        });
+
+    }
+
+    const payload = tokenService.verifyToken(
+
+        refreshTokenValue
+
+    );
+
+    const accessToken = await authService.refresh(payload);
+
+    return res.status(200).json({
+
         success: true,
-        accessToken
+
+        message: "Token refreshed successfully.",
+
+        data: {
+
+            accessToken
+
+        }
+
     });
 
 });
@@ -91,13 +135,15 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
 
     const user = await authService.me(
 
-        req.user.id
+        req.user._id
 
     );
 
-    res.json({
+    return res.status(200).json({
 
         success: true,
+
+        message: "Current user retrieved successfully.",
 
         data: user
 
@@ -107,37 +153,61 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| Placeholder Methods
+| Forgot Password
 |--------------------------------------------------------------------------
 */
 
 export const forgotPassword = asyncHandler(async (req, res) => {
 
-    res.status(501).json({
+    await authService.forgotPassword(req.body.email);
 
-        success: false,
+    return res.status(200).json({
 
-        message: "Forgot password not implemented."
+        success: true,
+
+        message: "Password reset instructions sent."
 
     });
 
 });
+
+/*
+|--------------------------------------------------------------------------
+| Reset Password
+|--------------------------------------------------------------------------
+*/
 
 export const resetPassword = asyncHandler(async (req, res) => {
 
-    res.status(501).json({
+    await authService.resetPassword(
 
-        success: false,
+        req.body.token,
 
-        message: "Reset password not implemented."
+        req.body.password
+
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Password reset successfully."
 
     });
 
 });
 
+/*
+|--------------------------------------------------------------------------
+| Logout
+|--------------------------------------------------------------------------
+*/
+
 export const logout = asyncHandler(async (req, res) => {
 
-    res.json({
+    await authService.logout(req.user);
+
+    return res.status(200).json({
 
         success: true,
 
@@ -147,37 +217,79 @@ export const logout = asyncHandler(async (req, res) => {
 
 });
 
+/*
+|--------------------------------------------------------------------------
+| Change Password
+|--------------------------------------------------------------------------
+*/
+
 export const changePassword = asyncHandler(async (req, res) => {
 
-    res.status(501).json({
+    await authService.changePassword(
 
-        success: false,
+        req.user,
 
-        message: "Change password not implemented."
+        req.body
+
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Password changed successfully."
 
     });
 
 });
+
+/*
+|--------------------------------------------------------------------------
+| Active Sessions
+|--------------------------------------------------------------------------
+*/
 
 export const getActiveSessions = asyncHandler(async (req, res) => {
 
-    res.status(501).json({
+    const sessions = await authService.getActiveSessions(
 
-        success: false,
+        req.user
 
-        message: "Session management not implemented."
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Sessions retrieved successfully.",
+
+        data: sessions
 
     });
 
 });
 
+/*
+|--------------------------------------------------------------------------
+| Revoke Session
+|--------------------------------------------------------------------------
+*/
+
 export const revokeSession = asyncHandler(async (req, res) => {
 
-    res.status(501).json({
+    await authService.revokeSession(
 
-        success: false,
+        req.user,
 
-        message: "Session revocation not implemented."
+        req.params.sessionId
+
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Session revoked successfully."
 
     });
 

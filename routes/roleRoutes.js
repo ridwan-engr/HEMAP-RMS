@@ -7,328 +7,114 @@ import authorize from "../middlewares/authorize.js";
 import validate from "../middlewares/validate.js";
 
 import {
-
-    createRoleSchema,
-
-    updateRoleSchema,
-
-    permissionsSchema,
-
-    roleIdSchema,
-
-    roleQuerySchema
-
+    createRoleValidator,
+    updateRoleValidator,
+    roleIdValidator,
+    roleQueryValidator
 } from "../validators/roleValidator.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Role Management
+| Authentication
 |--------------------------------------------------------------------------
 */
 
-router.post(
+router.use(authenticate);
 
-    "/initialize",
-
-    roleController.initializeRoles
-);
-
-router.post(
-
-    "/",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    validate({
-
-        body: createRoleSchema
-
-    }),
-
-    roleController.createRole
-
-);
+/*
+|--------------------------------------------------------------------------
+| Get All Roles
+|--------------------------------------------------------------------------
+*/
 
 router.get(
 
     "/",
 
-    authenticate,
-
     authorize("ADMIN"),
 
     validate({
-
-        query: roleQuerySchema
-
+        query: roleQueryValidator
     }),
 
     roleController.getRoles
-
 );
+
+/*
+|--------------------------------------------------------------------------
+| Get Single Role
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-
-    "/id/:id",
-
-    authenticate,
-
-    roleController.getRoleById
-
-);
-
-router.get(
-
-    "/name/:name",
-
-    authenticate,
-
-    roleController.getRoleByName
-
-);
-
-router.put(
 
     "/:id",
-
-    authenticate,
 
     authorize("ADMIN"),
 
     validate({
 
-        body: updateRoleSchema
+        params: roleIdValidator
 
     }),
 
+    roleController.getRole
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Create Role
+|--------------------------------------------------------------------------
+*/
+
+router.post(
+
+    "/",
+
+    authorize("ADMIN"),
+    
+    validate({
+        body: createRoleValidator
+    }),
+    roleController.createRole
+);
+
+/*
+|--------------------------------------------------------------------------
+| Update Role
+|--------------------------------------------------------------------------
+*/
+
+router.put(
+
+    "/:id",
+
+    authorize("ADMIN"),
+    validate({
+        params: roleIdValidator,
+        body: updateRoleValidator
+    }),
     roleController.updateRole
-
 );
+
+/*
+|--------------------------------------------------------------------------
+| Delete Role
+|--------------------------------------------------------------------------
+*/
 
 router.delete(
 
     "/:id",
 
-    authenticate,
-
     authorize("ADMIN"),
-
+    validate({
+        params: roleIdValidator
+    }),
     roleController.deleteRole
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Permissions
-|--------------------------------------------------------------------------
-*/
-
-router.post(
-
-    "/:id/permissions",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    validate({
-
-        body: permissionsSchema
-
-    }),
-
-    roleController.addPermissionToRole
-
-);
-
-router.delete(
-
-    "/:id/permissions/:permissionId",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.removePermissionFromRole
-
-);
-
-router.put(
-
-    "/:id/permissions",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    validate({
-
-        body: permissionsSchema
-
-    }),
-
-    roleController.replacePermissions
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Permission Checks
-|--------------------------------------------------------------------------
-*/
-
-router.get(
-
-    "/:roleId/permissions/:permission",
-
-    authenticate,
-
-    roleController.checkRolePermission
-
-);
-
-router.get(
-
-    "/users/:userId/permissions/:permission",
-
-    authenticate,
-
-    roleController.checkUserPermission
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Users
-|--------------------------------------------------------------------------
-*/
-
-router.get(
-
-    "/:roleId/users",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.getUsersByRole
-
-);
-
-router.get(
-
-    "/:roleId/users/count",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.countUsersByRole
-
-);
-
-router.get(
-
-    "/users/:userId/is-admin",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.checkAdministrator
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Statistics
-|--------------------------------------------------------------------------
-*/
-
-router.get(
-
-    "/statistics",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.roleStatistics
-
-);
-
-router.get(
-
-    "/permissions/statistics",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.permissionStatistics
-
-);
-
-router.get(
-
-    "/rbac/status",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.rbacStatus
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Initialization
-|--------------------------------------------------------------------------
-*/
-
-router.post(
-
-    "/initialize",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.initializeRoles
-
-);
-
-router.post(
-
-    "/initialize/permissions",
-
-    authenticate,
-
-    authorize("ADMIN"),
-
-    roleController.assignDefaultPermissions
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Validation
-|--------------------------------------------------------------------------
-*/
-
-router.get(
-
-    "/exists/:name",
-
-    authenticate,
-
-    roleController.roleExists
-
 );
 
 export default router;

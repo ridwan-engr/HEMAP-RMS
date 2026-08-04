@@ -1,37 +1,26 @@
-import asyncHandler from "express-async-handler";
+import asyncHandler from "../utils/asyncHandler.js";
 
-import OptimizationRun from "../models/OptimizationRun.js";
-
-import logger from "../utils/logger.js";
+import * as optimizationService from "../services/analytics/optimizationService.js";
 
 /*
 |--------------------------------------------------------------------------
-| Get Optimization by ID
+| Get Optimization
 |--------------------------------------------------------------------------
 */
 
 export const getOptimization = asyncHandler(async (req, res) => {
 
-    const optimization = await OptimizationRun.findById(req.params.id)
-        .populate("site", "name siteCode")
-        .populate("createdBy", "firstName lastName")
-        .lean();
+    const optimization = await optimizationService.getOptimization(
 
-    if (!optimization) {
+        req.params.id
 
-        return res.status(404).json({
+    );
 
-            success: false,
-
-            message: "Optimization not found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
+
+        message: "Optimization retrieved successfully.",
 
         data: optimization
 
@@ -39,10 +28,9 @@ export const getOptimization = asyncHandler(async (req, res) => {
 
 });
 
-
 /*
 |--------------------------------------------------------------------------
-| Get Latest Optimization
+| Latest Optimization
 |--------------------------------------------------------------------------
 */
 
@@ -50,48 +38,23 @@ export const getLatestOptimization = asyncHandler(async (req, res) => {
 
     const { siteId } = req.params;
 
-    const optimization = await OptimizationRun.findOne({
+    const optimization = await optimizationService.getLatestOptimization(
 
-        site: siteId,
+        siteId
 
-        status: "COMPLETED"
+    );
 
-    })
-
-        .sort({
-
-            createdAt: -1,
-
-            _id: -1
-
-        })
-
-        .populate("site", "name siteCode")
-
-        .lean();
-
-    if (!optimization) {
-
-        return res.status(404).json({
-
-            success: false,
-
-            message: "No optimization found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
+
+        message: "Latest optimization retrieved successfully.",
 
         data: optimization
 
     });
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -101,58 +64,23 @@ export const getLatestOptimization = asyncHandler(async (req, res) => {
 
 export const getOptimizationHistory = asyncHandler(async (req, res) => {
 
-    const page = Number(req.query.page || 1);
+    const history = await optimizationService.getOptimizationHistory(
 
-    const limit = Number(req.query.limit || 20);
+        req.query
 
-    const filter = {};
+    );
 
-    if (req.query.site)
-
-        filter.site = req.query.site;
-
-    if (req.query.status)
-
-        filter.status = req.query.status;
-
-    const total = await OptimizationRun.countDocuments(filter);
-
-    const history = await OptimizationRun.find(filter)
-
-        .sort({
-
-            createdAt: -1,
-
-            _id: -1
-
-        })
-
-        .skip((page - 1) * limit)
-
-        .limit(limit)
-
-        .populate("site", "name siteCode")
-
-        .populate("createdBy", "firstName lastName")
-
-        .lean();
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        total,
-
-        page,
-
-        pages: Math.ceil(total / limit),
+        message: "Optimization history retrieved successfully.",
 
         data: history
 
     });
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -162,34 +90,23 @@ export const getOptimizationHistory = asyncHandler(async (req, res) => {
 
 export const getDispatchSchedule = asyncHandler(async (req, res) => {
 
-    const optimization = await OptimizationRun.findById(req.params.id)
+    const schedule = await optimizationService.getDispatchSchedule(
 
-        .select("dispatchSchedule")
+        req.params.id
 
-        .lean();
+    );
 
-    if (!optimization) {
-
-        return res.status(404).json({
-
-            success: false,
-
-            message: "Optimization not found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        data: optimization.dispatchSchedule ?? []
+        message: "Dispatch schedule retrieved successfully.",
+
+        data: schedule
 
     });
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -199,34 +116,23 @@ export const getDispatchSchedule = asyncHandler(async (req, res) => {
 
 export const getEnergySummary = asyncHandler(async (req, res) => {
 
-    const optimization = await OptimizationRun.findById(req.params.id)
+    const energy = await optimizationService.getEnergySummary(
 
-        .select("energy")
+        req.params.id
 
-        .lean();
+    );
 
-    if (!optimization) {
-
-        return res.status(404).json({
-
-            success: false,
-
-            message: "Optimization not found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        data: optimization.energy ?? {}
+        message: "Energy summary retrieved successfully.",
+
+        data: energy
 
     });
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -236,34 +142,23 @@ export const getEnergySummary = asyncHandler(async (req, res) => {
 
 export const getEconomics = asyncHandler(async (req, res) => {
 
-    const optimization = await OptimizationRun.findById(req.params.id)
+    const economics = await optimizationService.getEconomics(
 
-        .select("economics")
+        req.params.id
 
-        .lean();
+    );
 
-    if (!optimization) {
-
-        return res.status(404).json({
-
-            success: false,
-
-            message: "Optimization not found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        data: optimization.economics ?? {}
+        message: "Optimization economics retrieved successfully.",
+
+        data: economics
 
     });
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -273,34 +168,23 @@ export const getEconomics = asyncHandler(async (req, res) => {
 
 export const getEmissions = asyncHandler(async (req, res) => {
 
-    const optimization = await OptimizationRun.findById(req.params.id)
+    const emissions = await optimizationService.getEmissions(
 
-        .select("emissions")
+        req.params.id
 
-        .lean();
+    );
 
-    if (!optimization) {
-
-        return res.status(404).json({
-
-            success: false,
-
-            message: "Optimization not found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        data: optimization.emissions ?? {}
+        message: "Optimization emissions retrieved successfully.",
+
+        data: emissions
 
     });
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -310,34 +194,23 @@ export const getEmissions = asyncHandler(async (req, res) => {
 
 export const getReliability = asyncHandler(async (req, res) => {
 
-    const optimization = await OptimizationRun.findById(req.params.id)
+    const reliability = await optimizationService.getReliability(
 
-        .select("reliability")
+        req.params.id
 
-        .lean();
+    );
 
-    if (!optimization) {
-
-        return res.status(404).json({
-
-            success: false,
-
-            message: "Optimization not found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        data: optimization.reliability ?? {}
+        message: "Optimization reliability retrieved successfully.",
+
+        data: reliability
 
     });
 
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -347,42 +220,23 @@ export const getReliability = asyncHandler(async (req, res) => {
 
 export const getSolver = asyncHandler(async (req, res) => {
 
-    const optimization = await OptimizationRun.findById(req.params.id)
+    const solver = await optimizationService.getSolver(
 
-        .select("solver executionTime status")
+        req.params.id
 
-        .lean();
+    );
 
-    if (!optimization) {
-
-        return res.status(404).json({
-
-            success: false,
-
-            message: "Optimization not found."
-
-        });
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        data: {
+        message: "Solver information retrieved successfully.",
 
-            status: optimization.status,
-
-            executionTime: optimization.executionTime,
-
-            solver: optimization.solver
-
-        }
+        data: solver
 
     });
 
 });
-
 
 export default {
 

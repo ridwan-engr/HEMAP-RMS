@@ -1,797 +1,645 @@
-import Site from "../../models/Site.js";
-import Installation from "../../models/Installation.js";
+import fs from "fs/promises";
+import path from "path";
 
-import Telemetry from "../../models/Telemetry.js";
-import Alarm from "../../models/Alarm.js";
-import Reliability from "../../models/Reliability.js";
+import Report from "../../models/Report.js";
+import User from "../../models/User.js";
+import { env } from "../../config/env.js";
 
+import * as dashboardService from "../dashboard/dashboardService.js";
+import * as statisticsService from "../analytics/statisticsService.js";
+import * as forecastService from "../analytics/forecastService.js";
+import * as optimizationService from "../analytics/optimizationService.js";
+import * as reliabilityService from "../analytics/reliabilityService.js";
+import * as insightsService from "../analytics/insightsService.js";
+import * as chartService from "../analytics/chartService.js";
+
+import * as alarmService from "../alarm/alarmService.js";
+import * as weatherService from "../weather/weatherService.js";
+
+import pdfService from "./pdfService.js";
+import excelService from "./excelService.js";
+
+import {
+
+    emitReport,
+
+    emitNotification
+
+} from "../../websocket/eventEmitters.js";
+
+const REPORT_DIRECTORY = path.resolve(
+    "storage",
+    "reports"
+);
 
 /*
 |--------------------------------------------------------------------------
-| Generate Site Overview Report
+| Build Complete Report Dataset
 |--------------------------------------------------------------------------
 */
 
-export async function generateSiteOverviewReport(
+export async function buildReport(filters = {}) {
 
-    siteId
+    const siteId = filters.siteId || null;
 
-){
+    const safe = async (fn, fallback = null) => {
 
+        try {
 
-    const site = await Site.findById(
+            return await fn();
 
-        siteId
+        }
 
-    )
+        catch (err) {
 
-    .populate(
+            console.error(err.message);
 
-        "installations"
+            return fallback;
 
-    );
+        }
 
-
-
-    if(!site){
-
-
-        throw new Error(
-
-            "Site not found"
-
-        );
-
-    }
-
-
-
-    const installations =
-
-        await Installation.find({
-
-            site:
-
-                siteId
-
-        });
-
-
-
-    const alarms =
-
-        await Alarm.countDocuments({
-
-            site:
-
-                siteId
-
-        });
-
-
+    };
 
     return {
 
+        generatedAt: new Date(),
 
-        site:{
+        filters,
 
+        dashboard: await safe(
+            () => dashboardService.getDashboard(filters),
+            {}
+        ),
 
-            id:
+        statistics: await safe(
+            () => statisticsService.getDashboardStatistics(filters),
+            {}
+        ),
 
-                site._id,
+        energy: await safe(
+            () => statisticsService.getEnergyStatistics(filters),
+            {}
+        ),
 
+        battery: await safe(
+            () => statisticsService.getBatteryStatistics(filters),
+            {}
+        ),
 
-            name:
+        solar: await safe(
+            () => statisticsService.getSolarStatistics(filters),
+            {}
+        ),
 
-                site.name,
+        generator: await safe(
+            () => statisticsService.getGeneratorStatistics(filters),
+            {}
+        ),
 
+        grid: await safe(
+            () => statisticsService.getGridStatistics(filters),
+            {}
+        ),
 
-            location:
+        kpis: await safe(
+            () => statisticsService.getKPIs(filters),
+            {}
+        ),
 
-                site.location
+        locations: await safe(
+            () => statisticsService.getSiteLocations(),
+            []
+        ),
 
-        },
+        forecast: siteId
+            ? await safe(
+                () => forecastService.getForecastDashboard(siteId),
+                {}
+            )
+            : {},
 
+        optimization: siteId
+            ? await safe(
+                () => optimizationService.getOptimizationDashboard(siteId),
+                {}
+            )
+            : {},
 
-        installations:
+        reliability: await safe(
+            () => reliabilityService.getDashboardReliability(filters),
+            {}
+        ),
 
-            installations.length,
+        insights: await safe(
+            () => insightsService.generateInsights(filters),
+            {}
+        ),
 
+        charts: await safe(
+            () => chartService.getDashboardCharts(filters),
+            {}
+        ),
 
-        activeAlarms:
+        alarms: await safe(
+            () => alarmService.getAlarmSummary(filters),
+            {}
+        ),
 
-            alarms,
-
-
-        generatedAt:
-
-            new Date()
+        weather: siteId
+            ? await safe(
+                () => weatherService.getLatestWeather(siteId),
+                {}
+            )
+            : {}
 
     };
 
 }
 
-
 /*
 |--------------------------------------------------------------------------
-| Generate Energy Performance Report
+| Generate Report
 |--------------------------------------------------------------------------
 */
 
-export async function generateEnergyReport({
+/*
+|--------------------------------------------------------------------------
+| Generate Report
+|--------------------------------------------------------------------------
+*/
 
-    siteId,
+export async function generateReport(
+    filters = {},
+    user
+) {
 
-    startDate,
+    // Build the dataset ONCE
+    const reportData = await buildReport(filters);
 
-    endDate
+    // Ensure report directory exists
+    await fs.mkdir(REPORT_DIRECTORY, {
+        recursive: true
+    });
 
-}){
+    /*
+    |--------------------------------------------------------------------------
+    | JSON
+    |--------------------------------------------------------------------------
+    */
 
+    const jsonFilename = `report-${Date.now()}.json`;
 
-    const telemetry =
+    const jsonPath = path.join(
+        REPORT_DIRECTORY,
+        jsonFilename
+    );
 
-        await Telemetry.find({
+    await fs.writeFile(
+        jsonPath,
+        JSON.stringify(reportData, null, 4),
+        "utf8"
+    );
 
-            site:
+    /*
+    |--------------------------------------------------------------------------
+    | PDF
+    |--------------------------------------------------------------------------
+    */
 
-                siteId,
+    const pdf = await pdfService.generatePDF(
+        reportData,
+        user
+    );
 
+    /*
+    |--------------------------------------------------------------------------
+    | Excel
+    |--------------------------------------------------------------------------
+    */
 
-            timestamp:{
+    const excel = await excelService.generateExcel(
+        reportData
+    );
 
-                $gte:
+    /*
+    |--------------------------------------------------------------------------
+    | Database Record
+    |--------------------------------------------------------------------------
+    */
 
-                    startDate,
+    const summary = {
 
+        totalSolarEnergy:
 
-                $lte:
+            reportData.energy?.totalSolarEnergy ?? 0,
 
-                    endDate
+        totalGridEnergy:
 
-            }
+            reportData.energy?.totalGridEnergy ?? 0,
 
-        })
+        totalGeneratorEnergy:
 
-        .sort({
+            reportData.energy?.totalGeneratorEnergy ?? 0,
 
-            timestamp:1
+        batteryEfficiency:
 
-        });
+            reportData.battery?.efficiency ?? 0,
 
+        renewableFraction:
 
+            reportData.kpis?.renewablePercentage ?? 0,
 
-    if(!telemetry.length){
+        generatorRuntime:
 
+            reportData.generator?.runtime ?? 0,
 
-        return {
+        alarms:
 
+            reportData.alarms?.total ?? 0,
 
-            message:
+        saidi:
 
-                "No telemetry data available"
+            reportData.reliability?.kpis?.saidi ?? 0,
 
+        saifi:
 
-        };
+            reportData.reliability?.kpis?.saifi ?? 0,
 
-    }
+        ens:
 
+            reportData.reliability?.kpis?.ens ?? 0,
 
+        lolp:
 
-    let totalSolar = 0;
+            reportData.reliability?.kpis?.lolp ?? 0,
 
-    let totalLoad = 0;
+        resilience:
 
-    let totalGrid = 0;
+            reportData.reliability?.kpis?.resilience ?? 0
 
-    let totalBattery = 0;
+    };
 
+    const report = await Report.create({
 
+        site: filters.siteId,
 
-    telemetry.forEach(data=>{
+        generatedBy: user._id,
 
+        reportType:
 
-        totalSolar +=
+            filters.reportType ?? "CUSTOM",
 
-            data.solarPower || 0;
+        periodStart:
 
+            filters.periodStart ?? new Date(),
 
-        totalLoad +=
+        periodEnd:
 
-            data.loadPower || 0;
+            filters.periodEnd ?? new Date(),
 
+        summary,
 
-        totalGrid +=
+        filePath: pdf.path,
 
-            data.gridPower || 0;
-
-
-        totalBattery +=
-
-            data.batteryPower || 0;
-
+        status: "COMPLETED"
 
     });
 
-
-
-    return {
-
-
-        period:{
-
-
-            startDate,
-
-
-            endDate
-
-
-        },
-
-
-        energy:{
-
-
-            solarEnergy:
-
-                totalSolar,
-
-
-            loadEnergy:
-
-                totalLoad,
-
-
-            gridEnergy:
-
-                totalGrid,
-
-
-            batteryEnergy:
-
-                totalBattery
-
-
-        },
-
-
-        samples:
-
-            telemetry.length,
-
-
-        generatedAt:
-
-            new Date()
-
-
-    };
-
-}
-
-
-/*
+    /*
 |--------------------------------------------------------------------------
-| Generate Battery Health Report
+| Realtime Report
 |--------------------------------------------------------------------------
 */
 
-export async function generateBatteryReport(
+    emitReport(
 
-    siteId
+        user._id,
 
-){
+        {
 
+            reportId: report._id,
 
-    const telemetry =
+            siteId: filters.siteId,
 
-        await Telemetry.find({
+            type: report.type,
 
-            site:
+            period: report.period,
 
-                siteId
+            generatedAt: report.generatedAt,
 
-        })
+            formats: report.format
 
-        .sort({
+        }
 
-            timestamp:-1
+    );
 
-        })
+    emitNotification(
 
-        .limit(100);
+        user._id,
 
+        {
 
+            type: "REPORT",
 
-    if(!telemetry.length){
+            priority: "NORMAL",
 
-
-        throw new Error(
-
-            "Battery telemetry unavailable"
-
-        );
-
-    }
-
-
-
-    const latest =
-
-        telemetry[0];
-
-
-
-    return {
-
-
-        site:
-
-            siteId,
-
-
-        battery:{
-
-
-            stateOfCharge:
-
-                latest.batterySOC,
-
-
-            voltage:
-
-                latest.batteryVoltage,
-
-
-            current:
-
-                latest.batteryCurrent,
-
-
-            temperature:
-
-                latest.batteryTemperature
-
-
-        },
-
-
-        healthStatus:
-
-            latest.batterySOC > 50
-
-            ?
-
-            "GOOD"
-
-            :
-
-            "WARNING",
-
-
-
-        generatedAt:
-
-            new Date()
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Generate Reliability Report
-|--------------------------------------------------------------------------
-*/
-
-export async function generateReliabilityReport({
-
-    siteId,
-
-    startDate,
-
-    endDate
-
-}){
-
-
-    const reliability =
-
-        await Reliability.findOne({
-
-            site:
-
-                siteId,
-
-
-            createdAt:{
-
-                $gte:
-
-                    startDate,
-
-
-                $lte:
-
-                    endDate
-
-            }
-
-        });
-
-
-
-    if(!reliability){
-
-
-        return {
-
+            title: "Report Generated",
 
             message:
 
-                "No reliability records found"
+                `${report.type} report is ready.`,
+
+            reportId: report._id,
+
+            timestamp: new Date()
+
+        }
+
+    );
+
+    return getReportById(report._id);
+
+}
 
 
-        };
+/*
+|--------------------------------------------------------------------------
+| Reports
+|--------------------------------------------------------------------------
+*/
+
+export async function getReports(filters = {}) {
+
+    const query = {};
+
+    if (filters.type)
+        query.type = filters.type;
+
+    if (filters.status)
+        query.status = filters.status;
+
+    if (filters.siteId)
+        query.site = filters.siteId;
+
+    if (filters.generatedBy)
+
+        query.generatedBy = filters.generatedBy;
+
+        if (filters.startDate || filters.endDate) {
+
+        query.generatedAt = {};
+
+        if (filters.startDate)
+            query.generatedAt.$gte =
+                new Date(filters.startDate);
+
+        if (filters.endDate)
+            query.generatedAt.$lte =
+                new Date(filters.endDate);
 
     }
 
+    return Report.find(query)
 
+        .populate(
 
-    return {
+            "generatedBy",
 
+            "firstName lastName email"
 
-        site:
+        )
 
-            siteId,
-
-
-        reliability:{
-
-
-            SAIDI:
-
-                reliability.SAIDI,
-
-
-            SAIFI:
-
-                reliability.SAIFI,
-
-
-            ENS:
-
-                reliability.ENS,
-
-
-            LOLP:
-
-                reliability.LOLP
-
-
-        },
-
-
-        generatedAt:
-
-            new Date()
-
-    };
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Generate Alarm Report
-|--------------------------------------------------------------------------
-*/
-
-export async function generateAlarmReport({
-
-    siteId,
-
-    startDate,
-
-    endDate
-
-}){
-
-
-    const alarms =
-
-        await Alarm.find({
-
-            site:
-
-                siteId,
-
-
-            createdAt:{
-
-                $gte:
-
-                    startDate,
-
-
-                $lte:
-
-                    endDate
-
-            }
-
-        })
+        .populate("site")
 
         .sort({
 
-            createdAt:-1
+            generatedAt: -1
 
         });
 
 
+}
 
-    const critical =
 
-        alarms.filter(
+/*
+|--------------------------------------------------------------------------
+| Report
+|--------------------------------------------------------------------------
+*/
 
-            alarm =>
+export async function getReportById(id) {
 
-            alarm.severity === "CRITICAL"
+    const report = await Report.findById(id)
+
+        .populate(
+            "generatedBy",
+            "firstName lastName email"
+        )
+
+        .populate("site");
+
+    if (!report) {
+
+        throw new Error(
+
+            "Report not found."
 
         );
 
+    }
 
+    return report;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Download
+|--------------------------------------------------------------------------
+*/
+
+export async function downloadReport(
+    id,
+    format = "pdf"
+) {
+
+    const report = await getReportById(id);
+
+    let filename;
+
+    switch (format.toLowerCase()) {
+
+        case "json":
+
+            filename = report.jsonFilename;
+
+            break;
+
+        case "excel":
+
+            filename = report.excelFilename;
+
+            break;
+
+        default:
+
+            filename = report.pdfFilename;
+
+    }
+
+    const filePath = path.join(
+
+        REPORT_DIRECTORY,
+
+        filename
+    );
+
+    try {
+
+        await fs.access(filePath);
+
+    } catch {
+
+        throw new Error(
+            "Report file not found."
+        );
+
+    }
 
     return {
 
+        filename:
 
-        total:
+            path.basename(report.filePath),
 
-            alarms.length,
+        path:
 
-
-        critical:
-
-            critical.length,
-
-
-        alarms,
-
-
-        generatedAt:
-
-            new Date()
+            report.filePath
 
     };
+
+
 
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Generate Maintenance Report
+| Delete
 |--------------------------------------------------------------------------
 */
 
-export async function generateMaintenanceReport(
+export async function deleteReport(id) {
 
-    siteId
+    const report = await getReportById(id);
 
-){
+    const files = [
 
+        report.jsonFilename,
 
-    const alarms =
+        report.pdfFilename,
 
-        await Alarm.find({
+        report.excelFilename
 
-            site:
+    ];
 
-                siteId
+    for (const file of files) {
 
-        });
+        if (!file) continue;
 
+        try {
 
+            await fs.unlink(
+                path.join(
+                    REPORT_DIRECTORY,
+                    file
+                )
+            );
 
-    return {
+        }
 
+        catch {
 
-        site:
+            // Ignore missing files
+
+        }
+
+    }
+
+    await report.deleteOne();
+
+    return true;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Generate Daily Reports
+|--------------------------------------------------------------------------
+*/
+
+export async function generateDailyReports(siteId) {
+
+    const systemUser = await User.findOne({
+
+        email: env.SYSTEM_EMAIL
+
+    });
+
+    if (!systemUser) {
+
+        throw new Error(
+
+            "System user not found."
+
+        );
+
+    }
+
+    const now = new Date();
+
+    const start = new Date(now);
+
+    start.setHours(0,0,0,0);
+
+    const end = new Date(now);
+
+    end.setHours(23,59,59,999);
+
+    return generateReport(
+
+        {
 
             siteId,
 
+            reportType: "DAILY",
 
-        maintenanceRequired:
+            periodStart: start,
 
-            alarms.filter(
+            periodEnd: end
 
-                alarm =>
+        },
 
-                alarm.status !== "CLEARED"
+        systemUser
 
-            ),
-
-
-        generatedAt:
-
-            new Date()
-
-    };
+    );
 
 }
-
-/*
-|--------------------------------------------------------------------------
-| Generate Dashboard Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function generateDashboardReport(){
-
-    
-    const sites =
-
-        await Site.countDocuments();
-
-
-
-    const installations =
-
-        await Installation.countDocuments();
-
-
-
-    const activeAlarms =
-
-        await Alarm.countDocuments({
-
-            status:
-
-                {
-
-                    $ne:
-
-                    "CLEARED"
-
-                }
-
-        });
-
-
-
-    return {
-
-
-        sites,
-
-
-        installations,
-
-
-        activeAlarms,
-
-
-        generatedAt:
-
-            new Date()
-
-    };
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Generate Executive Energy Report
-|--------------------------------------------------------------------------
-*/
-
-export async function generateExecutiveReport(){
-
-    
-    return {
-
-
-        title:
-
-            "HEMAP-RMS Energy Management Report",
-
-
-        generatedAt:
-
-            new Date(),
-
-
-        sections:[
-
-
-            "Energy Performance",
-
-
-            "Renewable Generation",
-
-
-            "Battery Health",
-
-
-            "Reliability Analysis",
-
-
-            "Alarm Summary"
-
-
-        ]
-
-    };
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Prepare Report Export Data
-|--------------------------------------------------------------------------
-*/
-
-export async function exportReportData(
-
-    report
-
-){
-
-
-    return {
-
-
-        format:
-
-            "JSON",
-
-
-        report,
-
-
-        exportedAt:
-
-            new Date()
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Default Export
-|--------------------------------------------------------------------------
-*/
 
 export default {
 
+    buildReport,
 
-    generateSiteOverviewReport,
+    generateReport,
 
+    generateDailyReports,
 
-    generateEnergyReport,
+    getReports,
 
+    getReportById,
 
-    generateBatteryReport,
+    downloadReport,
 
-
-    generateReliabilityReport,
-
-
-    generateAlarmReport,
-
-
-    generateMaintenanceReport,
-
-
-    generateDashboardReport,
-
-
-    generateExecutiveReport,
-
-
-    exportReportData
+    deleteReport
 
 };

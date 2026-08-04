@@ -2,6 +2,38 @@ import axios from "axios";
 import { env } from "../../config/env.js";
 import logger from "../../utils/logger.js";
 
+/*
+|--------------------------------------------------------------------------
+| Validate Configuration
+|--------------------------------------------------------------------------
+*/
+
+if (!env.vrmApiBaseUrl) {
+
+    throw new Error(
+
+        "VRM API base URL is not configured."
+
+    );
+
+}
+
+if (!env.vrmAccessToken) {
+
+    throw new Error(
+
+        "VRM access token is not configured."
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Axios Instance
+|--------------------------------------------------------------------------
+*/
+
 const api = axios.create({
 
     baseURL: env.vrmApiBaseUrl,
@@ -26,39 +58,37 @@ const api = axios.create({
 |--------------------------------------------------------------------------
 */
 
-api.interceptors.request.use(config => {
+api.interceptors.request.use(
 
-    console.log(
-        "GET:",
-        config.baseURL + config.url
-    );
+    config => {
 
-    return config;
+        logger.info({
 
-});
+            service: "VRM",
 
-/*
-|--------------------------------------------------------------------------
-| Response Logger
-|--------------------------------------------------------------------------
-*/
+            method: config.method?.toUpperCase(),
 
-api.interceptors.response.use(
+            url: `${config.baseURL}${config.url}`,
 
-    response => response,
+            params: config.params,
+
+            data: config.data
+
+        });
+
+        return config;
+
+    },
 
     error => {
 
-        console.error({
+        logger.error({
 
-            status: error.response?.status,
+            service: "VRM",
 
-            url: error.config?.url,
+            stage: "request",
 
-            method: error.config?.method,
-
-            data: error.response?.data
-
+            message: error.message
 
         });
 
@@ -68,40 +98,142 @@ api.interceptors.response.use(
 
 );
 
+/*
+|--------------------------------------------------------------------------
+| Response Logger
+|--------------------------------------------------------------------------
+*/
+
+api.interceptors.response.use(
+
+    response => {
+
+        logger.info({
+
+            service: "VRM",
+
+            method: response.config.method?.toUpperCase(),
+
+            url: response.config.url,
+
+            status: response.status
+
+        });
+
+        return response;
+
+    },
+
+    error => {
+
+        logger.error({
+
+            service: "VRM",
+
+            stage: "response",
+
+            method: error.config?.method?.toUpperCase(),
+
+            url: error.config?.url,
+
+            status: error.response?.status,
+
+            message: error.message,
+
+            data: error.response?.data
+
+        });
+
+        return Promise.reject(error);
+
+    }
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| HTTP Methods
+|--------------------------------------------------------------------------
+*/
+
 export async function get(endpoint, params = {}) {
 
-    const { data } = await api.get(endpoint, {
+    const response = await api.get(endpoint, {
 
         params
 
     });
 
-    return data;
+    return response.data;
 
 }
 
 export async function post(endpoint, payload = {}) {
 
-    const { data } = await api.post(endpoint, payload);
+    const response = await api.post(
 
-    return data;
+        endpoint,
+
+        payload
+
+    );
+
+    return response.data;
 
 }
 
 export async function put(endpoint, payload = {}) {
 
-    const { data } = await api.put(endpoint, payload);
+    const response = await api.put(
 
-    return data;
+        endpoint,
+
+        payload
+
+    );
+
+    return response.data;
+
+}
+
+export async function patch(endpoint, payload = {}) {
+
+    const response = await api.patch(
+
+        endpoint,
+
+        payload
+
+    );
+
+    return response.data;
 
 }
 
 export async function remove(endpoint) {
 
-    const { data } = await api.delete(endpoint);
+    const response = await api.delete(
 
-    return data;
+        endpoint
+
+    );
+
+    return response.data;
 
 }
 
-export default api;
+export default {
+
+    api,
+
+    get,
+
+    post,
+
+    put,
+
+    patch,
+
+    remove
+
+};

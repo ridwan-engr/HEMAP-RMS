@@ -1,404 +1,336 @@
+import asyncHandler from "../utils/asyncHandler.js";
 import SystemSetting from "../models/SystemSetting.js";
-import logger from "../utils/logger.js";
 
-/**
- * Create System Setting
- */
-export async function createSetting(req, res, next) {
+/*
+|--------------------------------------------------------------------------
+| Create System Setting
+|--------------------------------------------------------------------------
+*/
 
-    try {
+export const createSetting = asyncHandler(async (req, res) => {
 
-        const setting = await SystemSetting.create(req.body);
+    const setting = await SystemSetting.create(req.body);
 
-        logger.success(
-            `System setting created: ${setting._id}`
-        );
+    return res.status(201).json({
 
-        return res.status(201).json({
-            success: true,
-            data: setting
+        success: true,
+
+        message: "System setting created successfully.",
+
+        data: setting
+
+    });
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Get All System Settings
+|--------------------------------------------------------------------------
+*/
+
+export const getSettings = asyncHandler(async (req, res) => {
+
+    const settings = await SystemSetting.find()
+
+        .sort({
+
+            category: 1,
+
+            key: 1
+
+        });
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "System settings retrieved successfully.",
+
+        count: settings.length,
+
+        data: settings
+
+    });
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Get System Setting By ID
+|--------------------------------------------------------------------------
+*/
+
+export const getSetting = asyncHandler(async (req, res) => {
+
+    const setting = await SystemSetting.findById(
+
+        req.params.id
+
+    );
+
+    if (!setting) {
+
+        return res.status(404).json({
+
+            success: false,
+
+            message: "System setting not found."
+
         });
 
     }
 
-    catch (error) {
+    return res.status(200).json({
 
-        logger.error(error);
+        success: true,
 
-        next(error);
+        message: "System setting retrieved successfully.",
 
-    }
+        data: setting
 
-}
+    });
 
-/**
- * Get All System Settings
- */
-export async function getSettings(req, res, next) {
+});
 
-    try {
+/*
+|--------------------------------------------------------------------------
+| Get System Setting By Key
+|--------------------------------------------------------------------------
+*/
 
-        const settings = await SystemSetting
-            .find()
-            .sort({
-                category: 1,
-                key: 1
-            });
+export const getSystemSettingByKey = asyncHandler(async (req, res) => {
 
-        return res.json({
+    const setting = await SystemSetting.findOne({
 
-            success: true,
+        key: req.params.key
 
-            count: settings.length,
+    });
 
-            data: settings
+    if (!setting) {
+
+        return res.status(404).json({
+
+            success: false,
+
+            message: "System setting not found."
 
         });
 
     }
 
-    catch (error) {
+    return res.status(200).json({
 
-        logger.error(error);
+        success: true,
 
-        next(error);
+        message: "System setting retrieved successfully.",
 
-    }
+        data: setting
 
-}
+    });
 
-/**
- * Get System Setting by ID
- */
-export async function getSetting(req, res, next) {
+});
 
-    try {
+/*
+|--------------------------------------------------------------------------
+| Update Setting By ID
+|--------------------------------------------------------------------------
+*/
 
-        const setting = await SystemSetting.findById(
-            req.body.id
-        );
+export const updateSetting = asyncHandler(async (req, res) => {
 
-        if (!setting) {
+    const setting = await SystemSetting.findByIdAndUpdate(
 
-            return res.status(404).json({
+        req.params.id,
 
-                success: false,
+        req.body,
 
-                message: "System setting not found."
+        {
 
-            });
+            new: true,
+
+            runValidators: true
 
         }
 
-        return res.json({
+    );
 
-            success: true,
+    if (!setting) {
 
-            data: setting
+        return res.status(404).json({
+
+            success: false,
+
+            message: "System setting not found."
 
         });
 
     }
 
-    catch (error) {
+    return res.status(200).json({
 
-        logger.error(error);
+        success: true,
 
-        next(error);
+        message: "System setting updated successfully.",
 
-    }
+        data: setting
 
-}
+    });
 
-/**
- * Get Setting by Key
- */
-export async function getSystemSettingByKey(req, res, next) {
+});
 
-    try {
+/*
+|--------------------------------------------------------------------------
+| Update Setting By Key
+|--------------------------------------------------------------------------
+*/
 
-        const setting = await SystemSetting.findOne({
+export const updateSystemSettingByKey = asyncHandler(async (req, res) => {
 
-            key: req.body.key
+    const setting = await SystemSetting.findOneAndUpdate(
 
-        });
+        {
 
-        if (!setting) {
+            key: req.params.key
 
-            return res.status(404).json({
+        },
 
-                success: false,
+        req.body,
 
-                message: "System setting not found."
+        {
 
-            });
+            new: true,
+
+            runValidators: true
 
         }
 
-        return res.json({
+    );
 
-            success: true,
+    if (!setting) {
 
-            data: setting
+        return res.status(404).json({
+
+            success: false,
+
+            message: "System setting not found."
 
         });
 
     }
 
-    catch (error) {
+    return res.status(200).json({
 
-        logger.error(error);
+        success: true,
 
-        next(error);
+        message: "System setting updated successfully.",
+
+        data: setting
+
+    });
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Delete Setting
+|--------------------------------------------------------------------------
+*/
+
+export const deleteSetting = asyncHandler(async (req, res) => {
+
+    const setting = await SystemSetting.findByIdAndDelete(
+
+        req.params.id
+
+    );
+
+    if (!setting) {
+
+        return res.status(404).json({
+
+            success: false,
+
+            message: "System setting not found."
+
+        });
 
     }
 
-}
+    return res.status(200).json({
 
-/**
- * Update Setting by ID
- */
-export async function updateSetting(req, res, next) {
+        success: true,
 
-    try {
+        message: "System setting deleted successfully."
 
-        const setting = await SystemSetting.findByIdAndUpdate(
+    });
 
-            req.body.id,
+});
 
-            req.body,
+/*
+|--------------------------------------------------------------------------
+| Initialize Default Settings
+|--------------------------------------------------------------------------
+*/
+
+export const initializeDefaults = asyncHandler(async (req, res) => {
+
+    const defaults = [
+
+        {
+            category: "system",
+            key: "timezone",
+            value: "Africa/Lagos",
+            description: "Application timezone"
+        },
+
+        {
+            category: "system",
+            key: "vrmSyncInterval",
+            value: "*/1 * * * *",
+            description: "VRM synchronization schedule"
+        },
+
+        {
+            category: "dashboard",
+            key: "refreshInterval",
+            value: 30,
+            description: "Dashboard refresh interval (seconds)"
+        }
+
+    ];
+
+    for (const item of defaults) {
+
+        await SystemSetting.updateOne(
 
             {
 
-                new: true,
+                key: item.key
 
-                runValidators: true
+            },
+
+            item,
+
+            {
+
+                upsert: true
 
             }
 
         );
 
-        if (!setting) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "System setting not found."
-
-            });
-
-        }
-
-        logger.success(
-            `System setting updated: ${setting._id}`
-        );
-
-        return res.json({
-
-            success: true,
-
-            data: setting
-
-        });
-
     }
 
-    catch (error) {
+    return res.status(200).json({
 
-        logger.error(error);
+        success: true,
 
-        next(error);
+        message: "Default system settings initialized successfully."
 
-    }
+    });
 
-}
-
-/**
- * Update Setting by Key
- */
-export async function updateSystemSettingByKey(req, res, next) {
-
-    try {
-
-        const setting = await SystemSetting.findOneAndUpdate(
-
-            {
-
-                key: req.body.key
-
-            },
-
-            req.body,
-
-            {
-
-                new: true,
-
-                runValidators: true
-
-            }
-
-        );
-
-        if (!setting) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "System setting not found."
-
-            });
-
-        }
-
-        logger.success(
-            `System setting updated: ${setting.key}`
-        );
-
-        return res.json({
-
-            success: true,
-
-            data: setting
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/**
- * Delete System Setting
- */
-export async function deleteSetting(req, res, next) {
-
-    try {
-
-        const setting = await SystemSetting.findByIdAndDelete(
-
-            req.body.id
-
-        );
-
-        if (!setting) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "System setting not found."
-
-            });
-
-        }
-
-        logger.success(
-            `System setting deleted: ${req.body.id}`
-        );
-
-        return res.json({
-
-            success: true,
-
-            message: "System setting deleted successfully."
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/**
- * Initialize Default Settings
- */
-export async function initializeDefaults(req, res, next) {
-
-    try {
-
-        const defaults = [
-
-            {
-                category: "system",
-                key: "timezone",
-                value: "Africa/Lagos",
-                description: "Application timezone"
-            },
-
-            {
-                category: "system",
-                key: "vrmSyncInterval",
-                value: "*/1 * * * *",
-                description: "VRM synchronization schedule"
-            },
-
-            {
-                category: "dashboard",
-                key: "refreshInterval",
-                value: 30,
-                description: "Dashboard refresh interval (seconds)"
-            }
-
-        ];
-
-        for (const item of defaults) {
-
-            await SystemSetting.updateOne(
-
-                {
-
-                    key: item.key
-
-                },
-
-                item,
-
-                {
-
-                    upsert: true
-
-                }
-
-            );
-
-        }
-
-        return res.json({
-
-            success: true,
-
-            message: "Default system settings initialized."
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+});
 
 export default {
 

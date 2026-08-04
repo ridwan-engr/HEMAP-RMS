@@ -2,33 +2,83 @@ import Fault from "../../models/Fault.js";
 
 /*
 |--------------------------------------------------------------------------
-| Create Fault
+| Get Faults
 |--------------------------------------------------------------------------
 */
 
-export async function createFault(data) {
+export async function getFaults(filters = {}) {
 
-    return await Fault.create(data);
+    const query = {};
 
-}
+    if (filters.siteId) {
 
-/*
-|--------------------------------------------------------------------------
-| Get All Faults
-|--------------------------------------------------------------------------
-*/
+        query.site = filters.siteId;
 
-export async function getFaults() {
+    }
 
-    return await Fault.find()
+    if (filters.installationId) {
+
+        query.installation = filters.installationId;
+
+    }
+
+    if (filters.deviceId) {
+
+        query.device = filters.deviceId;
+
+    }
+
+    if (filters.status) {
+
+        query.status = filters.status;
+
+    }
+
+    if (filters.severity) {
+
+        query.severity = filters.severity;
+
+    }
+
+    if (filters.startDate || filters.endDate) {
+
+        query.createdAt = {};
+
+        if (filters.startDate) {
+
+            query.createdAt.$gte = new Date(
+
+                filters.startDate
+
+            );
+
+        }
+
+        if (filters.endDate) {
+
+            query.createdAt.$lte = new Date(
+
+                filters.endDate
+
+            );
+
+        }
+
+    }
+
+    return Fault.find(query)
 
         .populate("site")
 
+        .populate("installation")
+
         .populate("device")
+
+        .populate("assignedTo", "firstName lastName")
 
         .sort({
 
-            detectedAt: -1
+            createdAt: -1
 
         });
 
@@ -36,41 +86,69 @@ export async function getFaults() {
 
 /*
 |--------------------------------------------------------------------------
-| Get Fault By ID
+| Get Fault
 |--------------------------------------------------------------------------
 */
 
-export async function getFaultById(id) {
+export async function getFaultById(faultId) {
 
-    return await Fault.findById(id)
+    const fault = await Fault.findById(
 
-        .populate("site")
+        faultId
 
-        .populate("device");
+    )
+
+    .populate("site")
+
+    .populate("installation")
+
+    .populate("device")
+
+    .populate("assignedTo", "firstName lastName")
+
+    .populate("resolvedBy", "firstName lastName");
+
+    if (!fault) {
+
+        throw new Error(
+
+            "Fault record not found."
+
+        );
+
+    }
+
+    return fault;
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Get Faults By Site
+| Create Fault
 |--------------------------------------------------------------------------
 */
 
-export async function getFaultsBySite(siteId) {
+export async function createFault(
 
-    return await Fault.find({
+    payload,
 
-        site: siteId
+    user
 
-    })
+) {
 
-    .populate("device")
+    const fault = await Fault.create({
 
-    .sort({
+        ...payload,
 
-        detectedAt: -1
+        reportedBy: user._id
 
     });
+
+    return getFaultById(
+
+        fault._id
+
+    );
 
 }
 
@@ -80,109 +158,39 @@ export async function getFaultsBySite(siteId) {
 |--------------------------------------------------------------------------
 */
 
-export async function updateFault(id, data) {
+export async function updateFault(
 
-    return await Fault.findByIdAndUpdate(
+    faultId,
 
-        id,
+    payload,
 
-        data,
+    user
 
-        {
+) {
 
-            new: true,
+    const fault = await getFaultById(
 
-            runValidators: true
-
-        }
+        faultId
 
     );
 
-}
+    Object.assign(
 
-/*
-|--------------------------------------------------------------------------
-| Delete Fault
-|--------------------------------------------------------------------------
-*/
+        fault,
 
-export async function deleteFault(id) {
+        payload
 
-    return await Fault.findByIdAndDelete(id);
+    );
 
-}
+    fault.updatedBy = user._id;
 
-/*
-|--------------------------------------------------------------------------
-| Get Open Faults
-|--------------------------------------------------------------------------
-*/
+    await fault.save();
 
-export async function getOpenFaults(siteId = null) {
+    return getFaultById(
 
-    const query = {
+        fault._id
 
-        status: {
-
-            $in: [
-
-                "OPEN",
-
-                "ASSIGNED",
-
-                "IN_PROGRESS"
-
-            ]
-
-        }
-
-    };
-
-    if (siteId) {
-
-        query.site = siteId;
-
-    }
-
-    return await Fault.find(query)
-
-        .sort({
-
-            severity: -1,
-
-            detectedAt: -1
-
-        });
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Critical Faults
-|--------------------------------------------------------------------------
-*/
-
-export async function getCriticalFaults(siteId = null) {
-
-    const query = {
-
-        severity: "CRITICAL"
-
-    };
-
-    if (siteId) {
-
-        query.site = siteId;
-
-    }
-
-    return await Fault.find(query)
-
-        .sort({
-
-            detectedAt: -1
-
-        });
+    );
 
 }
 
@@ -194,35 +202,35 @@ export async function getCriticalFaults(siteId = null) {
 
 export async function resolveFault(
 
-    id,
+    faultId,
 
-    correctiveAction,
+    payload,
 
-    rootCause
+    user
 
 ) {
 
-    return await Fault.findByIdAndUpdate(
+    const fault = await getFaultById(
 
-        id,
+        faultId
 
-        {
+    );
 
-            status: "RESOLVED",
+    fault.status = "RESOLVED";
 
-            correctiveAction,
+    fault.resolution =
 
-            rootCause,
+        payload.resolution;
 
-            resolvedAt: new Date()
+    fault.resolvedAt = new Date();
 
-        },
+    fault.resolvedBy = user._id;
 
-        {
+    await fault.save();
 
-            new: true
+    return getFaultById(
 
-        }
+        fault._id
 
     );
 
@@ -230,112 +238,40 @@ export async function resolveFault(
 
 /*
 |--------------------------------------------------------------------------
-| Fault Statistics
+| Delete Fault
 |--------------------------------------------------------------------------
 */
 
-export async function faultStatistics(siteId = null) {
+export async function deleteFault(
 
-    const query = {};
+    faultId
 
-    if (siteId) {
+) {
 
-        query.site = siteId;
+    const fault = await getFaultById(
 
-    }
+        faultId
 
-    const [
+    );
 
-        total,
+    await fault.deleteOne();
 
-        open,
-
-        resolved,
-
-        critical
-
-    ] = await Promise.all([
-
-        Fault.countDocuments(query),
-
-        Fault.countDocuments({
-
-            ...query,
-
-            status: {
-
-                $in: [
-
-                    "OPEN",
-
-                    "ASSIGNED",
-
-                    "IN_PROGRESS"
-
-                ]
-
-            }
-
-        }),
-
-        Fault.countDocuments({
-
-            ...query,
-
-            status: "RESOLVED"
-
-        }),
-
-        Fault.countDocuments({
-
-            ...query,
-
-            severity: "CRITICAL"
-
-        })
-
-    ]);
-
-    return {
-
-        total,
-
-        open,
-
-        resolved,
-
-        critical
-
-    };
+    return true;
 
 }
 
-/*
-|--------------------------------------------------------------------------
-| Default Export
-|--------------------------------------------------------------------------
-*/
-
 export default {
-
-    createFault,
 
     getFaults,
 
     getFaultById,
 
-    getFaultsBySite,
+    createFault,
 
     updateFault,
 
-    deleteFault,
-
-    getOpenFaults,
-
-    getCriticalFaults,
-
     resolveFault,
 
-    faultStatistics
+    deleteFault
 
 };

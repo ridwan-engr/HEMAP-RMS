@@ -1,10 +1,14 @@
-import cron from "node-cron";
-
 import mongoose from "mongoose";
 
 import logger from "../utils/logger.js";
 
-async function runHealthCheck() {
+/*
+|--------------------------------------------------------------------------
+| Health Scheduler
+|--------------------------------------------------------------------------
+*/
+
+export async function runHealthScheduler() {
 
     try {
 
@@ -22,7 +26,7 @@ async function runHealthCheck() {
 
             memory:
 
-                process.memoryUsage().rss,
+                process.memoryUsage(),
 
             timestamp:
 
@@ -30,44 +34,42 @@ async function runHealthCheck() {
 
         };
 
-        logger.info(
+        logger.info({
 
-            "System health verified.",
+            message:
+
+                "Health check completed.",
 
             report
 
-        );
+        });
+
+        return report;
 
     }
 
     catch (error) {
 
-        logger.error(
+        logger.error({
 
-            "Health scheduler failed.",
+            message:
 
-            error
+                "Health Scheduler Failed.",
 
-        );
+            error:
+
+                error.message
+
+        });
+
+        throw error;
 
     }
 
 }
 
-export default function startHealthScheduler() {
+export default {
 
-    cron.schedule(
+    runHealthScheduler
 
-        "*/10 * * * *",
-
-        runHealthCheck,
-
-        {
-
-            timezone: "Africa/Lagos"
-
-        }
-
-    );
-
-}
+};

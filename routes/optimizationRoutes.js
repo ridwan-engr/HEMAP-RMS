@@ -7,157 +7,117 @@ import authorize from "../middlewares/authorize.js";
 import validate from "../middlewares/validate.js";
 
 import {
-
-    createOptimizationSchema,
-
-    historySchema,
-
-    exportOptimizationSchema,
-
-    cancelOptimizationSchema
-
+    optimizationQueryValidator,
+    optimizationIdValidator
 } from "../validators/optimizationValidator.js";
 
 const router = Router();
 
-/*
-|--------------------------------------------------------------------------
-| Create Optimization
-|--------------------------------------------------------------------------
-*/
-
-router.post(
-
-    "/",
-
-    authenticate,
-
-    authorize(
-
-        "ADMIN",
-
-        "ENGINEER",
-
-        "SUPERVISOR"
-
-    ),
-
-    validate({
-
-        body: createOptimizationSchema
-
-    }),
-
-    optimizationController.createOptimization
-
-);
+router.use(authenticate);
 
 /*
 |--------------------------------------------------------------------------
-| Optimization History
+| Latest Optimization
 |--------------------------------------------------------------------------
 */
 
 router.get(
+    "/latest/:siteId",
+    optimizationController.getLatestOptimization
+);
 
+/*
+|--------------------------------------------------------------------------
+| History
+|--------------------------------------------------------------------------
+*/
+
+router.get(
     "/history",
-
-    authenticate,
-
     validate({
-
-        query: historySchema
-
+        query: optimizationQueryValidator
     }),
-
     optimizationController.getOptimizationHistory
-
 );
 
 /*
 |--------------------------------------------------------------------------
-| Get Optimization
+| Optimization Details
 |--------------------------------------------------------------------------
 */
 
 router.get(
-
     "/:id",
-
-    authenticate,
-
+    validate({
+        params: optimizationIdValidator
+    }),
     optimizationController.getOptimization
-
 );
 
 /*
 |--------------------------------------------------------------------------
-| Cancel Optimization
+| Dispatch Schedule
 |--------------------------------------------------------------------------
 */
 
-router.patch(
-
-    "/:id/cancel",
-
-    authenticate,
-
-    authorize(
-
-        "ADMIN",
-
-        "ENGINEER"
-
-    ),
-
-    validate({
-
-        params: cancelOptimizationSchema
-
-    }),
-
-    optimizationController.cancelOptimization
-
+router.get(
+    "/:id/dispatch",
+    optimizationController.getDispatchSchedule
 );
 
 /*
 |--------------------------------------------------------------------------
-| Export Optimization
+| Energy Summary
 |--------------------------------------------------------------------------
 */
 
-router.post(
-
-    "/:id/export",
-
-    authenticate,
-
-    validate({
-
-        body: exportOptimizationSchema
-
-    }),
-
-    optimizationController.exportOptimization
-
+router.get(
+    "/:id/energy",
+    optimizationController.getEnergySummary
 );
 
 /*
 |--------------------------------------------------------------------------
-| Delete Optimization
+| Economics
 |--------------------------------------------------------------------------
 */
 
-router.delete(
+router.get(
+    "/:id/economics",
+    optimizationController.getEconomics
+);
 
-    "/:id",
+/*
+|--------------------------------------------------------------------------
+| Emissions
+|--------------------------------------------------------------------------
+*/
 
-    authenticate,
+router.get(
+    "/:id/emissions",
+    optimizationController.getEmissions
+);
 
-    authorize("ADMIN"),
+/*
+|--------------------------------------------------------------------------
+| Reliability
+|--------------------------------------------------------------------------
+*/
 
-    optimizationController.deleteOptimization
+router.get(
+    "/:id/reliability",
+    optimizationController.getReliability
+);
 
+/*
+|--------------------------------------------------------------------------
+| Solver
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:id/solver",
+    optimizationController.getSolver
 );
 
 export default router;

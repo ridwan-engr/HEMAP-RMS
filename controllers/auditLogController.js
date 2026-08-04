@@ -1,379 +1,81 @@
-import AuditLog from "../models/AuditLog.js";
-import User from "../models/User.js";
-import Site from "../models/Site.js";
-
-import asyncHandler from "express-async-handler";
-
-import logger from "../utils/logger.js";
-
-/*
-|--------------------------------------------------------------------------
-| Create Audit Log
-|--------------------------------------------------------------------------
-|
-| Normally this endpoint is used internally by services whenever
-| important activities occur (login, logout, CRUD operations,
-| synchronization, configuration changes, etc.)
-|
-*/
-
-export async function createAuditLog(req, res, next) {
-
-    try {
-
-        const {
-
-            user,
-
-            site,
-
-            action,
-
-            module,
-
-            description,
-
-            ipAddress,
-
-            userAgent,
-
-            metadata
-
-        } = req.body;
-
-        const audit = await AuditLog.create({
-
-            user,
-
-            site,
-
-            action,
-
-            module,
-
-            description,
-
-            ipAddress,
-
-            userAgent,
-
-            metadata
-
-        });
-
-        logger.success(
-
-            `Audit log created (${audit._id})`
-
-        );
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Audit log created successfully.",
-
-            data: audit
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+import asyncHandler from "../utils/asyncHandler.js";
+import * as auditLogService from "../services/audit/auditLogService.js";
 
 /*
 |--------------------------------------------------------------------------
 | Get Audit Logs
 |--------------------------------------------------------------------------
-|
-| Features
-|
-| ✔ Pagination
-| ✔ Search
-| ✔ Filter by:
-|      module
-|      action
-|      user
-|      site
-| ✔ Sorting
-|
 */
 
-export async function getAuditLogs(req, res, next) {
+export const getAuditLogs = asyncHandler(async (req, res) => {
 
-    try {
+    const logs = await auditLogService.getAuditLogs(
 
-        const {
-
-            page = 1,
-
-            limit = 20,
-
-            module,
-
-            action,
-
-            user,
-
-            site,
-
-            search,
-
-            sort = "-createdAt"
-
-        } = req.body;
-
-        const filter = {};
-
-        if (module)
-
-            filter.module = module;
-
-        if (action)
-
-            filter.action = action;
-
-        if (user)
-
-            filter.user = user;
-
-        if (site)
-
-            filter.site = site;
-
-        if (search) {
-
-            filter.$or = [
-
-                {
-
-                    description: {
-
-                        $regex: search,
-
-                        $options: "i"
-
-                    }
-
-                },
-
-                {
-
-                    module: {
-
-                        $regex: search,
-
-                        $options: "i"
-
-                    }
-
-                },
-
-                {
-
-                    action: {
-
-                        $regex: search,
-
-                        $options: "i"
-
-                    }
-
-                }
-
-            ];
-
-        }
-
-        const total = await AuditLog.countDocuments(
-
-            filter
-
-        );
-
-        const logs = await AuditLog.find(
-
-            filter
-
-        )
-
-        .populate(
-
-            "user",
-
-            "firstName lastName email"
-
-        )
-
-        .populate(
-
-            "site",
-
-            "name siteCode installationId"
-
-        )
-
-        .sort(sort)
-
-        .skip(
-
-            (page - 1) * Number(limit)
-
-        )
-
-        .limit(
-
-            Number(limit)
-
-        );
-
-        return res.status(200).json({
-
-            success: true,
-
-            page: Number(page),
-
-            pages: Math.ceil(
-
-                total / Number(limit)
-
-            ),
-
-            total,
-
-            count: logs.length,
-
-            data: logs
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Audit Log By ID
-|--------------------------------------------------------------------------
-*/
-
-export async function getAuditLog(
-
-    req,
-
-    res,
-
-    next
-
-) {
-
-    try {
-
-        const audit = await AuditLog.findById(
-
-            req.body.id
-
-        )
-
-        .populate(
-
-            "user",
-
-            "firstName lastName email"
-
-        )
-
-        .populate(
-
-            "site",
-
-            "name siteCode installationId"
-
-        );
-
-        if (!audit) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-
-                    "Audit log not found."
-
-            });
-
-        }
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: audit
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Update Audit Log
-|--------------------------------------------------------------------------
-*/
-
-export const updateAuditLog = asyncHandler(async (req, res) => {
-
-    const auditLog = await AuditLog.findById(req.body.id);
-
-    if (!auditLog) {
-
-        res.status(404);
-
-        throw new Error("Audit log not found.");
-
-    }
-
-    Object.assign(auditLog, req.body);
-
-    await auditLog.save();
-
-    logger.warn(
-
-        `Audit log ${auditLog._id} updated.`
+        req.query
 
     );
 
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        data: auditLog
+        message: "Audit logs retrieved successfully.",
+
+        data: logs
+
+    });
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Get Audit Log
+|--------------------------------------------------------------------------
+*/
+
+export const getAuditLogById = asyncHandler(async (req, res) => {
+
+    const log = await auditLogService.getAuditLogById(
+
+        req.params.auditLogId
+
+    );
+
+    return res.status(200).json({
+
+        success: true,
+
+        message: "Audit log retrieved successfully.",
+
+        data: log
+
+    });
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Create Audit Log
+|--------------------------------------------------------------------------
+*/
+
+export const createAuditLog = asyncHandler(async (req, res) => {
+
+    const log = await auditLogService.createAuditLog(
+
+        req.body,
+
+        req.user
+
+    );
+
+    return res.status(201).json({
+
+        success: true,
+
+        message: "Audit log created successfully.",
+
+        data: log
 
     });
 
@@ -387,25 +89,13 @@ export const updateAuditLog = asyncHandler(async (req, res) => {
 
 export const deleteAuditLog = asyncHandler(async (req, res) => {
 
-    const auditLog = await AuditLog.findById(req.body.id);
+    await auditLogService.deleteAuditLog(
 
-    if (!auditLog) {
-
-        res.status(404);
-
-        throw new Error("Audit log not found.");
-
-    }
-
-    await auditLog.deleteOne();
-
-    logger.warn(
-
-        `Audit log ${auditLog._id} deleted.`
+        req.params.auditLogId
 
     );
 
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
@@ -417,155 +107,40 @@ export const deleteAuditLog = asyncHandler(async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| Audit Summary
+| Export Audit Logs
 |--------------------------------------------------------------------------
 */
 
-export async function getAuditSummary(req, res, next) {
+export const exportAuditLogs = asyncHandler(async (req, res) => {
 
-    try {
+    const result = await auditLogService.exportAuditLogs(
 
-        const [
+        req.query
 
-            totalLogs,
+    );
 
-            todayLogs,
+    return res.status(200).json({
 
-            uniqueUsers,
+        success: true,
 
-            uniqueSites
+        message: "Audit logs exported successfully.",
 
-        ] = await Promise.all([
+        data: result
 
-            AuditLog.countDocuments(),
+    });
 
-            AuditLog.countDocuments({
+});
 
-                createdAt: {
+export default {
 
-                    $gte: new Date(
+    getAuditLogs,
 
-                        new Date().setHours(
+    getAuditLogById,
 
-                            0,
-                            0,
-                            0,
-                            0
+    createAuditLog,
 
-                        )
+    deleteAuditLog,
 
-                    )
+    exportAuditLogs
 
-                }
-
-            }),
-
-            AuditLog.distinct("user"),
-
-            AuditLog.distinct("site")
-
-        ]);
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: {
-
-                totalLogs,
-
-                todayLogs,
-
-                totalUsers: uniqueUsers.length,
-
-                totalSites: uniqueSites.length
-
-            }
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Audit Statistics
-|--------------------------------------------------------------------------
-*/
-
-export async function getAuditStatistics(req, res, next) {
-
-    try {
-
-        const statistics = await AuditLog.aggregate([
-
-            {
-
-                $group: {
-
-                    _id: "$module",
-
-                    count: {
-
-                        $sum: 1
-
-                    }
-
-                }
-
-            },
-
-            {
-
-                $project: {
-
-                    _id: 0,
-
-                    module: "$_id",
-
-                    count: 1
-
-                }
-
-            },
-
-            {
-
-                $sort: {
-
-                    count: -1
-
-                }
-
-            }
-
-        ]);
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: statistics
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+};

@@ -2,8 +2,8 @@ import { Router } from "express";
 
 import userController from "../controllers/userController.js";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
 import validate from "../middlewares/validate.js";
 
 import {
@@ -12,23 +12,25 @@ import {
 
     updateUserSchema,
 
-    updateProfileSchema,
+    userQuerySchema,
 
-    assignRoleSchema,
-
-    statusSchema,
-
-    userIdSchema,
-
-    paginationSchema
-
+    userIdSchema
+    
 } from "../validators/userValidator.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| User Management
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Get All Users
 |--------------------------------------------------------------------------
 */
 
@@ -36,13 +38,11 @@ router.get(
 
     "/",
 
-    authenticate,
-
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
-        query: paginationSchema
+        query: userQuerySchema
 
     }),
 
@@ -50,11 +50,17 @@ router.get(
 
 );
 
+/*
+|--------------------------------------------------------------------------
+| Get User By ID
+|--------------------------------------------------------------------------
+*/
+
 router.get(
 
-    "/:userId",
+    "/:id",
 
-    authenticate,
+    authorize("ADMIN"),
 
     validate({
 
@@ -62,17 +68,21 @@ router.get(
 
     }),
 
-    userController.getUserById
+    userController.getUser
 
 );
+
+/*
+|--------------------------------------------------------------------------
+| Create User
+|--------------------------------------------------------------------------
+*/
 
 router.post(
 
     "/",
 
-    authenticate,
-
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
@@ -84,11 +94,17 @@ router.post(
 
 );
 
+/*
+|--------------------------------------------------------------------------
+| Update User
+|--------------------------------------------------------------------------
+*/
+
 router.put(
 
-    "/:userId",
+    "/:id",
 
-    authenticate,
+    authorize("ADMIN"),
 
     validate({
 
@@ -102,13 +118,62 @@ router.put(
 
 );
 
+/*
+|--------------------------------------------------------------------------
+| Activate User
+|--------------------------------------------------------------------------
+*/
+
+
+router.patch(
+
+    "/:id/activate",
+
+    authorize("ADMIN"),
+
+    validate({
+
+        params: userIdSchema
+
+    }),
+
+    userController.activateUser
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Deactivate User
+|--------------------------------------------------------------------------
+*/
+
+router.patch(
+
+    "/:id/deactivate",
+
+    authorize("ADMIN"),
+
+    validate({
+
+        params: userIdSchema
+
+    }),
+
+    userController.deactivateUser
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Delete User
+|--------------------------------------------------------------------------
+*/
+
 router.delete(
 
-    "/:userId",
+    "/:id",
 
-    authenticate,
-
-    authorize("admin"),
+    authorize("ADMIN"),
 
     validate({
 
@@ -117,85 +182,6 @@ router.delete(
     }),
 
     userController.deleteUser
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Profile
-|--------------------------------------------------------------------------
-*/
-
-router.get(
-
-    "/profile/me",
-
-    authenticate,
-
-    userController.getProfile
-
-);
-
-router.patch(
-    "/:userId/status",
-    authenticate,
-    authorize("admin"),
-    validate({
-        params: userIdSchema,
-        body: statusSchema
-    }),
-    userController.updateStatus
-);
-
-/*
-|--------------------------------------------------------------------------
-| Role Assignment
-|--------------------------------------------------------------------------
-*/
-
-router.patch(
-
-    "/:userId/role",
-
-    authenticate,
-
-    authorize("admin"),
-
-    validate({
-
-        params: userIdSchema,
-
-        body: assignRoleSchema
-
-    }),
-
-    userController.assignRole
-
-);
-
-/*
-|--------------------------------------------------------------------------
-| Activate / Deactivate User
-|--------------------------------------------------------------------------
-*/
-
-router.patch(
-
-    "/:userId/status",
-
-    authenticate,
-
-    authorize("admin"),
-
-    validate({
-
-        params: userIdSchema,
-
-        body: statusSchema
-
-    }),
-
-    userController.updateStatus
 
 );
 

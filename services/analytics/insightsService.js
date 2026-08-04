@@ -1,11 +1,18 @@
 import * as statisticsService from "./statisticsService.js";
 import * as reliabilityService from "./reliabilityService.js";
 import * as forecastService from "./forecastService.js";
+import {
+
+    emitAnalytics,
+
+    emitNotification
+
+} from "../../websocket/eventEmitters.js";
 
 /**
  * Generate operational insights for a site.
  */
-export async function generateOperationalInsights(options = {}) {
+export async function generateInsights(options = {}) {
 
     const {
         siteId,
@@ -13,45 +20,38 @@ export async function generateOperationalInsights(options = {}) {
         end
     } = options;
 
+    const filters = {
+
+        siteId,
+        start,
+        end
+
+    };
+
     const [
+
         kpis,
         battery,
         solar,
         generator,
         reliability,
         forecast
+
     ] = await Promise.all([
 
-        statisticsService.getSiteKPIs(siteId),
+        statisticsService.getKPIs(filters),
 
-        statisticsService.getBatteryHealth({
-            siteId,
-            start,
-            end
-        }),
+        statisticsService.getBatteryStatistics(filters),
 
-        statisticsService.getSolarPerformance({
-            siteId,
-            start,
-            end
-        }),
+        statisticsService.getSolarStatistics(filters),
 
-        statisticsService.getGeneratorEfficiency({
-            siteId,
-            start,
-            end
-        }),
+        statisticsService.getGeneratorStatistics(filters),
 
-        reliabilityService.calculateReliabilityIndices({
-            siteId,
-            start,
-            end
-        }),
+        reliabilityService.getReliabilityMetrics(filters),
 
-        forecastService.generateEnergyForecast({
-            siteId,
-            horizon: "24h"
-        })
+        forecastService.getForecastDashboard(
+            siteId
+        )
 
     ]);
 
@@ -63,7 +63,7 @@ export async function generateOperationalInsights(options = {}) {
     |--------------------------------------------------------------------------
     */
 
-    if (battery.stateOfHealth < 80) {
+    if ((battery.health ?? 100) < 80) {
 
         recommendations.push({
 
@@ -74,7 +74,7 @@ export async function generateOperationalInsights(options = {}) {
             title: "Battery replacement recommended",
 
             message:
-                `Battery SOH is ${battery.stateOfHealth}% which is below the recommended threshold.`
+                `Battery SOH is ${battery.health}% which is below the recommended threshold.`
 
         });
 
@@ -86,7 +86,7 @@ export async function generateOperationalInsights(options = {}) {
     |--------------------------------------------------------------------------
     */
 
-    if (solar.performanceRatio < 0.75) {
+    if ((solar.efficiency ?? 1) < 0.75) {
 
         recommendations.push({
 
@@ -109,7 +109,7 @@ export async function generateOperationalInsights(options = {}) {
     |--------------------------------------------------------------------------
     */
 
-    if (generator.fuelEfficiency < generator.targetFuelEfficiency) {
+    if ((generator.fuelLevel ?? 100) < 20) {
 
         recommendations.push({
 
@@ -117,11 +117,10 @@ export async function generateOperationalInsights(options = {}) {
 
             severity: "medium",
 
-            title: "Generator efficiency reduced",
+            title: "Generator fuel level is low",
 
             message:
-                "Generator fuel consumption is higher than expected."
-
+                `Generator fuel level is only ${generator.fuelLevel}%`
         });
 
     }
@@ -132,7 +131,9 @@ export async function generateOperationalInsights(options = {}) {
     |--------------------------------------------------------------------------
     */
 
-    if (reliability.saidi > reliability.targetSaidi) {
+    const TARGET_SAIDI = 60;
+
+    if ((reliability.saidi ?? 0) > TARGET_SAIDI) {
 
         recommendations.push({
 
@@ -155,7 +156,7 @@ export async function generateOperationalInsights(options = {}) {
     |--------------------------------------------------------------------------
     */
 
-    if (forecast.expectedDeficit > 0) {
+    if ((forecast?.expectedDeficit ?? 0) > 0) {
 
         recommendations.push({
 
@@ -166,13 +167,13 @@ export async function generateOperationalInsights(options = {}) {
             title: "Energy deficit expected",
 
             message:
-                `Expected energy deficit: ${forecast.expectedDeficit.toFixed(2)} kWh`
+                `Expected energy deficit: ${(forecast?.expectedDeficit ?? 0).toFixed(2)} kWh`
 
         });
 
     }
 
-    return {
+    const insights = {
 
         generatedAt: new Date(),
 
@@ -196,6 +197,104 @@ export async function generateOperationalInsights(options = {}) {
 
     };
 
+    /*
+|--------------------------------------------------------------------------
+| Realtime Analytics Update
+|--------------------------------------------------------------------------
+*/
+
+    emitAnalytics(
+
+        siteId,
+
+        {
+
+            module: "insights",
+
+            generatedAt: insights.generatedAt,
+
+            summary: insights.summary,
+
+            recommendations: insights.recommendations
+
+        }
+
+    );
+
+    /*
+|--------------------------------------------------------------------------
+| Notify Users
+|--------------------------------------------------------------------------
+*/
+
+    for (const recommendation of insights.recommendations) {
+
+        if (
+
+            recommendation.severity === "high"
+
+        ) {
+
+            emitNotification(
+
+                siteId,
+
+                {
+
+                    type: "INSIGHT",
+
+                    priority: "HIGH",
+
+                    title:
+
+                        recommendation.title,
+
+                    message:
+
+                        recommendation.message,
+
+                    category:
+
+                        recommendation.category,
+
+                    timestamp:
+
+                        new Date()
+
+                }
+
+            );
+
+        }
+
+    }
+
+    return insights;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Realtime Analytics Update
+    |--------------------------------------------------------------------------
+    */
+
+    emitAnalytics(
+
+        siteId,
+
+        {
+
+            module: "insights",
+
+            generatedAt: insights.generatedAt,
+
+            summary: insights.summary,
+
+            recommendations: insights.recommendations
+
+        }
+
+    );
+
 }
 
 /**
@@ -204,7 +303,7 @@ export async function generateOperationalInsights(options = {}) {
 export async function generateExecutiveSummary(options = {}) {
 
     const insights =
-        await generateOperationalInsights(options);
+        await generateInsights(options);
 
     return {
 
@@ -237,7 +336,7 @@ export async function generateExecutiveSummary(options = {}) {
 export async function maintenanceRecommendations(options = {}) {
 
     const insights =
-        await generateOperationalInsights(options);
+        await generateInsights(options);
 
     return insights.recommendations.filter(
 
@@ -259,7 +358,7 @@ export async function maintenanceRecommendations(options = {}) {
 export async function reliabilityRecommendations(options = {}) {
 
     const insights =
-        await generateOperationalInsights(options);
+        await generateInsights(options);
 
     return insights.recommendations.filter(
 
@@ -277,7 +376,7 @@ export async function reliabilityRecommendations(options = {}) {
 export async function optimizationRecommendations(options = {}) {
 
     const insights =
-        await generateOperationalInsights(options);
+        await generateInsights(options);
 
     return insights.recommendations.filter(
 
@@ -303,7 +402,7 @@ export async function getDashboardInsights(filters = {}) {
 
 export default {
 
-    generateOperationalInsights,
+    generateInsights,
 
     generateExecutiveSummary,
 

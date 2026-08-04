@@ -2,140 +2,221 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schemas
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
-    .hex()
-    .required();
+
+    .hex();
 
 /*
 |--------------------------------------------------------------------------
-| Location
+| Site Status
 |--------------------------------------------------------------------------
 */
 
-export const coordinateSchema = Joi.object({
+const siteStatus = Joi.string()
 
-    latitude: Joi.number()
-        .min(-90)
-        .max(90)
-        .required(),
+    .valid(
 
-    longitude: Joi.number()
-        .min(-180)
-        .max(180)
-        .required(),
+        "Active",
 
-    address: Joi.string()
+        "Inactive",
+
+        "Maintenance",
+
+        "Fault"
+
+    );
+
+/*
+|--------------------------------------------------------------------------
+| Site ID
+|--------------------------------------------------------------------------
+*/
+
+export const siteIdValidator = Joi.object({
+
+    id: objectId.required()
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Site Query
+|--------------------------------------------------------------------------
+*/
+
+export const siteQueryValidator = Joi.object({
+
+    customer: Joi.string()
+
         .trim()
-        .max(255)
-        .allow("")
+
         .optional(),
 
-    city: Joi.string()
+    region: Joi.string()
+
         .trim()
+
         .max(100)
-        .allow("")
+
         .optional(),
 
     state: Joi.string()
+
         .trim()
+
         .max(100)
-        .allow("")
+
         .optional(),
 
-    country: Joi.string()
-        .trim()
+    status: siteStatus.optional(),
+
+    isActive: Joi.boolean()
+
+        .optional(),
+
+    page: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .default(1),
+
+    limit: Joi.number()
+
+        .integer()
+
+        .min(1)
+
         .max(100)
-        .default("Nigeria")
+
+        .default(20),
+
+    sort: Joi.string()
+
+        .valid(
+
+            "name",
+
+            "-name",
+
+            "code",
+
+            "-code",
+
+            "createdAt",
+
+            "-createdAt"
+
+        )
+
+        .default("name")
 
 });
 
 /*
 |--------------------------------------------------------------------------
-| Site Information
+| Create Site
 |--------------------------------------------------------------------------
 */
 
-export const createSiteSchema = Joi.object({
+export const createSiteValidator = Joi.object({
 
-    siteName: Joi.string()
+    code: Joi.string()
+
         .trim()
-        .min(2)
-        .max(150)
+
+        .uppercase()
+
+        .pattern(/^[A-Z0-9_-]+$/)
+
+        .max(50)
+
         .required(),
 
-    siteCode: Joi.string()
+    name: Joi.string()
+
         .trim()
-        .max(50)
+
+        .min(2)
+
+        .max(150)
+
         .required(),
 
     customer: Joi.string()
+
         .trim()
-        .max(150)
+
         .allow("")
+
         .optional(),
 
-    description: Joi.string()
+    region: Joi.string()
+
         .trim()
+
+        .max(100)
+
         .allow("")
+
         .optional(),
 
-    location: coordinateSchema.required(),
+    state: Joi.string()
 
-    siteType: Joi.string()
-        .valid(
+        .trim()
 
-            "Telecom",
+        .max(100)
 
-            "Commercial",
+        .allow("")
 
-            "Industrial",
-
-            "Residential",
-
-            "MiniGrid",
-
-            "Utility",
-
-            "DataCenter"
-
-        )
-        .required(),
-
-    status: Joi.string()
-        .valid(
-
-            "Active",
-
-            "Inactive",
-
-            "Maintenance",
-
-            "Fault"
-
-        )
-        .default("Active"),
-
-    timezone: Joi.string()
-        .default("Africa/Lagos"),
-
-    installedCapacity: Joi.number()
-        .min(0)
-        .default(0),
-
-    commissioningDate: Joi.date()
         .optional(),
 
-    tags: Joi.array()
-        .items(Joi.string().trim())
-        .default([])
+    address: Joi.string()
 
-});
+        .trim()
+
+        .max(500)
+
+        .allow("")
+
+        .optional(),
+
+    latitude: Joi.number()
+
+        .min(-90)
+
+        .max(90)
+
+        .optional(),
+
+    longitude: Joi.number()
+
+        .min(-180)
+
+        .max(180)
+
+        .optional(),
+
+    installation: objectId.optional(),
+
+    status: siteStatus.default("Active"),
+
+    isActive: Joi.boolean()
+
+        .default(true)
+
+})
+
+.and("latitude", "longitude");
 
 /*
 |--------------------------------------------------------------------------
@@ -143,212 +224,112 @@ export const createSiteSchema = Joi.object({
 |--------------------------------------------------------------------------
 */
 
-export const updateSiteSchema = Joi.object({
+export const updateSiteValidator = Joi.object({
 
-    siteName: Joi.string()
+    code: Joi.string()
+
         .trim()
+
+        .uppercase()
+
+        .pattern(/^[A-Z0-9_-]+$/)
+
+        .max(50)
+
+        .optional(),
+
+    name: Joi.string()
+
+        .trim()
+
         .min(2)
-        .max(150),
+
+        .max(150)
+
+        .optional(),
 
     customer: Joi.string()
-        .trim(),
 
-    description: Joi.string()
         .trim()
-        .allow(""),
 
-    location: coordinateSchema,
+        .allow("")
 
-    siteType: Joi.string()
-        .valid(
+        .optional(),
 
-            "Telecom",
+    region: Joi.string()
 
-            "Commercial",
+        .trim()
 
-            "Industrial",
-
-            "Residential",
-
-            "MiniGrid",
-
-            "Utility",
-
-            "DataCenter"
-
-        ),
-
-    status: Joi.string()
-        .valid(
-
-            "Active",
-
-            "Inactive",
-
-            "Maintenance",
-
-            "Fault"
-
-        ),
-
-    timezone: Joi.string(),
-
-    installedCapacity: Joi.number()
-        .min(0),
-
-    commissioningDate: Joi.date(),
-
-    tags: Joi.array()
-        .items(Joi.string())
-
-}).min(1);
-
-/*
-|--------------------------------------------------------------------------
-| Site Parameters
-|--------------------------------------------------------------------------
-*/
-
-export const siteIdSchema = Joi.object({
-
-    siteId: objectIdSchema
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Query Parameters
-|--------------------------------------------------------------------------
-*/
-
-export const siteQuerySchema = Joi.object({
-
-    page: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
-
-    limit: Joi.number()
-        .integer()
-        .min(1)
         .max(100)
-        .default(20),
 
-    search: Joi.string()
-        .trim()
-        .allow(""),
+        .allow("")
 
-    customer: Joi.string()
-        .trim()
-        .allow(""),
-
-    siteType: Joi.string(),
-
-    status: Joi.string(),
+        .optional(),
 
     state: Joi.string()
+
         .trim()
-        .allow(""),
 
-    city: Joi.string()
-        .trim()
-        .allow(""),
+        .max(100)
 
-    sortBy: Joi.string()
-        .default("createdAt"),
-
-    order: Joi.string()
-        .valid("asc", "desc")
-        .default("desc")
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Change Site Status
-|--------------------------------------------------------------------------
-*/
-
-export const siteStatusSchema = Joi.object({
-
-    status: Joi.string()
-        .valid(
-
-            "Active",
-
-            "Inactive",
-
-            "Maintenance",
-
-            "Fault"
-
-        )
-        .required()
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Assign Engineer
-|--------------------------------------------------------------------------
-*/
-
-export const assignEngineerSchema = Joi.object({
-
-    siteId: objectIdSchema,
-
-    engineerId: objectIdSchema
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Operational Status
-|--------------------------------------------------------------------------
-*/
-
-export const operationalStatusSchema = Joi.object({
-
-    operationalStatus: Joi.string()
-        .valid(
-
-            "ONLINE",
-
-            "OFFLINE",
-
-            "MAINTENANCE",
-
-            "FAULT",
-
-            "WARNING"
-
-        )
-        .required(),
-
-    remarks: Joi.string()
-        .trim()
-        .max(500)
         .allow("")
+
+        .optional(),
+
+    address: Joi.string()
+
+        .trim()
+
+        .max(500)
+
+        .allow("")
+
+        .optional(),
+
+    latitude: Joi.number()
+
+        .min(-90)
+
+        .max(90)
+
+        .optional(),
+
+    longitude: Joi.number()
+
+        .min(-180)
+
+        .max(180)
+
+        .optional(),
+
+    installation: objectId.optional(),
+
+    status: siteStatus.optional(),
+
+    isActive: Joi.boolean()
+
         .optional()
 
-});
+})
+
+.and("latitude", "longitude")
+
+.min(1);
+
+/*
+|--------------------------------------------------------------------------
+| Default Export
+|--------------------------------------------------------------------------
+*/
 
 export default {
 
-    createSiteSchema,
+    siteIdValidator,
 
-    updateSiteSchema,
+    siteQueryValidator,
 
-    siteIdSchema,
+    createSiteValidator,
 
-    siteQuerySchema,
-
-    siteStatusSchema,
-
-    assignEngineerSchema,
-
-    coordinateSchema,
-
-    operationalStatusSchema
+    updateSiteValidator
 
 };

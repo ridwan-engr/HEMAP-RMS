@@ -2,207 +2,17 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schema
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
-    .hex()
-    .required();
 
-/*
-|--------------------------------------------------------------------------
-| Date Range
-|--------------------------------------------------------------------------
-*/
-
-export const dateRangeSchema = Joi.object({
-
-    startDate: Joi.date()
-        .required(),
-
-    endDate: Joi.date()
-        .greater(Joi.ref("startDate"))
-        .required()
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Report Generation
-|--------------------------------------------------------------------------
-*/
-
-export const generateReportSchema = Joi.object({
-
-    siteId: objectIdSchema.optional(),
-
-    installationId: Joi.string()
-        .trim()
-        .length(24)
-        .hex()
-        .optional(),
-
-    reportType: Joi.string()
-
-        .valid(
-
-            "executive",
-
-            "telemetry",
-
-            "energy",
-
-            "battery",
-
-            "solar",
-
-            "generator",
-
-            "fuel",
-
-            "alarm",
-
-            "maintenance",
-
-            "reliability",
-
-            "analytics",
-
-            "financial"
-
-        )
-
-        .required(),
-
-    format: Joi.string()
-
-        .valid(
-
-            "pdf",
-
-            "xlsx",
-
-            "csv",
-
-            "json"
-
-        )
-
-        .default("pdf"),
-
-    startDate: Joi.date()
-        .required(),
-
-    endDate: Joi.date()
-        .greater(Joi.ref("startDate"))
-        .required(),
-
-    includeCharts: Joi.boolean()
-        .default(true),
-
-    includeRawData: Joi.boolean()
-        .default(false)
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Export Report
-|--------------------------------------------------------------------------
-*/
-
-export const exportReportSchema = Joi.object({
-
-    reportId: objectIdSchema,
-
-    format: Joi.string()
-
-        .valid(
-
-            "pdf",
-
-            "xlsx",
-
-            "csv",
-
-            "json"
-
-        )
-
-        .required()
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Scheduled Reports
-|--------------------------------------------------------------------------
-*/
-
-export const scheduledReportSchema = Joi.object({
-
-    reportName: Joi.string()
-
-        .trim()
-
-        .min(3)
-
-        .max(150)
-
-        .required(),
-
-    reportType: Joi.string()
-
-        .required(),
-
-    frequency: Joi.string()
-
-        .valid(
-
-            "daily",
-
-            "weekly",
-
-            "monthly"
-
-        )
-
-        .required(),
-
-    recipients: Joi.array()
-
-        .items(
-
-            Joi.string().email()
-
-        )
-
-        .min(1)
-
-        .required(),
-
-    format: Joi.string()
-
-        .valid(
-
-            "pdf",
-
-            "xlsx",
-
-            "csv"
-
-        )
-
-        .default("pdf"),
-
-    enabled: Joi.boolean()
-
-        .default(true)
-
-});
+    .hex();
 
 /*
 |--------------------------------------------------------------------------
@@ -210,7 +20,63 @@ export const scheduledReportSchema = Joi.object({
 |--------------------------------------------------------------------------
 */
 
-export const reportQuerySchema = Joi.object({
+export const reportQueryValidator = Joi.object({
+
+    siteId: objectId.optional(),
+
+    generatedBy: objectId.optional(),
+
+    type: Joi.string()
+
+        .valid(
+
+            "ENERGY",
+
+            "TELEMETRY",
+
+            "ALARM",
+
+            "FAULT",
+
+            "MAINTENANCE",
+
+            "OPTIMIZATION",
+
+            "RELIABILITY",
+
+            "CUSTOM"
+
+        )
+
+        .optional(),
+
+    status: Joi.string()
+
+        .valid(
+
+            "PENDING",
+
+            "GENERATED",
+
+            "FAILED"
+
+        )
+
+        .optional(),
+
+    startDate: Joi.date()
+
+        .iso()
+
+        .optional(),
+
+    endDate: Joi.date()
+
+        .iso()
+
+        .min(Joi.ref("startDate"))
+
+        .optional(),
 
     page: Joi.number()
 
@@ -226,152 +92,142 @@ export const reportQuerySchema = Joi.object({
 
         .min(1)
 
-        .max(100)
+        .max(500)
 
-        .default(20),
-
-    reportType: Joi.string(),
-
-    format: Joi.string(),
-
-    search: Joi.string()
-
-        .trim()
-
-        .allow(""),
-
-    sortBy: Joi.string()
-
-        .default("createdAt"),
-
-    order: Joi.string()
-
-        .valid(
-
-            "asc",
-
-            "desc"
-
-        )
-
-        .default("desc")
+        .default(100)
 
 });
 
 /*
 |--------------------------------------------------------------------------
-| Report Filter
+| Report Id
 |--------------------------------------------------------------------------
 */
 
-export const reportFilterSchema = Joi.object({
+export const reportIdValidator = Joi.object({
 
-    site: Joi.string()
-        .trim()
-        .length(24)
-        .hex(),
+    reportId: objectId.required()
 
-    reportType: Joi.string()
+});
+
+/*
+|--------------------------------------------------------------------------
+| Generate Report
+|--------------------------------------------------------------------------
+*/
+
+export const generateReportValidator = Joi.object({
+
+    site: objectId.optional(),
+
+    installation: objectId.optional(),
+
+    type: Joi.string()
+
         .valid(
 
             "ENERGY",
 
-            "BATTERY",
-
-            "SOLAR",
-
-            "GRID",
-
-            "GENERATOR",
+            "TELEMETRY",
 
             "ALARM",
 
+            "FAULT",
+
             "MAINTENANCE",
+
+            "OPTIMIZATION",
 
             "RELIABILITY",
 
-            "EXECUTIVE",
-
             "CUSTOM"
 
-        ),
+        )
 
-    startDate: Joi.date(),
+        .required(),
 
-    endDate: Joi.date()
+    title: Joi.string()
 
-        .min(Joi.ref("startDate")),
+        .trim()
+
+        .min(3)
+
+        .max(200)
+
+        .required(),
+
+    description: Joi.string()
+
+        .trim()
+
+        .allow("")
+
+        .default(""),
 
     format: Joi.string()
 
         .valid(
 
-            "JSON",
+            "PDF",
 
             "CSV",
 
-            "PDF",
+            "XLSX",
 
-            "EXCEL"
-
-        )
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Permission
-|--------------------------------------------------------------------------
-*/
-
-export const permissionSchema = Joi.object({
-
-    permission: Joi.string()
-
-        .valid(
-
-            "VIEW_REPORT",
-
-            "GENERATE_REPORT",
-
-            "EXPORT_REPORT",
-
-            "DELETE_REPORT"
+            "JSON"
 
         )
 
-        .required()
+        .default("PDF"),
 
-});
+    startDate: Joi.date()
+
+        .iso()
+
+        .required(),
+
+    endDate: Joi.date()
+
+        .iso()
+
+        .min(Joi.ref("startDate"))
+
+        .required(),
+
+    includeCharts: Joi.boolean()
+
+        .default(true),
+
+    includeSummary: Joi.boolean()
+
+        .default(true),
+
+    includeRawData: Joi.boolean()
+
+        .default(false),
+
+    filters: Joi.object()
+
+        .unknown(true)
+
+        .default({})
+
+})
+
+.or("site", "installation");
 
 /*
 |--------------------------------------------------------------------------
-| Route Parameters
+| Default Export
 |--------------------------------------------------------------------------
 */
-
-export const reportIdSchema = Joi.object({
-
-    reportId: objectIdSchema
-
-});
 
 export default {
 
-    generateReportSchema,
+    reportQueryValidator,
 
-    exportReportSchema,
+    reportIdValidator,
 
-    scheduledReportSchema,
-
-    reportQuerySchema,
-
-    reportIdSchema,
-
-    dateRangeSchema,
-
-    reportFilterSchema,
-
-    permissionSchema
+    generateReportValidator
 
 };

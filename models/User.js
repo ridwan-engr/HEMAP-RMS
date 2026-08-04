@@ -1,6 +1,26 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const refreshTokenSchema = new mongoose.Schema(
+    {
+        token: {
+            type: String,
+            required: true
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        },
+        expiresAt: {
+            type: Date,
+            required: true
+        }
+    },
+    {
+        _id: false
+    }
+);
+
 const userSchema = new mongoose.Schema(
     {
         firstName: {
@@ -26,12 +46,13 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: true,
-            minlength: 8
+            minlength: 8,
+            select: false
         },
 
         phone: {
             type: String,
-            trim: true
+            default: ""
         },
 
         role: {
@@ -47,12 +68,8 @@ const userSchema = new mongoose.Schema(
             }
         ],
 
-        refreshTokens: [{
-            token: String,
-            createdAt: Date,
-            expiresAt: Date
-        }],
-        
+        refreshTokens: [refreshTokenSchema],
+
         avatar: String,
 
         isActive: {
@@ -67,27 +84,20 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
 
     if (!this.isModified("password")) {
-
-        return next();
-
+        return;
     }
 
     this.password = await bcrypt.hash(this.password, 12);
 
-    next();
-
 });
 
-userSchema.methods.comparePassword = async function (password) {
+userSchema.methods.comparePassword = function (password) {
 
     return bcrypt.compare(password, this.password);
 
 };
 
-export default mongoose.model(
-    "User",
-    userSchema
-);
+export default mongoose.model("User", userSchema);

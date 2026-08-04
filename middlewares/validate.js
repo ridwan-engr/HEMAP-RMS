@@ -1,192 +1,96 @@
-/**
- * ============================================================================
- * Generic Request Validation Middleware
- * ----------------------------------------------------------------------------
- * Validates req.body, req.body, req.body or req.headers using Joi schemas.
- *
- * Usage:
- * router.post(
- *     "/login",
- *     validate({ body: loginSchema }),
- *     authController.login
- * );
- * ============================================================================
- */
+export default function validate(schemas = {}) {
 
-export function validate(schemas = {}) {
-
-    return async (req, res, next) => {
+    return (req, res, next) => {
 
         try {
 
-            if (schemas.body) {
-
-                const { error, value } = schemas.body.validate(req.body, {
-
-                    abortEarly: false,
-
-                    allowUnknown: false,
-
-                    stripUnknown: true,
-
-                    convert: true
-
-                });
-
-                if (error) {
-
-                    return res.status(400).json({
-
-                        success: false,
-
-                        message: "Request body validation failed.",
-
-                        errors: error.details.map(detail => ({
-
-                            field: detail.path.join("."),
-
-                            message: detail.message
-
-                        }))
-
-                    });
-
-                }
-
-                req.body = value;
-
-            }
+            /*
+            |--------------------------------------------------------------------------
+            | Body Validation
+            |--------------------------------------------------------------------------
+            */
 
             if (schemas.query) {
 
-                const { error, value } = schemas.query.validate(req.body, {
+                const { error, value } = schemas.query.validate(req.query, {
 
                     abortEarly: false,
-
-                    allowUnknown: false,
-
                     stripUnknown: true,
-
                     convert: true
 
                 });
 
                 if (error) {
 
-                    return res.status(400).json({
-
-                        success: false,
-
-                        message: "Query validation failed.",
-
-                        errors: error.details.map(detail => ({
-
-                            field: detail.path.join("."),
-
-                            message: detail.message
-
-                        }))
-
-                    });
+                    return next(error);
 
                 }
 
-                req.body = value;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Query Validation
+            |--------------------------------------------------------------------------
+            */
+
+            if (schemas.query) {
+
+                const { error, value } = schemas.query.validate(req.query, {
+
+                    abortEarly: false,
+                    stripUnknown: true,
+                    convert: true
+
+                });
+
+                if (error) {
+
+                    return next(error);
+
+                }
+
+                // DO NOT assign req.query directly
+                Object.assign(req.query, value);
 
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Params Validation
+            |--------------------------------------------------------------------------
+            */
 
             if (schemas.params) {
 
-                const { error, value } = schemas.params.validate(req.body, {
+                const { error, value } = schemas.params.validate(req.params, {
 
                     abortEarly: false,
-
-                    allowUnknown: false,
-
                     stripUnknown: true,
-
                     convert: true
 
                 });
 
                 if (error) {
 
-                    return res.status(400).json({
-
-                        success: false,
-
-                        message: "Route parameter validation failed.",
-
-                        errors: error.details.map(detail => ({
-
-                            field: detail.path.join("."),
-
-                            message: detail.message
-
-                        }))
-
-                    });
+                    return next(error);
 
                 }
 
-                req.body = value;
-
-            }
-
-            if (schemas.headers) {
-
-                const { error, value } = schemas.headers.validate(req.headers, {
-
-                    abortEarly: false,
-
-                    allowUnknown: true,
-
-                    stripUnknown: false,
-
-                    convert: true
-
-                });
-
-                if (error) {
-
-                    return res.status(400).json({
-
-                        success: false,
-
-                        message: "Header validation failed.",
-
-                        errors: error.details.map(detail => ({
-
-                            field: detail.path.join("."),
-
-                            message: detail.message
-
-                        }))
-
-                    });
-
-                }
-
-                req.headers = value;
+                req.params = value;
 
             }
 
             return next();
 
-        } catch (error) {
+        }
 
-            return res.status(500).json({
+        catch (error) {
 
-                success: false,
-
-                message: error.message
-
-            });
+            return next(error);
 
         }
 
     };
 
 }
-
-export default validate;

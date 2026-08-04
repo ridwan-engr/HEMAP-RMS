@@ -1,38 +1,73 @@
-import cron from "node-cron";
+import * as maintenanceService
 
-import cleanupService
-from "../services/maintenance/cleanupService.js";
+from "../services/maintenance/maintenanceService.js";
 
 import logger from "../utils/logger.js";
 
-export default function cleanupScheduler() {
+/*
+|--------------------------------------------------------------------------
+| Cleanup Scheduler
+|--------------------------------------------------------------------------
+*/
 
-    cron.schedule(
+export async function runCleanupScheduler() {
 
-        "0 2 * * *",
+    const started = Date.now();
 
-        async () => {
+    try {
 
-            try {
+        logger.info({
 
-                logger.info(
+            message:
 
-                    "Running cleanup tasks..."
+                "Cleanup Scheduler Started."
 
-                );
+        });
 
-                await cleanupService.cleanupAll();
+        const result =
 
-            }
+            await maintenanceService.cleanupAll();
 
-            catch (error) {
+        logger.info({
 
-                logger.error(error);
+            message:
 
-            }
+                "Cleanup Scheduler Completed.",
 
-        }
+            result,
 
-    );
+            duration:
+
+                Date.now() - started
+
+        });
+
+        return result;
+
+    }
+
+    catch (error) {
+
+        logger.error({
+
+            message:
+
+                "Cleanup Scheduler Failed.",
+
+            error:
+
+                error.message
+
+        });
+
+        throw error;
+
+    }
 
 }
+
+export default {
+
+    runCleanupScheduler
+
+};

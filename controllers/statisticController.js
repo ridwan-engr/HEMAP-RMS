@@ -1,69 +1,26 @@
-import Statistic from "../models/Statistics.js";
-import logger from "../utils/logger.js";
+import * as statisticsService from "../services/analytics/statisticsService.js";
 
-/**
- * Create Statistic
- */
-export async function createStatistic(req, res, next) {
+/*
+|--------------------------------------------------------------------------
+| Dashboard Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getDashboardStatistics(req, res, next) {
 
     try {
 
-        const statistic = await Statistic.create(req.body);
+        const statistics = await statisticsService.getDashboardStatistics(
 
-        logger.success(
-            `Statistic created: ${statistic._id}`
+            req.query
+
         );
 
-        return res.status(201).json({
-            success: true,
-            data: statistic
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/**
- * Get all Statistics
- */
-export async function getStatistics(req, res, next) {
-
-    try {
-
-        const filter = {};
-
-        if (req.body.site) {
-
-            filter.site = req.body.site;
-
-        }
-
-        if (req.body.period) {
-
-            filter.period = req.body.period;
-
-        }
-
-        const statistics = await Statistic
-            .find(filter)
-            .populate("site", "name siteCode installationId")
-            .sort({
-                timestamp: -1
-            });
-
-        return res.json({
+        return res.status(200).json({
 
             success: true,
 
-            count: statistics.length,
+            message: "Dashboard statistics retrieved successfully.",
 
             data: statistics
 
@@ -73,158 +30,41 @@ export async function getStatistics(req, res, next) {
 
     catch (error) {
 
-        logger.error(error);
-
         next(error);
 
     }
 
 }
 
-/**
- * Get Statistic by ID
- */
-export async function getStatistic(req, res, next) {
+/*
+|--------------------------------------------------------------------------
+| Energy Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getEnergyStatistics(req, res, next) {
 
     try {
 
-        const statistic = await Statistic
-            .findById(req.body.id)
-            .populate("site");
+        const statistics = await statisticsService.getEnergyStatistics(
 
-        if (!statistic) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Statistic not found."
-
-            });
-
-        }
-
-        return res.json({
-
-            success: true,
-
-            data: statistic
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/**
- * Get latest Statistic for a Site
- */
-export async function getLatestStatistic(req, res, next) {
-
-    try {
-
-        const statistic = await Statistic
-            .findOne({
-                site: req.body.siteId
-            })
-            .sort({
-                timestamp: -1
-            });
-
-        if (!statistic) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "No statistics found."
-
-            });
-
-        }
-
-        return res.json({
-
-            success: true,
-
-            data: statistic
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-/**
- * Update Statistic
- */
-export async function updateStatistic(req, res, next) {
-
-    try {
-
-        const statistic = await Statistic.findByIdAndUpdate(
-
-            req.body.id,
-
-            req.body,
-
-            {
-
-                new: true,
-
-                runValidators: true
-
-            }
+            req.query
 
         );
 
-        if (!statistic) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Statistic not found."
-
-            });
-
-        }
-
-        logger.success(
-
-            `Statistic updated: ${statistic._id}`
-
-        );
-
-        return res.json({
+        return res.status(200).json({
 
             success: true,
 
-            data: statistic
+            message: "Energy statistics retrieved successfully.",
+
+            data: statistics
 
         });
 
     }
 
     catch (error) {
-
-        logger.error(error);
 
         next(error);
 
@@ -232,50 +72,35 @@ export async function updateStatistic(req, res, next) {
 
 }
 
-/**
- * Delete Statistic
- */
-export async function deleteStatistic(req, res, next) {
+/*
+|--------------------------------------------------------------------------
+| Battery Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getBatteryStatistics(req, res, next) {
 
     try {
 
-        const statistic = await Statistic.findByIdAndDelete(
+        const statistics = await statisticsService.getBatteryStatistics(
 
-            req.body.id
-
-        );
-
-        if (!statistic) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Statistic not found."
-
-            });
-
-        }
-
-        logger.success(
-
-            `Statistic deleted: ${req.body.id}`
+            req.query
 
         );
 
-        return res.json({
+        return res.status(200).json({
 
             success: true,
 
-            message: "Statistic deleted successfully."
+            message: "Battery statistics retrieved successfully.",
+
+            data: statistics
 
         });
 
     }
 
     catch (error) {
-
-        logger.error(error);
 
         next(error);
 
@@ -283,60 +108,29 @@ export async function deleteStatistic(req, res, next) {
 
 }
 
-/**
- * Dashboard Statistics Summary
- */
-export async function getStatisticsSummary(req, res, next) {
+/*
+|--------------------------------------------------------------------------
+| Solar Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getSolarStatistics(req, res, next) {
 
     try {
 
-        const totalSites = await Statistic.distinct("site");
+        const statistics = await statisticsService.getSolarStatistics(
 
-        const latest = await Statistic
-            .find()
-            .sort({
-                timestamp: -1
-            })
-            .limit(20);
+            req.query
 
-        const summary = {
+        );
 
-            monitoredSites: totalSites.length,
-
-            averageRenewableFraction:
-                latest.length > 0
-                    ? latest.reduce(
-                          (sum, item) =>
-                              sum + (item.renewableFraction || 0),
-                          0
-                      ) / latest.length
-                    : 0,
-
-            averageBatteryEfficiency:
-                latest.length > 0
-                    ? latest.reduce(
-                          (sum, item) =>
-                              sum + (item.batteryEfficiency || 0),
-                          0
-                      ) / latest.length
-                    : 0,
-
-            averageGridAvailability:
-                latest.length > 0
-                    ? latest.reduce(
-                          (sum, item) =>
-                              sum + (item.gridAvailability || 0),
-                          0
-                      ) / latest.length
-                    : 0
-
-        };
-
-        return res.json({
+        return res.status(200).json({
 
             success: true,
 
-            data: summary
+            message: "Solar statistics retrieved successfully.",
+
+            data: statistics
 
         });
 
@@ -344,7 +138,149 @@ export async function getStatisticsSummary(req, res, next) {
 
     catch (error) {
 
-        logger.error(error);
+        next(error);
+
+    }
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Generator Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getGeneratorStatistics(req, res, next) {
+
+    try {
+
+        const statistics = await statisticsService.getGeneratorStatistics(
+
+            req.query
+
+        );
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Generator statistics retrieved successfully.",
+
+            data: statistics
+
+        });
+
+    }
+
+    catch (error) {
+
+        next(error);
+
+    }
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Grid Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getGridStatistics(req, res, next) {
+
+    try {
+
+        const statistics = await statisticsService.getGridStatistics(
+
+            req.query
+
+        );
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Grid statistics retrieved successfully.",
+
+            data: statistics
+
+        });
+
+    }
+
+    catch (error) {
+
+        next(error);
+
+    }
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| KPI Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getKPIs(req, res, next) {
+
+    try {
+
+        const statistics = await statisticsService.getKPIs(
+
+            req.query
+
+        );
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "KPIs retrieved successfully.",
+
+            data: statistics
+
+        });
+
+    }
+
+    catch (error) {
+
+        next(error);
+
+    }
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Site Locations
+|--------------------------------------------------------------------------
+*/
+
+export async function getSiteLocations(req, res, next) {
+
+    try {
+
+        const statistics = await statisticsService.getSiteLocations(
+
+            req.query
+
+        );
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Site locations retrieved successfully.",
+
+            data: statistics
+
+        });
+
+    }
+
+    catch (error) {
 
         next(error);
 
@@ -354,18 +290,20 @@ export async function getStatisticsSummary(req, res, next) {
 
 export default {
 
-    createStatistic,
+    getDashboardStatistics,
 
-    getStatistics,
+    getEnergyStatistics,
 
-    getStatistic,
+    getBatteryStatistics,
 
-    getLatestStatistic,
+    getSolarStatistics,
 
-    updateStatistic,
+    getGeneratorStatistics,
 
-    deleteStatistic,
+    getGridStatistics,
 
-    getStatisticsSummary
+    getKPIs,
+
+    getSiteLocations
 
 };

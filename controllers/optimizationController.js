@@ -1,530 +1,261 @@
-import OptimizationRun from "../models/OptimizationRun.js";
-import Site from "../models/Site.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-import * as optimizerService from "../services/optimization/optimizerService.js";
-import * as reportService from "../services/reports/reportService.js";
+import * as optimizationService from "../services/analytics/optimizationService.js";
 
-import logger from "../utils/logger.js";
+/*
+|--------------------------------------------------------------------------
+| Get Optimization
+|--------------------------------------------------------------------------
+*/
 
-export async function createOptimization(
+export const getOptimization = asyncHandler(async (req, res) => {
 
-    req,
+    const optimization = await optimizationService.getOptimization(
 
-    res,
+        req.params.id
 
-    next
+    );
 
-) {
+    return res.status(200).json({
 
-    try {
+        success: true,
 
-        const {
+        message: "Optimization retrieved successfully.",
 
-            site,
+        data: optimization
 
-            runType,
+    });
 
-            optimizationPeriod,
+});
 
-            startDate,
+/*
+|--------------------------------------------------------------------------
+| Latest Optimization
+|--------------------------------------------------------------------------
+*/
 
-            endDate,
+export const getLatestOptimization = asyncHandler(async (req, res) => {
 
-            solver,
+    const { siteId } = req.params;
 
-            objectives,
+    const optimization = await optimizationService.getLatestOptimization(
 
-            constraints
+        siteId
 
-        } = req.body;
+    );
 
-        const siteExists = await Site.findById(site);
+    return res.status(200).json({
 
-        if (!siteExists) {
+        success: true,
 
-            return res.status(404).json({
+        message: "Latest optimization retrieved successfully.",
 
-                success: false,
+        data: optimization
 
-                message: "Site not found."
+    });
 
-            });
+});
 
-        }
+/*
+|--------------------------------------------------------------------------
+| Optimization History
+|--------------------------------------------------------------------------
+*/
 
-        const optimization = await OptimizationRun.create({
+export const getOptimizationHistory = asyncHandler(async (req, res) => {
 
-            site,
+    const history = await optimizationService.getOptimizationHistory(
 
-            createdBy: req.user._id,
+        req.query
 
-            runType,
+    );
 
-            optimizationPeriod,
+    return res.status(200).json({
 
-            startDate,
+        success: true,
 
-            endDate,
+        message: "Optimization history retrieved successfully.",
 
-            solver,
+        data: history
 
-            objectives,
+    });
 
-            constraints,
+});
 
-            status: "PENDING"
+/*
+|--------------------------------------------------------------------------
+| Dispatch Schedule
+|--------------------------------------------------------------------------
+*/
 
-        });
+export const getDispatchSchedule = asyncHandler(async (req, res) => {
 
-        setImmediate(async () => {
+    const schedule = await optimizationService.getDispatchSchedule(
 
-            try {
+        req.params.id
 
-                await optimizerService.runOptimization(
+    );
 
-                    optimization._id,
+    return res.status(200).json({
 
-                    {
-                        solver,
-                        objectives,
-                        constraints,
-                        userId: req.user._id,
-                        siteId: site
-                    }
-                )
-            }
+        success: true,
 
-            catch (error) {
+        message: "Dispatch schedule retrieved successfully.",
 
-                logger.error(error);
+        data: schedule
 
-            }
+    });
 
-        });
+});
 
-        res.status(202).json({
+/*
+|--------------------------------------------------------------------------
+| Energy Summary
+|--------------------------------------------------------------------------
+*/
 
-            success: true,
+export const getEnergySummary = asyncHandler(async (req, res) => {
 
-            message: "Optimization started.",
+    const energy = await optimizationService.getEnergySummary(
 
-            data: {
+        req.params.id
 
-                optimizationId: optimization._id,
+    );
 
-                status: optimization.status,
+    return res.status(200).json({
 
-                site: optimization.site,
+        success: true,
 
-                createdAt: optimization.createdAt
+        message: "Energy summary retrieved successfully.",
 
-            }
+        data: energy
 
-        });
+    });
 
-    }
+});
 
-    catch (error) {
+/*
+|--------------------------------------------------------------------------
+| Economics
+|--------------------------------------------------------------------------
+*/
 
-        logger.error(error);
+export const getEconomics = asyncHandler(async (req, res) => {
 
-        next(error);
+    const economics = await optimizationService.getEconomics(
 
-    }
+        req.params.id
 
-}
+    );
 
-export async function getOptimization(
+    return res.status(200).json({
 
-    req,
+        success: true,
 
-    res,
+        message: "Optimization economics retrieved successfully.",
 
-    next
+        data: economics
 
-) {
+    });
 
-    try {
+});
 
-        const optimization = await OptimizationRun.findById(
+/*
+|--------------------------------------------------------------------------
+| Emissions
+|--------------------------------------------------------------------------
+*/
 
-            req.params.id
+export const getEmissions = asyncHandler(async (req, res) => {
 
-        )
+    const emissions = await optimizationService.getEmissions(
 
-            .populate(
+        req.params.id
 
-                "site",
+    );
 
-                "name siteCode"
+    return res.status(200).json({
 
-            )
+        success: true,
 
-            .populate(
+        message: "Optimization emissions retrieved successfully.",
 
-                "createdBy",
+        data: emissions
 
-                "firstName lastName"
+    });
 
-            );
+});
 
-        if (!optimization) {
+/*
+|--------------------------------------------------------------------------
+| Reliability
+|--------------------------------------------------------------------------
+*/
 
-            return res.status(404).json({
+export const getReliability = asyncHandler(async (req, res) => {
 
-                success: false,
+    const reliability = await optimizationService.getReliability(
 
-                message: "Optimization not found."
+        req.params.id
 
-            });
+    );
 
-        }
+    return res.status(200).json({
 
-        res.json({
+        success: true,
 
-            success: true,
+        message: "Optimization reliability retrieved successfully.",
 
-            data: optimization
+        data: reliability
 
-        });
+    });
 
-    }
+});
 
-    catch (error) {
+/*
+|--------------------------------------------------------------------------
+| Solver Information
+|--------------------------------------------------------------------------
+*/
 
-        next(error);
+export const getSolver = asyncHandler(async (req, res) => {
 
-    }
+    const solver = await optimizationService.getSolver(
 
-}
+        req.params.id
 
-export async function getOptimizationHistory(
+    );
 
-    req,
+    return res.status(200).json({
 
-    res,
+        success: true,
 
-    next
+        message: "Solver information retrieved successfully.",
 
-) {
+        data: solver
 
-    try {
+    });
 
-        const {
-
-            page = 1,
-
-            limit = 20,
-
-            site,
-
-            status
-
-        } = req.query;
-
-        const filter = {};
-
-        if (site)
-
-            filter.site = site;
-
-        if (status)
-
-            filter.status = status;
-
-        const total = await OptimizationRun.countDocuments(
-
-            filter
-
-        );
-
-        const runs = await OptimizationRun.find(
-
-            filter
-
-        )
-            .sort({
-
-                createdAt: -1,
-
-                _id: -1
-
-            })
-
-            .skip(
-
-                (page - 1) * Number(limit)
-
-            )
-
-            .limit(
-
-                Number(limit)
-
-            )
-
-            .populate(
-
-                "site",
-
-                "name"
-
-            );
-
-        res.json({
-
-            success: true,
-
-            total,
-
-            page,
-
-            pages: Math.ceil(
-
-                total / limit
-
-            ),
-
-            data: runs
-
-        });
-
-    }
-
-    catch (error) {
-
-        next(error);
-
-    }
-
-}
-
-export async function cancelOptimization(
-
-    req,
-
-    res,
-
-    next
-
-) {
-
-    try {
-
-        const optimization = await OptimizationRun.findById(
-
-            req.params.id
-
-        );
-
-        if (!optimization) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Optimization not found."
-
-            });
-
-        }
-
-        if (
-
-            ["COMPLETED", "FAILED", "CANCELLED"]
-
-                .includes(optimization.status)
-
-        ) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message: "Completed optimization cannot be cancelled."
-
-            });
-
-        }
-
-        optimization.status = "CANCELLED";
-
-        await optimization.save();
-
-        res.json({
-
-            success: true,
-
-            message: "Optimization cancelled."
-
-        });
-
-    }
-
-    catch (error) {
-
-        next(error);
-
-    }
-
-}
-
-export async function deleteOptimization(
-
-    req,
-
-    res,
-
-    next
-
-) {
-
-    try {
-
-        const optimization = await OptimizationRun.findById(
-
-            req.params.id
-
-        );
-
-        if (!optimization) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Optimization not found."
-
-            });
-
-        }
-
-        await OptimizationRun.findByIdAndDelete(
-
-            req.params.id
-
-        );
-
-        res.json({
-
-            success: true,
-
-            message: "Optimization deleted."
-
-        });
-
-    }
-
-    catch (error) {
-
-        next(error);
-
-    }
-
-}
-
-export async function exportOptimization(
-
-    req,
-
-    res,
-
-    next
-
-) {
-
-    try {
-
-        const report = await reportService.exportOptimization(
-
-            req.params.id,
-
-            req.body.format
-
-        );
-
-        res.json({
-
-            success: true,
-
-            data: report
-
-        });
-
-    }
-
-    catch (error) {
-
-        next(error);
-
-    }
-
-}
-
-export async function getLatestOptimization(req,res,next){
-
-    try{
-
-        const latest=
-
-        await OptimizationRun
-
-        .findOne()
-
-        .sort({
-
-            createdAt:-1
-
-        })
-
-        .populate("site","name")
-
-        .lean();
-
-        if(!latest){
-
-            return res.status(404).json({
-
-                success:false,
-
-                message:"No optimization found."
-
-            });
-
-        }
-
-        res.json({
-
-            success:true,
-
-            data:latest
-
-        });
-
-    }
-
-    catch(error){
-
-        next(error);
-
-    }
-
-}
+});
 
 export default {
 
-    createOptimization,
-
     getOptimization,
+
+    getLatestOptimization,
 
     getOptimizationHistory,
 
-    cancelOptimization,
+    getDispatchSchedule,
 
-    deleteOptimization,
+    getEnergySummary,
 
-    exportOptimization,
+    getEconomics,
 
-    getLatestOptimization
+    getEmissions,
+
+    getReliability,
+
+    getSolver
 
 };

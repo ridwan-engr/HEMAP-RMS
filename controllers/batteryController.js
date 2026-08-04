@@ -9,35 +9,18 @@ import logger from "../utils/logger.js";
 */
 
 export async function createBattery(req, res, next) {
-
     try {
-
-        const battery = await batteryService.registerBatteryBank(
-
-            req.body
-
-        );
+        const battery = await batteryService.registerBatteryBank(req.body);
 
         return res.status(201).json({
-
             success: true,
-
             message: "Battery created successfully.",
-
             data: battery
-
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         logger.error(error);
-
         next(error);
-
     }
-
 }
 
 /*
@@ -47,31 +30,18 @@ export async function createBattery(req, res, next) {
 */
 
 export async function getBatteries(req, res, next) {
-
     try {
-
-        const batteries =
-
-            await batteryService.getBatteryBanks();
+        const batteries = await batteryService.getBatteryBanks(req.query);
 
         return res.status(200).json({
-
             success: true,
-
+            message: "Batteries retrieved successfully.",
             data: batteries
-
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         logger.error(error);
-
         next(error);
-
     }
-
 }
 
 /*
@@ -81,47 +51,18 @@ export async function getBatteries(req, res, next) {
 */
 
 export async function getBatteryById(req, res, next) {
-
     try {
-
-        const battery =
-
-            await batteryService.getBatteryBank(
-
-                req.body.id
-
-            );
-
-        if (!battery) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Battery not found."
-
-            });
-
-        }
+        const battery = await batteryService.getBatteryBank(req.params.id);
 
         return res.status(200).json({
-
             success: true,
-
+            message: "Battery retrieved successfully.",
             data: battery
-
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         logger.error(error);
-
         next(error);
-
     }
-
 }
 
 /*
@@ -131,51 +72,21 @@ export async function getBatteryById(req, res, next) {
 */
 
 export async function updateBattery(req, res, next) {
-
     try {
-
-        const battery =
-
-            await batteryService.updateBatteryBank(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-        if (!battery) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Battery not found."
-
-            });
-
-        }
+        const battery = await batteryService.updateBatteryBank(
+            req.params.id,
+            req.body
+        );
 
         return res.status(200).json({
-
             success: true,
-
             message: "Battery updated successfully.",
-
             data: battery
-
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         logger.error(error);
-
         next(error);
-
     }
-
 }
 
 /*
@@ -185,47 +96,17 @@ export async function updateBattery(req, res, next) {
 */
 
 export async function deleteBattery(req, res, next) {
-
     try {
-
-        const battery =
-
-            await batteryService.deleteBatteryBank(
-
-                req.body.id
-
-            );
-
-        if (!battery) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Battery not found."
-
-            });
-
-        }
+        await batteryService.deleteBatteryBank(req.params.id);
 
         return res.status(200).json({
-
             success: true,
-
             message: "Battery deleted successfully."
-
         });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         logger.error(error);
-
         next(error);
-
     }
-
 }
 
 /*
@@ -235,42 +116,21 @@ export async function deleteBattery(req, res, next) {
 */
 
 export async function getBatteryBySite(req, res, next) {
-
     try {
-
-        const batteries =
-
-            await batteryService.getBatteryBanks(
-
-                req.body.siteId
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: batteries
-
+        const batteries = await batteryService.getBatteryBanks({
+            siteId: req.params.siteId
         });
 
-    }
-
-    catch (error) {
-
+        return res.status(200).json({
+            success: true,
+            message: "Site batteries retrieved successfully.",
+            data: batteries
+        });
+    } catch (error) {
         logger.error(error);
-
         next(error);
-
     }
-
 }
-
-/*
-|--------------------------------------------------------------------------
-| Default Export
-|--------------------------------------------------------------------------
-*/
 
 export default {
 

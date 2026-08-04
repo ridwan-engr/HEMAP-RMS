@@ -1,63 +1,69 @@
-import cron from "node-cron";
+import Site from "../models/Site.js";
 
-import reportService
-from "../services/reports/reportService.js";
+import * as reportService from "../services/reports/reportService.js";
 
 import logger from "../utils/logger.js";
 
-async function generateReports() {
+export async function runReportScheduler() {
 
-    try {
+    const sites = await Site.find({
 
-        logger.info(
+        status: "ACTIVE"
 
-            "Daily report generation started."
+    });
 
-        );
+    let generated = 0;
 
-        const result =
+    for (const site of sites) {
 
-            await reportService
-                .generateDailyReports();
+        try {
 
-        logger.info(
+            await reportService.generateDailyReports(
 
-            "Daily reports generated.",
+                site._id.toString()
 
-            result
+            );
 
-        );
-
-    }
-
-    catch (error) {
-
-        logger.error(
-
-            "Report scheduler failed.",
-
-            error
-
-        );
-
-    }
-
-}
-
-export default function startReportScheduler() {
-
-    cron.schedule(
-
-        "0 0 * * *",
-
-        generateReports,
-
-        {
-
-            timezone: "Africa/Lagos"
+            generated++;
 
         }
 
-    );
+        catch (error) {
+
+            logger.error({
+
+                message:
+
+                    "Report generation failed.",
+
+                siteId:
+
+                    site._id,
+
+                error:
+
+                    error.message
+
+            });
+
+        }
+
+    }
+
+    logger.info({
+
+        message:
+
+            "Report Scheduler Completed.",
+
+        generated
+
+    });
 
 }
+
+export default {
+
+    runReportScheduler
+
+};

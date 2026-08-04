@@ -1,4 +1,51 @@
 import { get } from "./apiClient.js";
+import logger from "../../utils/logger.js";
+
+/*
+|--------------------------------------------------------------------------
+| Validation
+|--------------------------------------------------------------------------
+*/
+
+function validateRequest(
+
+    installationId,
+
+    start,
+
+    end
+
+) {
+
+    if (!installationId) {
+
+        throw new Error(
+
+            "Installation ID is required."
+
+        );
+
+    }
+
+    if (
+
+        start &&
+
+        end &&
+
+        new Date(start) > new Date(end)
+
+    ) {
+
+        throw new Error(
+
+            "Start date cannot be later than end date."
+
+        );
+
+    }
+
+}
 
 /**
  * Get all active alarms for an installation.
@@ -7,16 +54,16 @@ import { get } from "./apiClient.js";
  * @returns {Promise<Array>}
  */
 export async function getActiveAlarms(
+
     installationId
+
 ) {
 
-    if (!installationId) {
+    validateRequest(
 
-        throw new Error(
-            "Installation ID is required."
-        );
+        installationId
 
-    }
+    );
 
     try {
 
@@ -26,15 +73,39 @@ export async function getActiveAlarms(
 
         );
 
-        return data.records ?? [];
+        return Array.isArray(data)
+
+            ? data
+
+            : (data.records ?? []);
 
     }
 
     catch (error) {
 
+        logger.error({
+
+            installationId,
+
+            endpoint: "/alarms",
+
+            message: error.message,
+
+            status: error.response?.status,
+
+            data: error.response?.data
+
+        });
+
         throw new Error(
 
-            `Unable to retrieve active alarms: ${error.message}`
+            `Unable to retrieve active alarms: ${error.message}`,
+
+            {
+
+                cause: error
+
+            }
 
         );
 
@@ -60,13 +131,15 @@ export async function getAlarmHistory(
 
 ) {
 
-    if (!installationId) {
+    validateRequest(
 
-        throw new Error(
-            "Installation ID is required."
-        );
+        installationId,
 
-    }
+        start,
+
+        end
+
+    );
 
     try {
 
@@ -84,15 +157,43 @@ export async function getAlarmHistory(
 
         );
 
-        return data.records ?? [];
+        return Array.isArray(data)
+
+            ? data
+
+            : (data.records ?? []);
 
     }
 
     catch (error) {
 
+        logger.error({
+
+            installationId,
+
+            endpoint: "/alarms",
+
+            start,
+
+            end,
+
+            message: error.message,
+
+            status: error.response?.status,
+
+            data: error.response?.data
+
+        });
+
         throw new Error(
 
-            `Unable to retrieve alarm history: ${error.message}`
+            `Unable to retrieve alarm history: ${error.message}`,
+
+            {
+
+                cause: error
+
+            }
 
         );
 
@@ -120,9 +221,7 @@ export async function countActiveAlarms(
 
     return alarms.filter(
 
-        alarm =>
-
-            alarm.cleared !== true
+        alarm => alarm.cleared !== true
 
     ).length;
 

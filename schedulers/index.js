@@ -1,36 +1,68 @@
-import cron from "node-cron";
-
-import { startTelemetryScheduler } from "./telemetryScheduler.js";
-import { startAnalyticsScheduler } from "./analyticsScheduler.js";
-import startOptimizationScheduler from "./optimizationScheduler.js";
-import startDashboardScheduler from "./dashboardScheduler.js";
-import startNotificationScheduler from "./notificationScheduler.js";
-import startReportScheduler from "./reportScheduler.js";
-import startHealthScheduler from "./healthScheduler.js";
-import startCleanupScheduler from "./cleanupScheduler.js";
-
 import logger from "../utils/logger.js";
+
+import {
+    runAnalyticsScheduler
+} from "./analyticsScheduler.js";
+
+import {
+    startSyncScheduler,
+    stopSyncScheduler
+} from "./syncScheduler.js";
+
+import {
+    runMaintenanceScheduler
+} from "./maintenanceScheduler.js";
+
+import {
+    runHealthScheduler
+} from "./healthScheduler.js";
+
+import {
+    runDashboardScheduler
+} from "./dashboardScheduler.js";
+
+import schedulerService from "./schedulerService.js";
+
+/*
+|--------------------------------------------------------------------------
+| Start All Schedulers
+|--------------------------------------------------------------------------
+*/
 
 export default function startSchedulers() {
 
-    logger.info("Starting scheduled jobs...");
+    logger.info("Initializing application schedulers...");
 
-    startTelemetryScheduler();
+    runAnalyticsScheduler();
 
-    startAnalyticsScheduler();
+    startSyncScheduler();
 
-    startOptimizationScheduler();
+    runMaintenanceScheduler();
 
-    startDashboardScheduler();
+    runHealthScheduler();
 
-    startNotificationScheduler();
+    runDashboardScheduler();
 
-    startReportScheduler();
+    schedulerService.start();
 
-    startHealthScheduler();
+    logger.info("All schedulers initialized successfully.");
+}
 
-    startCleanupScheduler();
+/*
+|--------------------------------------------------------------------------
+| Stop All Schedulers
+|--------------------------------------------------------------------------
+*/
 
-    logger.info("All schedulers started successfully.");
+export function stopSchedulers() {
 
+    logger.info("Stopping application schedulers...");
+
+    stopSyncScheduler();
+
+    if (typeof schedulerService.stop === "function") {
+        schedulerService.stop();
+    }
+
+    logger.info("All schedulers stopped.");
 }

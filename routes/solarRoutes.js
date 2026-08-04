@@ -1,11 +1,13 @@
 import { Router } from "express";
 
 import authenticate from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import authorize from "../middlewares/authorize.js";
 
 import {
 
     createSolar,
+
+    getSolars,
 
     getSolarSystems,
 
@@ -16,47 +18,99 @@ import {
     deleteSolar,
 
     getSolarBySite
-
+    
 } from "../controllers/solarController.js";
 
 const router = Router();
 
-router.get(
-    "/site/:siteId",
-    authenticate,
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Site Solar Assets
+|--------------------------------------------------------------------------
+|
+| Controller currently expects req.body.siteId.
+|
+*/
+
+router.post(
+    "/site",
     getSolarBySite
 );
 
-router.post(
-    "/",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    createSolar
-);
+/*
+|--------------------------------------------------------------------------
+| Solar Assets
+|--------------------------------------------------------------------------
+*/
 
 router.get(
     "/",
-    authenticate,
+    getSolars
+);
+
+/*
+|--------------------------------------------------------------------------
+| Solar Summary
+|--------------------------------------------------------------------------
+*/
+
+router.post(
+    "/summary",
     getSolarSystems
 );
 
-router.get(
-    "/:id",
-    authenticate,
+/*
+|--------------------------------------------------------------------------
+| Get Solar Asset
+|--------------------------------------------------------------------------
+*/
+
+router.post(
+    "/details",
     getSolar
 );
 
+/*
+|--------------------------------------------------------------------------
+| Create Solar Asset
+|--------------------------------------------------------------------------
+*/
+
+router.post(
+    "/",
+    authorize("ADMIN", "ENGINEER"),
+    createSolar
+);
+
+/*
+|--------------------------------------------------------------------------
+| Update Solar Asset
+|--------------------------------------------------------------------------
+*/
+
 router.put(
-    "/:id",
-    authenticate,
-    authorize("Administrator", "Engineer"),
+    "/",
+    authorize("ADMIN", "ENGINEER"),
     updateSolar
 );
 
+/*
+|--------------------------------------------------------------------------
+| Delete Solar Asset
+|--------------------------------------------------------------------------
+*/
+
 router.delete(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
+    "/",
+    authorize("ADMIN"),
     deleteSolar
 );
 

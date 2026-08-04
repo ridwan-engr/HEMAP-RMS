@@ -1,26 +1,118 @@
+import os from "os";
+
 const timestamp = () => new Date().toISOString();
+
+const hostname = os.hostname();
+
+const pid = process.pid;
+
+/*
+|--------------------------------------------------------------------------
+| Safe Serializer
+|--------------------------------------------------------------------------
+*/
+
+function safeStringify(value) {
+
+    const seen = new WeakSet();
+
+    return JSON.stringify(
+
+        value,
+
+        (key, val) => {
+
+            if (
+
+                typeof val === "bigint"
+
+            ) {
+
+                return val.toString();
+
+            }
+
+            if (
+
+                val instanceof Error
+
+            ) {
+
+                return {
+
+                    name: val.name,
+
+                    message: val.message,
+
+                    stack: val.stack,
+
+                    cause: val.cause
+
+                };
+
+            }
+
+            if (
+
+                typeof val === "object" &&
+
+                val !== null
+
+            ) {
+
+                if (
+
+                    seen.has(val)
+
+                ) {
+
+                    return "[Circular]";
+
+                }
+
+                seen.add(val);
+
+            }
+
+            return val;
+
+        },
+
+        2
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Serialize
+|--------------------------------------------------------------------------
+*/
 
 function serialize(value) {
 
-    if (value instanceof Error) {
+    if (
 
-        return {
+        typeof value === "object" &&
 
-            name: value.name,
+        value !== null
 
-            message: value.message,
+    ) {
 
-            stack: value.stack,
-
-            cause: value.cause
-
-        };
+        return safeStringify(value);
 
     }
 
     return value;
 
 }
+
+/*
+|--------------------------------------------------------------------------
+| Writer
+|--------------------------------------------------------------------------
+*/
 
 function write(
 
@@ -34,23 +126,19 @@ function write(
 
     const output = messages.map(
 
-        message => {
-
-            const value = serialize(message);
-
-            return typeof value === "object"
-
-                ? JSON.stringify(value, null, 2)
-
-                : value;
-
-        }
+        message => serialize(message)
 
     );
 
     method(
 
-        `[${level}] ${timestamp()}`,
+        `[${level}]`,
+
+        timestamp(),
+
+        `[PID:${pid}]`,
+
+        `[${hostname}]`,
 
         ...output
 
@@ -58,7 +146,7 @@ function write(
 
 }
 
-const logger = {
+const logger = Object.freeze({
 
     info(...messages) {
 
@@ -138,6 +226,6 @@ const logger = {
 
     }
 
-};
+});
 
 export default logger;

@@ -2,48 +2,121 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+/*
+|--------------------------------------------------------------------------
+| Required Environment Variables
+|--------------------------------------------------------------------------
+*/
+
+const REQUIRED = [
+
+    "MONGODB_URI",
+
+    "JWT_SECRET",
+
+    "VRM_API_BASE_URL",
+
+    "VRM_ACCESS_TOKEN"
+
+];
+
+for (const key of REQUIRED) {
+
+    if (!process.env[key]) {
+
+        throw new Error(
+
+            `Missing required environment variable: ${key}`
+
+        );
+
+    }
+
+}
+
 export const env = {
 
     nodeEnv:
+
         process.env.NODE_ENV || "development",
 
     port:
-        Number(process.env.PORT || 3101),
+
+        Math.max(
+
+            1,
+
+            Number(process.env.PORT || 3101)
+
+        ),
 
     timezone:
+
         process.env.TZ || "Africa/Lagos",
 
     mongodbUri:
+
         process.env.MONGODB_URI,
 
     jwtSecret:
+
         process.env.JWT_SECRET,
 
     jwtExpiresIn:
+
         process.env.JWT_EXPIRES_IN || "7d",
 
     clientOrigins:
+
         process.env.CLIENT_ORIGIN
+
             ? process.env.CLIENT_ORIGIN
+
                 .split(",")
+
                 .map(origin => origin.trim())
-            : ["http://localhost:5173"],
+
+            : [
+
+                "http://localhost:5173"
+
+            ],
 
     /*
-        |--------------------------------------------------------------------------
-        | Victron VRM
-        |--------------------------------------------------------------------------
-        */
+    |--------------------------------------------------------------------------
+    | Victron VRM
+    |--------------------------------------------------------------------------
+    */
 
-    vrmApiBaseUrl: process.env.VRM_API_BASE_URL,
+    vrmApiBaseUrl:
 
-    vrmAccessToken: process.env.VRM_ACCESS_TOKEN,
+        process.env.VRM_API_BASE_URL,
 
-    vrmUserId: Number(process.env.VRM_USER_ID),
+    vrmAccessToken:
 
-    vrmInstallationId: Number(process.env.VRM_INSTALLATION_ID),
+        process.env.VRM_ACCESS_TOKEN,
 
-    vrmSyncCron: process.env.VRM_SYNC_CRON || "*/1 * * * *",
+    vrmUserId:
+
+        process.env.VRM_USER_ID
+
+            ? Number(process.env.VRM_USER_ID)
+
+            : null,
+
+    vrmInstallationId:
+
+        process.env.VRM_INSTALLATION_ID
+
+            ? Number(process.env.VRM_INSTALLATION_ID)
+
+            : null,
+
+    vrmSyncCron:
+
+        process.env.VRM_SYNC_CRON ||
+
+        "*/1 * * * *",
 
     /*
     |--------------------------------------------------------------------------
@@ -51,41 +124,101 @@ export const env = {
     |--------------------------------------------------------------------------
     */
 
-    requestTimeout: Number(process.env.REQUEST_TIMEOUT || 30000),
+    requestTimeout:
 
-    /*
-       |--------------------------------------------------------------------------
-       | Mail
-       |--------------------------------------------------------------------------
-       */
+        Math.max(
 
-    email: process.env.EMAIL_FROM,
+            1000,
 
-    smtpHost: process.env.SMTP_HOST,
+            Number(
 
-    smtpPort: Number(process.env.SMTP_PORT || 587),
+                process.env.REQUEST_TIMEOUT ||
 
-    smtpUser: process.env.SMTP_USER,
+                30000
 
-    smtpPassword: process.env.SMTP_PASSWORD,
+            )
 
-    smtpSecure: process.env.SMTP_SECURE === "true",
+        ),
 
     /*
     |--------------------------------------------------------------------------
-    | SMS Configuration
+    | Mail
     |--------------------------------------------------------------------------
     */
 
-    smsProvider: process.env.SMS_PROVIDER || "termii",
+    email:
 
-    smsApiKey: process.env.SMS_API_KEY,
+        process.env.EMAIL_FROM,
 
-    smsSenderId: process.env.SMS_SENDER_ID || "HEMAP",
+    smtpHost:
 
-    smsBaseUrl: process.env.SMS_BASE_URL,
+        process.env.SMTP_HOST,
 
-    interval: process.env.OPTIMIZATION_INTERVAL || "15mins"
+    smtpPort:
+
+        Math.max(
+
+            1,
+
+            Number(
+
+                process.env.SMTP_PORT ||
+
+                587
+
+            )
+
+        ),
+
+    smtpUser:
+
+        process.env.SMTP_USER,
+
+    smtpPassword:
+
+        process.env.SMTP_PASSWORD,
+
+    smtpSecure:
+
+        process.env.SMTP_SECURE === "true",
+
+    /*
+    |--------------------------------------------------------------------------
+    | SMS
+    |--------------------------------------------------------------------------
+    */
+
+    smsProvider:
+
+        process.env.SMS_PROVIDER ||
+
+        "termii",
+
+    smsApiKey:
+
+        process.env.SMS_API_KEY,
+
+    smsSenderId:
+
+        process.env.SMS_SENDER_ID ||
+
+        "HEMAP",
+
+    smsBaseUrl:
+
+        process.env.SMS_BASE_URL,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Optimization
+    |--------------------------------------------------------------------------
+    */
+
+    interval:
+
+        process.env.OPTIMIZATION_INTERVAL ||
+
+        "15mins"
 
 };
 

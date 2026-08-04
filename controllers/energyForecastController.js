@@ -1,218 +1,195 @@
-import EnergyForecast from "../models/EnergyForecast.js";
-import forecastService from "../services/analytics/forecastService.js";
-import logger from "../utils/logger.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
+import * as forecastService from "../services/analytics/forecastService.js";
 
-export async function createForecast(req, res, next) {
+/*
+|--------------------------------------------------------------------------
+| Create Forecast
+|--------------------------------------------------------------------------
+*/
 
-    try {
+export const createForecast = asyncHandler(async (req, res) => {
 
-        const forecast = await EnergyForecast.create(
+    const forecast = await forecastService.createForecast(req.body);
 
-            req.body
+    return res.status(201).json({
 
-        );
+        success: true,
 
-        return res.status(201).json({
+        message: "Forecast created successfully.",
 
-            success: true,
+        data: forecast
 
-            data: forecast
+    });
 
-        });
+});
 
-    }
+/*
+|--------------------------------------------------------------------------
+| Forecasts
+|--------------------------------------------------------------------------
+*/
 
-    catch (error) {
+export const getForecasts = asyncHandler(async (req, res) => {
 
-        logger.error(error);
+    const forecasts = await forecastService.getForecasts(req.query);
 
-        next(error);
+    return res.status(200).json({
 
-    }
+        success: true,
 
-}
+        message: "Forecasts retrieved successfully.",
 
-export async function getForecasts(req, res, next) {
+        data: forecasts
 
-    try {
+    });
 
-        const forecasts =
+});
 
-            await EnergyForecast.find()
+/*
+|--------------------------------------------------------------------------
+| Forecast
+|--------------------------------------------------------------------------
+*/
 
-            .populate("site")
+export const getForecastById = asyncHandler(async (req, res) => {
 
-            .sort({
+    const forecast = await forecastService.getForecastById(
 
-                forecastDate: -1
+        req.params.id
 
-            });
+    );
 
-        return res.status(200).json({
+    return res.status(200).json({
 
-            success: true,
+        success: true,
 
-            data: forecasts
+        message: "Forecast retrieved successfully.",
 
-        });
+        data: forecast
 
-    }
+    });
 
-    catch (error) {
+});
 
-        logger.error(error);
+/*
+|--------------------------------------------------------------------------
+| Update Forecast
+|--------------------------------------------------------------------------
+*/
 
-        next(error);
+export const updateForecast = asyncHandler(async (req, res) => {
 
-    }
+    const forecast = await forecastService.updateForecast(
 
-}
+        req.params.id,
 
-export async function getForecastById(req, res, next) {
+        req.body
 
-    try {
+    );
 
-        const forecast =
+    return res.status(200).json({
 
-            await EnergyForecast.findById(
+        success: true,
 
-                req.body.id
+        message: "Forecast updated successfully.",
 
-            );
+        data: forecast
 
-        if (!forecast) {
+    });
 
-            return res.status(404).json({
+});
 
-                success: false,
+/*
+|--------------------------------------------------------------------------
+| Delete Forecast
+|--------------------------------------------------------------------------
+*/
 
-                message: "Forecast not found."
+export const deleteForecast = asyncHandler(async (req, res) => {
 
-            });
+    await forecastService.deleteForecast(
 
-        }
+        req.params.id
 
-        return res.status(200).json({
+    );
 
-            success: true,
+    return res.status(200).json({
 
-            data: forecast
+        success: true,
 
-        });
+        message: "Forecast deleted successfully."
 
-    }
+    });
 
-    catch (error) {
+});
 
-        logger.error(error);
+/*
+|--------------------------------------------------------------------------
+| Run Forecast
+|--------------------------------------------------------------------------
+*/
 
-        next(error);
+export const runForecast = asyncHandler(async (req, res) => {
 
-    }
+    const result = await forecastService.runForecast(
 
-}
+        req.params.id
 
-export async function updateForecast(req, res, next) {
+    );
 
-    try {
+    return res.status(200).json({
 
-        const forecast =
+        success: true,
 
-            await EnergyForecast.findByIdAndUpdate(
+        message: "Forecast generated successfully.",
 
-                req.body.id,
+        data: result
 
-                req.body,
+    });
 
-                {
+});
 
-                    new: true,
+/*
+|--------------------------------------------------------------------------
+| Dashboard Forecast
+|--------------------------------------------------------------------------
+*/
 
-                    runValidators: true
+export const getForecastDashboard = asyncHandler(async (req, res) => {
 
-                }
+    const data = await forecastService.getForecastDashboard(
 
-            );
+        req.query.siteId
 
-        return res.status(200).json({
+    );
 
-            success: true,
+    return res.status(200).json({
 
-            data: forecast
+        success: true,
 
-        });
+        message: "Forecast dashboard retrieved successfully.",
 
-    }
+        data
 
-    catch (error) {
+    });
 
-        logger.error(error);
+});
 
-        next(error);
+export default {
 
-    }
+    createForecast,
 
-}
+    getForecasts,
 
-export async function deleteForecast(req, res, next) {
+    getForecastById,
 
-    try {
+    updateForecast,
 
-        await EnergyForecast.findByIdAndDelete(
+    deleteForecast,
 
-            req.body.id
+    runForecast,
 
-        );
+    getForecastDashboard
 
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Forecast deleted."
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
-
-export async function runForecast(req, res, next) {
-
-    try {
-
-        const result =
-
-            await forecastService.runForecast(
-
-                req.body.id
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: result
-
-        });
-
-    }
-
-    catch (error) {
-
-        logger.error(error);
-
-        next(error);
-
-    }
-
-}
+};

@@ -2,59 +2,54 @@ import jwt from "jsonwebtoken";
 
 import User from "../models/User.js";
 
-import logger from "../utils/logger.js";
-
 import { env } from "../config/env.js";
 
 /*
 |--------------------------------------------------------------------------
-| JWT Authentication Middleware
+| Authentication Middleware
 |--------------------------------------------------------------------------
 */
 
 export async function authenticate(req, res, next) {
-           
-        console.log(req.headers);
-    
+
     try {
 
         const authHeader = req.headers.authorization;
 
-        console.log("HEAD =:", authHeader);
-
-        if (
-            !authHeader ||
-            !authHeader.startsWith("Bearer ")
-        ) {
+        if (!authHeader) {
 
             return res.status(401).json({
 
                 success: false,
 
-                message: "Authentication required."
+                message: "Authentication token is required."
 
             });
 
         }
 
-        const token = authHeader.split(" ")[1];
+        if (!authHeader.startsWith("Bearer ")) {
 
-        console.log("TOKEN =", token);
+            return res.status(401).json({
+
+                success: false,
+
+                message: "Invalid authorization header."
+
+            });
+
+        }
+
+        const token = authHeader.substring(7);
 
         const decoded = jwt.verify(
-
             token,
-
             env.jwtSecret
-
         );
 
-        console.log(decoded);
-
         const user = await User.findById(decoded.id)
-
             .populate("role")
-
+            .populate("assignedSites")
             .select("-password");
 
         if (!user) {
@@ -63,7 +58,7 @@ export async function authenticate(req, res, next) {
 
                 success: false,
 
-                message: "Invalid user."
+                message: "User not found."
 
             });
 
@@ -75,7 +70,7 @@ export async function authenticate(req, res, next) {
 
                 success: false,
 
-                message: "User account has been disabled."
+                message: "User account is disabled."
 
             });
 
@@ -83,21 +78,37 @@ export async function authenticate(req, res, next) {
 
         req.user = user;
 
-        next();
+        return next();
 
     }
 
     catch (error) {
 
-        logger.error(error);
+        if (error.name === "TokenExpiredError") {
 
-        return res.status(401).json({
+            return res.status(401).json({
 
-            success: false,
+                success: false,
 
-            message: "Invalid or expired token."
+                message: "Access token expired."
 
-        });
+            });
+
+        }
+
+        if (error.name === "JsonWebTokenError") {
+
+            return res.status(401).json({
+
+                success: false,
+
+                message: "Invalid access token."
+
+            });
+
+        }
+
+        return next(error);
 
     }
 

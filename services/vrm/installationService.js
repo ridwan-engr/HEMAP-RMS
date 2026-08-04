@@ -1,33 +1,70 @@
 import { get } from "./apiClient.js";
-import { env } from "../../config/env.js";
 import logger from "../../utils/logger.js";
 import Installation from "../../models/Installation.js";
 
 /*
 |--------------------------------------------------------------------------
-| Fetch Installations
+| Fetch Active Installations from MongoDB
 |--------------------------------------------------------------------------
 */
 
 export async function getInstallations() {
 
-    return await Installation.find({
+    try {
 
-        isActive: true
+        return await Installation.find({
 
-    })
-    .populate("site")
-    .lean();
+            isActive: true
+
+        })
+
+            .populate(
+
+                "site",
+
+                "name code location"
+
+            )
+
+            .lean();
+
+    }
+
+    catch (error) {
+
+        logger.error({
+
+            message: "Failed to retrieve installations.",
+
+            error: error.message,
+
+            stack: error.stack
+
+        });
+
+        throw error;
+
+    }
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Fetch One Installation
+| Fetch One Installation From VRM
 |--------------------------------------------------------------------------
 */
 
 export async function getInstallation(installationId) {
+
+    if (!installationId) {
+
+        throw new Error(
+
+            "Installation ID is required."
+
+        );
+
+    }
 
     try {
 
@@ -41,7 +78,19 @@ export async function getInstallation(installationId) {
 
     catch (error) {
 
-        logger.error(error);
+        logger.error({
+
+            message: "Failed to retrieve installation from VRM.",
+
+            installationId,
+
+            status: error.response?.status,
+
+            data: error.response?.data,
+
+            error: error.message
+
+        });
 
         throw error;
 

@@ -45,7 +45,7 @@ export async function getForecast(
 
     ] = await Promise.all([
 
-        solarForecastService.generateForecast({
+        solarforecastService.getForecastDashboard({
 
             siteId,
 

@@ -2,223 +2,105 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schemas
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
-    .hex()
-    .required();
 
-const voltageSchema = Joi.number()
-    .min(0)
-    .max(1000);
-
-const currentSchema = Joi.number()
-    .min(-5000)
-    .max(5000);
-
-const powerSchema = Joi.number()
-    .min(-500000)
-    .max(500000);
-
-const percentageSchema = Joi.number()
-    .min(0)
-    .max(100);
+    .hex();
 
 /*
 |--------------------------------------------------------------------------
-| Battery
+| Common Query
 |--------------------------------------------------------------------------
 */
 
-const batterySchema = Joi.object({
+const telemetryQuery = {
 
-    voltage: voltageSchema,
+    installationId: Joi.number()
 
-    current: currentSchema,
-
-    power: powerSchema,
-
-    soc: percentageSchema,
-
-    soh: percentageSchema,
-
-    temperature: Joi.number()
-        .min(-40)
-        .max(120),
-
-    cycles: Joi.number()
         .integer()
-        .min(0)
 
-});
+        .positive()
 
-/*
-|--------------------------------------------------------------------------
-| Solar
-|--------------------------------------------------------------------------
-*/
+        .optional(),
 
-const solarSchema = Joi.object({
+    site: objectId.optional(),
 
-    voltage: voltageSchema,
+    startDate: Joi.date()
 
-    current: currentSchema,
+        .iso()
 
-    power: powerSchema,
+        .optional(),
 
-    energyToday: Joi.number().min(0),
+    endDate: Joi.date()
 
-    energyTotal: Joi.number().min(0),
+        .iso()
 
-    irradiance: Joi.number().min(0).max(2000)
+        .min(Joi.ref("startDate"))
 
-});
+        .optional(),
 
-/*
-|--------------------------------------------------------------------------
-| Inverter
-|--------------------------------------------------------------------------
-*/
+    interval: Joi.string()
 
-const inverterSchema = Joi.object({
-
-    inputVoltage: voltageSchema,
-
-    outputVoltage: voltageSchema,
-
-    outputCurrent: currentSchema,
-
-    outputPower: powerSchema,
-
-    frequency: Joi.number()
-        .min(45)
-        .max(65),
-
-    efficiency: percentageSchema
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Generator
-|--------------------------------------------------------------------------
-*/
-
-const generatorSchema = Joi.object({
-
-    running: Joi.boolean(),
-
-    voltage: voltageSchema,
-
-    current: currentSchema,
-
-    power: powerSchema,
-
-    fuelLevel: percentageSchema,
-
-    fuelRate: Joi.number().min(0),
-
-    runtimeHours: Joi.number().min(0)
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Grid
-|--------------------------------------------------------------------------
-*/
-
-const gridSchema = Joi.object({
-
-    available: Joi.boolean(),
-
-    voltage: voltageSchema,
-
-    current: currentSchema,
-
-    power: powerSchema,
-
-    frequency: Joi.number()
-        .min(45)
-        .max(65)
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Environment
-|--------------------------------------------------------------------------
-*/
-
-const environmentSchema = Joi.object({
-
-    ambientTemperature: Joi.number()
-        .min(-40)
-        .max(80),
-
-    cabinetTemperature: Joi.number()
-        .min(-40)
-        .max(120),
-
-    humidity: percentageSchema
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Telemetry Payload
-|--------------------------------------------------------------------------
-*/
-
-export const telemetrySchema = Joi.object({
-
-    siteId: objectIdSchema,
-
-    installationId: objectIdSchema,
-
-    timestamp: Joi.date()
-        .default(() => new Date()),
-
-    battery: batterySchema,
-
-    solar: solarSchema,
-
-    inverter: inverterSchema,
-
-    generator: generatorSchema,
-
-    grid: gridSchema,
-
-    environment: environmentSchema,
-
-    alarms: Joi.array()
-        .items(Joi.string()),
-
-    source: Joi.string()
         .valid(
 
-            "Victron",
+            "15mins",
 
-            "VRM",
+            "30mins",
 
-            "Huawei",
+            "hour",
 
-            "Modbus",
+            "6hours",
 
-            "MQTT",
+            "12hours",
 
-            "Manual",
+            "day",
 
-            "API"
+            "week",
+
+            "month"
 
         )
-        .required()
 
-});
+        .default("15mins"),
+
+    page: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .default(1),
+
+    limit: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .max(1000)
+
+        .default(200),
+
+    sort: Joi.string()
+
+        .valid(
+
+            "asc",
+
+            "desc"
+
+        )
+
+        .default("desc")
+
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -226,58 +108,128 @@ export const telemetrySchema = Joi.object({
 |--------------------------------------------------------------------------
 */
 
-export const telemetryQuerySchema = Joi.object({
+export const telemetryQueryValidator = Joi.object({
 
-    siteId: Joi.string()
-        .hex()
-        .length(24),
+    ...telemetryQuery
 
-    installationId: Joi.string()
-        .hex()
-        .length(24),
-
-    startDate: Joi.date(),
-
-    endDate: Joi.date(),
-
-    page: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
-
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(500)
-        .default(100),
-
-    sortBy: Joi.string()
-        .default("timestamp"),
-
-    order: Joi.string()
-        .valid("asc", "desc")
-        .default("desc")
-
-});
+}).unknown(false);
 
 /*
 |--------------------------------------------------------------------------
-| Route Parameters
+| Telemetry History
 |--------------------------------------------------------------------------
 */
 
-export const telemetryIdSchema = Joi.object({
+export const telemetryHistoryValidator = Joi.object({
 
-    telemetryId: objectIdSchema
+    installationId: Joi.number()
 
-});
+        .integer()
+
+        .positive()
+
+        .required(),
+
+    startDate: Joi.date()
+
+        .iso()
+
+        .required(),
+
+    endDate: Joi.date()
+
+        .iso()
+
+        .min(Joi.ref("startDate"))
+
+        .required(),
+
+    interval: Joi.string()
+
+        .valid(
+
+            "15mins",
+
+            "30mins",
+
+            "hour",
+
+            "6hours",
+
+            "12hours",
+
+            "day",
+
+            "week",
+
+            "month"
+
+        )
+
+        .default("15mins"),
+
+    page: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .default(1),
+
+    limit: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .max(1000)
+
+        .default(200),
+
+    sort: Joi.string()
+
+        .valid(
+
+            "asc",
+
+            "desc"
+
+        )
+
+        .default("desc")
+
+}).unknown(false);
+
+/*
+|--------------------------------------------------------------------------
+| Installation Parameter
+|--------------------------------------------------------------------------
+*/
+
+export const installationTelemetryValidator = Joi.object({
+
+    installationId: Joi.number()
+
+        .integer()
+
+        .positive()
+
+        .required()
+
+}).unknown(false);
+
+/*
+|--------------------------------------------------------------------------
+| Default Export
+|--------------------------------------------------------------------------
+*/
 
 export default {
 
-    telemetrySchema,
+    telemetryQueryValidator,
 
-    telemetryQuerySchema,
+    telemetryHistoryValidator,
 
-    telemetryIdSchema
+    installationTelemetryValidator
 
 };

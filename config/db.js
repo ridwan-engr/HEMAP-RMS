@@ -1,45 +1,171 @@
 import mongoose from "mongoose";
+
 import { env } from "./env.js";
+
 import logger from "../utils/logger.js";
+
+/*
+|--------------------------------------------------------------------------
+| MongoDB
+|--------------------------------------------------------------------------
+*/
+
+mongoose.set(
+
+    "strictQuery",
+
+    true
+
+);
+
+let listenersRegistered = false;
 
 export async function connectDatabase() {
 
     try {
 
-        await mongoose.connect(env.mongodbUri, {
-            autoIndex: env.nodeEnv !== "production"
+        const connection = await mongoose.connect(
+
+            env.mongodbUri,
+
+            {
+
+                autoIndex:
+
+                    env.nodeEnv !== "production"
+
+            }
+
+        );
+
+        logger.success({
+
+            message:
+
+                "MongoDB connected successfully.",
+
+            database:
+
+                connection.connection.name,
+
+            host:
+
+                connection.connection.host
+
         });
 
-        logger.success("MongoDB connected successfully.");
+        if (
 
-        mongoose.connection.on("connected", () => {
-            logger.success("MongoDB connection established.");
-        });
+            !listenersRegistered
 
-        mongoose.connection.on("disconnected", () => {
-            logger.warn("MongoDB disconnected.");
-        });
+        ) {
 
-        mongoose.connection.on("reconnected", () => {
-            logger.success("MongoDB reconnected.");
-        });
+            listenersRegistered = true;
 
-        mongoose.connection.on("error", (error) => {
-            logger.error({
-                message: "MongoDB runtime error",
-                name: error.name,
-                error: error.message,
-                stack: error.stack
-            });
-        });
+            mongoose.connection.on(
 
-    } catch (error) {
+                "connected",
+
+                () => {
+
+                    logger.success(
+
+                        "MongoDB connection established."
+
+                    );
+
+                }
+
+            );
+
+            mongoose.connection.on(
+
+                "disconnected",
+
+                () => {
+
+                    logger.warn(
+
+                        "MongoDB disconnected."
+
+                    );
+
+                }
+
+            );
+
+            mongoose.connection.on(
+
+                "reconnected",
+
+                () => {
+
+                    logger.success(
+
+                        "MongoDB reconnected."
+
+                    );
+
+                }
+
+            );
+
+            mongoose.connection.on(
+
+                "error",
+
+                error => {
+
+                    logger.error({
+
+                        message:
+
+                            "MongoDB runtime error",
+
+                        name:
+
+                            error.name,
+
+                        error:
+
+                            error.message,
+
+                        stack:
+
+                            error.stack
+
+                    });
+
+                }
+
+            );
+
+        }
+
+        return connection;
+
+    }
+
+    catch (error) {
 
         logger.error({
-            message: "Failed to connect to MongoDB.",
-            name: error.name,
-            error: error.message,
-            stack: error.stack
+
+            message:
+
+                "Failed to connect to MongoDB.",
+
+            name:
+
+                error.name,
+
+            error:
+
+                error.message,
+
+            stack:
+
+                error.stack
+
         });
 
         process.exit(1);
@@ -47,3 +173,5 @@ export async function connectDatabase() {
     }
 
 }
+
+export default connectDatabase;

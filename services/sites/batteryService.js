@@ -138,7 +138,7 @@ export async function calculateSOH(siteId) {
 
         (sum, battery) =>
 
-            sum + (battery.stateOfHealth || 0),
+            sum + (battery.health || 0),
 
         0
 
@@ -312,7 +312,7 @@ export async function calculateBatteryHealth(siteId) {
 
     for (const battery of batteries) {
 
-        const soh = battery.stateOfHealth || 0;
+        const soh = battery.health || 0;
 
         if (soh >= 80) {
 

@@ -1,30 +1,28 @@
-import asyncHandler from "express-async-handler";
+import asyncHandler from "../utils/asyncHandler.js";
 
-import Maintenance from "../models/Maintenance.js";
-
-import logger from "../utils/logger.js";
+import * as maintenanceService from "../services/maintenance/maintenanceService.js";
 
 /*
 |--------------------------------------------------------------------------
-| Create Maintenance Record
+| Maintenance Schedule
 |--------------------------------------------------------------------------
 */
 
-export const createMaintenance = asyncHandler(async (req, res) => {
+export const getMaintenanceSchedule = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.create(req.body);
+    const schedule = await maintenanceService.getMaintenanceSchedule(
 
-    logger.success(
-
-        `Maintenance ${maintenance._id} created.`
+        req.query
 
     );
 
-    res.status(201).json({
+    return res.status(200).json({
 
         success: true,
 
-        data: maintenance
+        message: "Maintenance schedule retrieved successfully.",
+
+        data: schedule
 
     });
 
@@ -32,33 +30,25 @@ export const createMaintenance = asyncHandler(async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| Get All Maintenance Records
+| Maintenance History
 |--------------------------------------------------------------------------
 */
 
-export const getMaintenanceRecords = asyncHandler(async (req, res) => {
+export const getMaintenanceHistory = asyncHandler(async (req, res) => {
 
-    const records = await Maintenance.find()
+    const history = await maintenanceService.getMaintenanceHistory(
 
-        .populate("site")
+        req.query
 
-        .populate("device")
+    );
 
-        .populate("assignedTo")
-
-        .sort({
-
-            scheduledDate: -1
-
-        });
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        count: records.length,
+        message: "Maintenance history retrieved successfully.",
 
-        data: records
+        data: history
 
     });
 
@@ -66,35 +56,23 @@ export const getMaintenanceRecords = asyncHandler(async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| Get Maintenance By ID
+| Maintenance Details
 |--------------------------------------------------------------------------
 */
 
 export const getMaintenanceById = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.body.id)
+    const maintenance = await maintenanceService.getMaintenanceById(
 
-        .populate("site")
+        req.params.maintenanceId
 
-        .populate("device")
+    );
 
-        .populate("assignedTo");
-
-    if (!maintenance) {
-
-        res.status(404);
-
-        throw new Error(
-
-            "Maintenance record not found."
-
-        );
-
-    }
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
+
+        message: "Maintenance record retrieved successfully.",
 
         data: maintenance
 
@@ -104,35 +82,27 @@ export const getMaintenanceById = asyncHandler(async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| Get Maintenance By Site
+| Create Maintenance
 |--------------------------------------------------------------------------
 */
 
-export const getMaintenanceBySite = asyncHandler(async (req, res) => {
+export const createMaintenance = asyncHandler(async (req, res) => {
 
-    const records = await Maintenance.find({
+    const maintenance = await maintenanceService.createMaintenance(
 
-        site: req.body.siteId
+        req.body,
 
-    })
+        req.user
 
-    .populate("device")
+    );
 
-    .populate("assignedTo")
-
-    .sort({
-
-        scheduledDate: -1
-
-    });
-
-    res.json({
+    return res.status(201).json({
 
         success: true,
 
-        count: records.length,
+        message: "Maintenance record created successfully.",
 
-        data: records
+        data: maintenance
 
     });
 
@@ -146,39 +116,21 @@ export const getMaintenanceBySite = asyncHandler(async (req, res) => {
 
 export const updateMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.body.id);
+    const maintenance = await maintenanceService.updateMaintenance(
 
-    if (!maintenance) {
+        req.params.maintenanceId,
 
-        res.status(404);
+        req.body,
 
-        throw new Error(
-
-            "Maintenance record not found."
-
-        );
-
-    }
-
-    Object.assign(
-
-        maintenance,
-
-        req.body
+        req.user
 
     );
 
-    await maintenance.save();
-
-    logger.success(
-
-        `Maintenance ${maintenance._id} updated.`
-
-    );
-
-    res.json({
+    return res.status(200).json({
 
         success: true,
+
+        message: "Maintenance record updated successfully.",
 
         data: maintenance
 
@@ -194,51 +146,17 @@ export const updateMaintenance = asyncHandler(async (req, res) => {
 
 export const completeMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.body.id);
+    const maintenance = await maintenanceService.completeMaintenance(
 
-    if (!maintenance) {
+        req.params.maintenanceId,
 
-        res.status(404);
+        req.body,
 
-        throw new Error(
-
-            "Maintenance record not found."
-
-        );
-
-    }
-
-    maintenance.status = "COMPLETED";
-
-    maintenance.completedDate = new Date();
-
-    if (req.body.actualHours !== undefined) {
-
-        maintenance.actualHours = req.body.actualHours;
-
-    }
-
-    if (req.body.remarks) {
-
-        maintenance.remarks = req.body.remarks;
-
-    }
-
-    if (req.body.cost !== undefined) {
-
-        maintenance.cost = req.body.cost;
-
-    }
-
-    await maintenance.save();
-
-    logger.success(
-
-        `Maintenance ${maintenance._id} completed.`
+        req.user
 
     );
 
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
@@ -258,33 +176,17 @@ export const completeMaintenance = asyncHandler(async (req, res) => {
 
 export const deleteMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await Maintenance.findById(req.body.id);
+    await maintenanceService.deleteMaintenance(
 
-    if (!maintenance) {
-
-        res.status(404);
-
-        throw new Error(
-
-            "Maintenance record not found."
-
-        );
-
-    }
-
-    await maintenance.deleteOne();
-
-    logger.success(
-
-        `Maintenance ${maintenance._id} deleted.`
+        req.params.maintenanceId
 
     );
 
-    res.json({
+    return res.status(200).json({
 
         success: true,
 
-        message: "Maintenance deleted successfully."
+        message: "Maintenance record deleted successfully."
 
     });
 
@@ -292,13 +194,13 @@ export const deleteMaintenance = asyncHandler(async (req, res) => {
 
 export default {
 
-    createMaintenance,
+    getMaintenanceSchedule,
 
-    getMaintenanceRecords,
+    getMaintenanceHistory,
 
     getMaintenanceById,
 
-    getMaintenanceBySite,
+    createMaintenance,
 
     updateMaintenance,
 

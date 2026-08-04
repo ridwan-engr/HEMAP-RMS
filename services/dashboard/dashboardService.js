@@ -3,58 +3,72 @@ import * as forecastService from "../analytics/forecastService.js";
 import * as optimizationService from "../analytics/optimizationService.js";
 import * as reliabilityService from "../analytics/reliabilityService.js";
 import * as insightsService from "../analytics/insightsService.js";
+import * as chartService from "../analytics/chartService.js";
 
-/**
- * ============================================================================
- * Dashboard Service
- * ============================================================================
- * Aggregates data from analytics services into a single response for the UI.
- * No calculations should be performed here.
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| Dashboard
+|--------------------------------------------------------------------------
+*/
 
 export async function getDashboard(filters = {}) {
 
+    console.log("Dashboard Filters:", filters);
+
     const [
+
         statistics,
+
         reliability,
+
         forecasts,
-        insights
-    ] = await Promise.allSettled([
 
-        statisticsService.getDashboardStatistics(filters.siteId),
+        insights,
 
-        reliabilityService.getReliabilityMetrics(filters.siteId),
+        charts
 
-        forecastService.generateForecast(filters.siteId),
+    ] = await Promise.all([
 
-        insightsService.generateInsights(filters.siteId)
+        statisticsService.getDashboardStatistics(filters),
+
+        reliabilityService.getReliabilityMetrics(filters),
+
+        forecastService.getForecastDashboard(
+            filters.siteId,
+            filters.algorithm
+        ),
+
+        insightsService.generateInsights(filters),
+
+        chartService.getDashboardCharts(filters)
 
     ]);
 
     return {
 
-        timestamp: new Date(),
+        generatedAt: new Date(),
 
         filters,
 
-        statistics: extract(statistics),
+        statistics,
 
-        reliability: extract(reliability),
+        reliability,
 
-        forecasts: extract(forecasts),
+        forecasts,
 
-        insights: extract(insights)
+        insights,
+
+        charts
 
     };
 
 }
 
-/**
- * ============================================================================
- * Executive Dashboard
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| Executive Dashboard
+|--------------------------------------------------------------------------
+*/
 
 export async function getExecutiveDashboard(filters = {}) {
 
@@ -62,7 +76,7 @@ export async function getExecutiveDashboard(filters = {}) {
 
     return {
 
-        generatedAt: new Date(),
+        generatedAt: dashboard.generatedAt,
 
         summary: {
 
@@ -78,11 +92,11 @@ export async function getExecutiveDashboard(filters = {}) {
             activeAlarms:
                 dashboard.statistics?.activeAlarms ?? 0,
 
-            totalEnergy:
-                dashboard.statistics?.energyGenerated ?? 0,
+            renewableEnergy:
+                dashboard.statistics?.renewablePercentage ?? 0,
 
-            renewableContribution:
-                dashboard.statistics?.renewablePercentage ?? 0
+            batterySOC:
+                dashboard.statistics?.averageSOC ?? 0
 
         },
 
@@ -92,57 +106,23 @@ export async function getExecutiveDashboard(filters = {}) {
 
 }
 
-/**
- * ============================================================================
- * KPI Cards
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| Dashboard Cards
+|--------------------------------------------------------------------------
+*/
 
 export async function getDashboardCards(filters = {}) {
 
-    const stats = await statisticsService.getDashboardStatistics(filters);
-
-    return {
-
-        totalSites:
-            stats?.totalSites ?? 0,
-
-        activeSites:
-            stats?.activeSites ?? 0,
-
-        activeAlarms:
-            stats?.activeAlarms ?? 0,
-
-        batterySOC:
-            stats?.averageSOC ?? 0,
-
-        renewableEnergy:
-            stats?.renewablePercentage ?? 0,
-
-        generatorRuntime:
-            stats?.generatorRuntime ?? 0
-
-    };
+    return statisticsService.getDashboardCards(filters);
 
 }
 
-/**
- * ============================================================================
- * Dashboard Map
- * ============================================================================
- */
-
-export async function getMap(filters = {}) {
-
-    return statisticsService.getSiteLocations(filters);
-
-}
-
-/**
- * ============================================================================
- * Dashboard KPIs
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| KPIs
+|--------------------------------------------------------------------------
+*/
 
 export async function getKPIs(filters = {}) {
 
@@ -150,23 +130,23 @@ export async function getKPIs(filters = {}) {
 
 }
 
-/**
- * ============================================================================
- * Dashboard Refresh
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| Map
+|--------------------------------------------------------------------------
+*/
 
-export async function refreshDashboard(filters = {}) {
+export async function getMap(filters = {}) {
 
-    return getDashboard(filters);
+    return statisticsService.getSiteLocations(filters);
 
 }
 
-/**
- * ============================================================================
- * Optimization Summary
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| Optimization Summary
+|--------------------------------------------------------------------------
+*/
 
 export async function getOptimizationSummary(filters = {}) {
 
@@ -174,29 +154,27 @@ export async function getOptimizationSummary(filters = {}) {
 
 }
 
-/**
- * ============================================================================
- * Utility
- * ============================================================================
- */
+/*
+|--------------------------------------------------------------------------
+| Refresh
+|--------------------------------------------------------------------------
+*/
 
-function extract(result) {
+export async function refreshDashboard(filters = {}) {
 
-    if (result.status === "fulfilled") {
+    return getDashboard(filters);
 
-        return result.value;
+}
 
-    }
+/*
+|--------------------------------------------------------------------------
+| Dashboard Charts
+|--------------------------------------------------------------------------
+*/
 
-    return {
+export async function getDashboardCharts(filters = {}) {
 
-        success: false,
-
-        error: result.reason?.message ||
-
-            "Unable to retrieve data."
-
-    };
+    return chartService.getDashboardCharts(filters);
 
 }
 
@@ -208,12 +186,14 @@ export default {
 
     getDashboardCards,
 
-    getMap,
-
     getKPIs,
 
-    refreshDashboard,
+    getMap,
 
-    getOptimizationSummary
+    getOptimizationSummary,
+
+    getDashboardCharts,
+
+    refreshDashboard
 
 };

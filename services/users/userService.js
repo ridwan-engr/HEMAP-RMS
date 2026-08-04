@@ -1,1726 +1,308 @@
 import User from "../../models/User.js";
 import Role from "../../models/Role.js";
-import Site from "../../models/Site.js";
 
-import bcrypt from "bcryptjs";
-
+import {
+    validatePassword
+} from "../auth/passwordService.js";
 
 /*
 |--------------------------------------------------------------------------
-| Create New User
+| Get Users
+|--------------------------------------------------------------------------
+*/
+
+export async function getUsers(filters = {}) {
+
+    const query = {};
+
+    if (filters.role) {
+
+        const role = await Role.findOne({
+            name: filters.role.toUpperCase()
+        });
+
+        if (role) {
+
+            query.role = role._id;
+
+        }
+
+    }
+
+    if (filters.isActive !== undefined) {
+
+        query.isActive = filters.isActive;
+
+    }
+
+    return User.find(query)
+        .populate("role")
+        .populate("assignedSites")
+        .select("-password")
+        .sort({
+            createdAt: -1
+        });
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Get User
+|--------------------------------------------------------------------------
+*/
+
+export async function getUser(id) {
+
+    const user = await User.findById(id)
+        .populate("role")
+        .populate("assignedSites")
+        .select("-password");
+
+    if (!user) {
+
+        throw new Error("User not found.");
+
+    }
+
+    return user;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Create User
 |--------------------------------------------------------------------------
 */
 
 export async function createUser(data) {
 
+    const existing = await User.findOne({
 
-    const {
-
-        firstName,
-
-        lastName,
-
-        email,
-
-        password,
-
-        phone,
-
-        role,
-
-        assignedSites=[]
-
-    } = data;
-
-
-
-    const existingUser =
-
-        await User.findOne({
-
-            email
-
-        });
-
-
-
-    if(existingUser){
-
-
-        throw new Error(
-
-            "User already exists"
-
-        );
-
-    }
-
-
-
-    const roleExists =
-
-        await Role.findById(
-
-            role
-
-        );
-
-
-
-    if(!roleExists){
-
-
-        throw new Error(
-
-            "Invalid role"
-
-        );
-
-    }
-
-
-
-    const user =
-
-        await User.create({
-
-            firstName,
-
-            lastName,
-
-            email,
-
-            password,
-
-            phone,
-
-            role,
-
-            assignedSites
-
-        });
-
-
-
-    return User.findById(
-
-        user._id
-
-    )
-
-    .populate(
-
-        "role"
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Get User By Email
-|--------------------------------------------------------------------------
-*/
-
-export async function getUserByEmail(
-
-    email
-
-){
-
-
-    return User.findOne({
-
-        email
-
-    })
-
-    .populate(
-
-        "role"
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Get User By ID
-|--------------------------------------------------------------------------
-*/
-
-export async function getUserById(
-
-    userId
-
-){
-
-
-    return User.findById(
-
-        userId
-
-    )
-
-    .populate(
-
-        "role"
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Get All Users
-|--------------------------------------------------------------------------
-*/
-
-export async function getUsers(
-
-    filters={}
-
-){
-
-
-    return User.find(
-
-        filters
-
-    )
-
-    .populate(
-
-        "role"
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    )
-
-    .sort({
-
-        createdAt:-1
+        email: data.email.toLowerCase()
 
     });
 
-}
+    if (existing) {
 
-/*
-|--------------------------------------------------------------------------
-| Update User Information
-|--------------------------------------------------------------------------
-*/
+        throw new Error("Email already exists.");
 
-export async function updateUser(
+    }
 
-    userId,
+    const role = await Role.findById(data.role);
 
-    updates
+    if (!role) {
 
-){
+        throw new Error("Invalid role.");
 
+    }
 
-    const allowedFields = [
+    const validation = validatePassword(data.password);
 
+    if (!validation.valid) {
 
-        "firstName",
+        throw new Error(validation.errors.join(" "));
 
-        "lastName",
+    }
 
-        "email",
+    const user = await User.create({
 
-        "phone",
+        ...data,
 
-        "role",
-
-        "assignedSites",
-
-        "avatar"
-
-
-    ];
-
-
-
-    const filteredUpdates = {};
-
-
-
-    allowedFields.forEach(field=>{
-
-
-        if(
-
-            updates[field] !== undefined
-
-        ){
-
-
-            filteredUpdates[field] =
-
-                updates[field];
-
-        }
-
+        email: data.email.toLowerCase()
 
     });
 
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        filteredUpdates,
-
-
-        {
-
-            new:true,
-
-            runValidators:true
-
-        }
-
-    )
-
-    .populate(
-
-        "role"
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    );
+    return User.findById(user._id)
+        .populate("role")
+        .populate("assignedSites")
+        .select("-password");
 
 }
 
-
 /*
 |--------------------------------------------------------------------------
-| Update User Profile
+| Update User
 |--------------------------------------------------------------------------
 */
 
-export async function updateProfile(
+export async function updateUser(id, data) {
 
-    userId,
+    if (data.role) {
 
-    profileData
+        const role = await Role.findById(data.role);
 
-){
+        if (!role) {
 
-
-    const {
-
-        firstName,
-
-        lastName,
-
-        phone,
-
-        avatar
-
-    } = profileData;
-
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        {
-
-            firstName,
-
-            lastName,
-
-            phone,
-
-            avatar
-
-        },
-
-
-        {
-
-            new:true,
-
-            runValidators:true
+            throw new Error("Invalid role.");
 
         }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Change Password
-|--------------------------------------------------------------------------
-*/
-
-export async function changePassword(
-
-    userId,
-
-    currentPassword,
-
-    newPassword
-
-){
-
-
-    const user =
-
-        await User.findById(
-
-            userId
-
-        );
-
-
-
-    if(!user){
-
-
-        throw new Error(
-
-            "User not found"
-
-        );
 
     }
 
+    if (data.password) {
 
+        const validation = validatePassword(data.password);
 
-    const valid =
+        if (!validation.valid) {
 
-        await user.comparePassword(
+            throw new Error(validation.errors.join(" "));
 
-            currentPassword
-
-        );
-
-
-
-    if(!valid){
-
-
-        throw new Error(
-
-            "Current password incorrect"
-
-        );
+        }
 
     }
 
+    const user = await User.findByIdAndUpdate(
 
+        id,
 
-    user.password =
-
-        newPassword;
-
-
-
-    await user.save();
-
-
-
-    return {
-
-        success:true,
-
-
-        message:
-
-            "Password updated successfully"
-
-    };
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Assign Sites To User
-|--------------------------------------------------------------------------
-*/
-
-export async function assignSitesToUser(
-
-    userId,
-
-    siteIds=[]
-
-){
-
-
-    const sites =
-
-        await Site.find({
-
-            _id:
-
-                {
-
-                    $in:siteIds
-
-                }
-
-        });
-
-
-
-    if(
-
-        sites.length !== siteIds.length
-
-    ){
-
-
-        throw new Error(
-
-            "One or more sites are invalid"
-
-        );
-
-    }
-
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
+        data,
 
         {
 
-            assignedSites:
+            new: true,
 
-                siteIds
-
-        },
-
-
-        {
-
-            new:true
+            runValidators: true
 
         }
 
     )
 
-    .populate(
+        .populate("role")
 
-        "assignedSites"
+        .populate("assignedSites")
 
-    );
+        .select("-password");
 
-}
+    if (!user) {
 
-
-/*
-|--------------------------------------------------------------------------
-| Remove Site Assignment
-|--------------------------------------------------------------------------
-*/
-
-export async function removeSiteAssignment(
-
-    userId,
-
-    siteId
-
-){
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        {
-
-            $pull:{
-
-                assignedSites:
-
-                    siteId
-
-            }
-
-        },
-
-
-        {
-
-            new:true
-
-        }
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Activate User Account
-|--------------------------------------------------------------------------
-*/
-
-export async function activateUser(
-
-    userId
-
-){
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        {
-
-            isActive:true
-
-        },
-
-
-        {
-
-            new:true
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Deactivate User Account
-|--------------------------------------------------------------------------
-*/
-
-export async function deactivateUser(
-
-    userId
-
-){
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        {
-
-            isActive:false
-
-        },
-
-
-        {
-
-            new:true
-
-        }
-
-    );
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Soft Delete User
-|--------------------------------------------------------------------------
-*/
-
-export async function deleteUser(
-
-    userId
-
-){
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        {
-
-            isActive:false
-
-        },
-
-
-        {
-
-            new:true
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Restore User Account
-|--------------------------------------------------------------------------
-*/
-
-export async function restoreUser(
-
-    userId
-
-){
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        {
-
-            isActive:true
-
-        },
-
-
-        {
-
-            new:true
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Permanently Delete User
-|--------------------------------------------------------------------------
-*/
-
-export async function permanentlyDeleteUser(
-
-    userId
-
-){
-
-
-    return User.findByIdAndDelete(
-
-        userId
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Search Users
-|--------------------------------------------------------------------------
-*/
-
-export async function searchUsers(
-
-    keyword
-
-){
-
-
-    return User.find({
-
-        $or:[
-
-
-            {
-
-                firstName:
-
-                {
-
-                    $regex:
-
-                        keyword,
-
-                    $options:
-
-                        "i"
-
-                }
-
-            },
-
-
-            {
-
-                lastName:
-
-                {
-
-                    $regex:
-
-                        keyword,
-
-                    $options:
-
-                        "i"
-
-                }
-
-            },
-
-
-            {
-
-                email:
-
-                {
-
-                    $regex:
-
-                        keyword,
-
-                    $options:
-
-                        "i"
-
-                }
-
-            }
-
-
-        ]
-
-    })
-
-    .populate(
-
-        "role"
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Get Users By Role
-|--------------------------------------------------------------------------
-*/
-
-export async function getUsersByRole(
-
-    roleId
-
-){
-
-
-    return User.find({
-
-        role:
-
-            roleId
-
-    })
-
-    .populate(
-
-        "role"
-
-    )
-
-    .populate(
-
-        "assignedSites"
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Get Users Assigned To Site
-|--------------------------------------------------------------------------
-*/
-
-export async function getUsersBySite(
-
-    siteId
-
-){
-
-
-    return User.find({
-
-        assignedSites:
-
-            siteId
-
-    })
-
-    .populate(
-
-        "role"
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Update Last Login
-|--------------------------------------------------------------------------
-*/
-
-export async function updateLastLogin(
-
-    userId
-
-){
-
-
-    return User.findByIdAndUpdate(
-
-        userId,
-
-
-        {
-
-            lastLogin:
-
-                new Date()
-
-        },
-
-
-        {
-
-            new:true
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| User Statistics
-|--------------------------------------------------------------------------
-*/
-
-export async function getUserStatistics(){
-
-
-    const total =
-
-        await User.countDocuments();
-
-
-
-    const active =
-
-        await User.countDocuments({
-
-            isActive:true
-
-        });
-
-
-
-    const inactive =
-
-        await User.countDocuments({
-
-            isActive:false
-
-        });
-
-
-
-    return {
-
-
-        totalUsers:
-
-            total,
-
-
-        activeUsers:
-
-            active,
-
-
-        inactiveUsers:
-
-            inactive
-
-    };
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Check User Existence
-|--------------------------------------------------------------------------
-*/
-
-export async function userExists(
-
-    email
-
-){
-
-
-    const user =
-
-        await User.exists({
-
-            email
-
-        });
-
-
-
-    return Boolean(
-
-        user
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Validate User Access To Site
-|--------------------------------------------------------------------------
-*/
-
-export async function hasSiteAccess(
-
-    userId,
-
-    siteId
-
-){
-
-
-    const user =
-
-        await User.findOne({
-
-            _id:
-
-                userId,
-
-
-            assignedSites:
-
-                siteId,
-
-
-            isActive:true
-
-        });
-
-
-
-    return Boolean(
-
-        user
-
-    );
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Paginated Users
-|--------------------------------------------------------------------------
-*/
-
-export async function getPaginatedUsers({
-
-    page = 1,
-
-    limit = 20,
-
-    sortBy = "createdAt",
-
-    order = "desc",
-
-    filters = {}
-
-}) {
-
-
-    const skip =
-
-        (
-
-            page - 1
-
-        )
-
-        *
-
-        limit;
-
-
-
-    const sortOrder =
-
-        order === "asc"
-
-        ? 1
-
-        : -1;
-
-
-
-    const [
-
-        users,
-
-        total
-
-    ] = await Promise.all([
-
-
-        User.find(filters)
-
-        .populate(
-
-            "role"
-
-        )
-
-        .populate(
-
-            "assignedSites"
-
-        )
-
-        .sort({
-
-            [sortBy]:
-
-                sortOrder
-
-        })
-
-        .skip(skip)
-
-        .limit(limit),
-
-
-
-        User.countDocuments(
-
-            filters
-
-        )
-
-
-    ]);
-
-
-
-    return {
-
-
-        users,
-
-
-        pagination:{
-
-
-            total,
-
-
-            page,
-
-
-            limit,
-
-
-            totalPages:
-
-                Math.ceil(
-
-                    total / limit
-
-                )
-
-        }
-
-    };
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Bulk Activate Users
-|--------------------------------------------------------------------------
-*/
-
-export async function bulkActivateUsers(
-
-    userIds=[]
-
-){
-
-
-    return User.updateMany(
-
-        {
-
-            _id:
-
-            {
-
-                $in:
-
-                    userIds
-
-            }
-
-        },
-
-
-        {
-
-            isActive:true
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Bulk Deactivate Users
-|--------------------------------------------------------------------------
-*/
-
-export async function bulkDeactivateUsers(
-
-    userIds=[]
-
-){
-
-
-    return User.updateMany(
-
-        {
-
-            _id:
-
-            {
-
-                $in:
-
-                    userIds
-
-            }
-
-        },
-
-
-        {
-
-            isActive:false
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Bulk Delete Users
-|--------------------------------------------------------------------------
-*/
-
-export async function bulkDeleteUsers(
-
-    userIds=[]
-
-){
-
-
-    return User.updateMany(
-
-        {
-
-            _id:
-
-            {
-
-                $in:
-
-                    userIds
-
-            }
-
-        },
-
-
-        {
-
-            isActive:false
-
-        }
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Export User Data
-|--------------------------------------------------------------------------
-*/
-
-export async function exportUsers(
-
-    filters={}
-
-){
-
-
-    const users =
-
-        await User.find(
-
-            filters
-
-        )
-
-        .select(
-
-            "-password"
-
-        )
-
-        .populate(
-
-            "role"
-
-        )
-
-        .populate(
-
-            "assignedSites"
-
-        );
-
-
-
-    return users.map(
-
-        user => ({
-
-
-            id:
-
-                user._id,
-
-
-            name:
-
-                `${user.firstName} ${user.lastName}`,
-
-
-            email:
-
-                user.email,
-
-
-            phone:
-
-                user.phone,
-
-
-            role:
-
-                user.role?.name,
-
-
-            active:
-
-                user.isActive,
-
-
-            lastLogin:
-
-                user.lastLogin,
-
-
-            created:
-
-                user.createdAt
-
-
-        })
-
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Get User Permission Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function getUserPermissionSummary(
-
-    userId
-
-){
-
-
-    const user =
-
-        await User.findById(
-
-            userId
-
-        )
-
-        .populate({
-
-            path:
-
-                "role",
-
-            populate:{
-
-                path:
-
-                    "permissions"
-
-            }
-
-        });
-
-
-
-    if(!user){
-
-
-        throw new Error(
-
-            "User not found"
-
-        );
+        throw new Error("User not found.");
 
     }
 
-
-
-    return {
-
-
-        user:
-
-            user._id,
-
-
-        role:
-
-            user.role?.name,
-
-
-        permissions:
-
-            user.role?.permissions ?? []
-
-    };
+    return user;
 
 }
 
-
 /*
 |--------------------------------------------------------------------------
-| User Profile Summary
+| Delete User
 |--------------------------------------------------------------------------
 */
 
-export async function getProfileSummary(
+export async function deleteUser(id) {
 
-    userId
+    const user = await User.findById(id);
 
-){
+    if (!user) {
 
-
-    const user =
-
-        await User.findById(
-
-            userId
-
-        )
-
-        .populate(
-
-            "role"
-
-        )
-
-        .populate(
-
-            "assignedSites"
-
-        )
-
-        .select(
-
-            "-password"
-
-        );
-
-
-
-    if(!user){
-
-
-        throw new Error(
-
-            "User not found"
-
-        );
+        throw new Error("User not found.");
 
     }
 
+    await user.deleteOne();
 
-
-    return {
-
-
-        personal:{
-
-
-            firstName:
-
-                user.firstName,
-
-
-            lastName:
-
-                user.lastName,
-
-
-            email:
-
-                user.email,
-
-
-            phone:
-
-                user.phone,
-
-
-            avatar:
-
-                user.avatar
-
-
-        },
-
-
-        role:
-
-            user.role,
-
-
-        sites:
-
-            user.assignedSites,
-
-
-        activity:{
-
-
-            lastLogin:
-
-                user.lastLogin,
-
-
-            created:
-
-                user.createdAt
-
-
-        }
-
-
-    };
+    return true;
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| Activate User
+|--------------------------------------------------------------------------
+*/
+
+export async function activateUser(id) {
+
+    const user = await User.findByIdAndUpdate(
+
+        id,
+
+        {
+
+            isActive: true
+
+        },
+
+        {
+
+            new: true
+
+        }
+
+    )
+
+        .populate("role")
+
+        .populate("assignedSites")
+
+        .select("-password");
+
+    if (!user) {
+
+        throw new Error("User not found.");
+
+    }
+
+    return user;
+
+}
 
 /*
 |--------------------------------------------------------------------------
-| Default Export
+| Deactivate User
 |--------------------------------------------------------------------------
 */
+
+export async function deactivateUser(id) {
+
+    const user = await User.findByIdAndUpdate(
+
+        id,
+
+        {
+
+            isActive: false
+
+        },
+
+        {
+
+            new: true
+
+        }
+
+    )
+
+        .populate("role")
+
+        .populate("assignedSites")
+
+        .select("-password");
+
+    if (!user) {
+
+        throw new Error("User not found.");
+
+    }
+
+    return user;
+
+}
 
 export default {
 
+    getUsers,
+
+    getUser,
 
     createUser,
 
-
-    getUserByEmail,
-
-
-    getUserById,
-
-
-    getUsers,
-
-
     updateUser,
-
-
-    updateProfile,
-
-
-    changePassword,
-
-
-    assignSitesToUser,
-
-
-    removeSiteAssignment,
-
-
-    activateUser,
-
-
-    deactivateUser,
-
 
     deleteUser,
 
+    activateUser,
 
-    restoreUser,
-
-
-    permanentlyDeleteUser,
-
-
-    searchUsers,
-
-
-    getUsersByRole,
-
-
-    getUsersBySite,
-
-
-    updateLastLogin,
-
-
-    getUserStatistics,
-
-
-    userExists,
-
-
-    hasSiteAccess,
-
-
-    getPaginatedUsers,
-
-
-    bulkActivateUsers,
-
-
-    bulkDeactivateUsers,
-
-
-    bulkDeleteUsers,
-
-
-    exportUsers,
-
-
-    getUserPermissionSummary,
-
-
-    getProfileSummary
+    deactivateUser
 
 };

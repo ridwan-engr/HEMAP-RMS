@@ -1,61 +1,57 @@
 import mongoose from "mongoose";
 
-import Statistics from "../../models/Statistics.js";
+import Site from "../../models/Site.js";
+import Installation from "../../models/Installation.js";
+import Alarm from "../../models/Alarm.js";
 import Telemetry from "../../models/Telemetry.js";
-import Battery from "../../models/Battery.js";
-
 
 /*
 |--------------------------------------------------------------------------
-| Get Latest Statistics
+| Helpers
 |--------------------------------------------------------------------------
 */
 
-export async function getDashboardStatistics(siteId) {
+function buildTelemetryQuery(filters = {}) {
 
-    return await Statistics.findOne({
+    const query = {};
 
-        site: siteId
+    if (
+        typeof filters.siteId === "string" &&
+        mongoose.Types.ObjectId.isValid(filters.siteId)
+    ) {
+        query.site = filters.siteId;
+    }
 
-    })
+    return query;
 
-    .sort({
+}
 
-        timestamp: -1
+async function getLatestTelemetry(filters = {}) {
 
-    })
-
-    .populate("site");
+    return await Telemetry.findOne(
+        buildTelemetryQuery(filters)
+    )
+        .sort({
+            createdAt: -1
+        })
+        .lean();
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Daily Energy Statistics
+| Fleet Statistics
 |--------------------------------------------------------------------------
 */
 
-export async function getDailyEnergy(siteId) {
+export async function getFleetStatistics(filters = {}) {
 
-    const start = new Date();
+    const query = buildTelemetryQuery(filters);
 
-    start.setHours(0,0,0,0);
-
-    return await Telemetry.aggregate([
+    const [result] = await Telemetry.aggregate([
 
         {
-            $match: {
-
-                site: new mongoose.Types.ObjectId(siteId),
-
-                timestamp: {
-
-                    $gte: start
-
-                }
-
-            }
-
+            $match: query
         },
 
         {
@@ -64,28 +60,20 @@ export async function getDailyEnergy(siteId) {
 
                 _id: null,
 
-                solarEnergy: {
-
-                    $sum: "$solarPower"
-
+                averageSOC: {
+                    $avg: "$batterySOC"
                 },
 
-                gridEnergy: {
-
-                    $sum: "$gridPower"
-
+                renewablePercentage: {
+                    $avg: "$renewablePercentage"
                 },
 
-                generatorEnergy: {
-
-                    $sum: "$generatorPower"
-
+                totalEnergy: {
+                    $sum: "$energyGenerated"
                 },
 
-                loadEnergy: {
-
-                    $sum: "$loadPower"
-
+                generatorRuntime: {
+                    $sum: "$generatorRuntime"
                 }
 
             }
@@ -94,591 +82,15 @@ export async function getDailyEnergy(siteId) {
 
     ]);
 
-}
+    return result || {
 
-/*
-|--------------------------------------------------------------------------
-| Monthly Energy
-|--------------------------------------------------------------------------
-*/
+        averageSOC: 0,
 
-export async function getMonthlyEnergy(siteId) {
+        renewablePercentage: 0,
 
-    const start = new Date();
+        totalEnergy: 0,
 
-    start.setDate(1);
-
-    start.setHours(0,0,0,0);
-
-    return await Telemetry.aggregate([
-
-        {
-
-            $match: {
-
-                site:
-
-                    new mongoose.Types.ObjectId(siteId),
-
-                timestamp: {
-
-                    $gte: start
-
-                }
-
-            }
-
-        },
-
-        {
-
-            $group: {
-
-                _id: {
-
-                    day:
-
-                        {
-
-                            $dayOfMonth:
-
-                                "$timestamp"
-
-                        }
-
-                },
-
-                solar: {
-
-                    $sum:
-
-                        "$solarPower"
-
-                },
-
-                grid: {
-
-                    $sum:
-
-                        "$gridPower"
-
-                },
-
-                generator: {
-
-                    $sum:
-
-                        "$generatorPower"
-
-                },
-
-                load: {
-
-                    $sum:
-
-                        "$loadPower"
-
-                }
-
-            }
-
-        },
-
-        {
-
-            $sort: {
-
-                "_id.day":1
-
-            }
-
-        }
-
-    ]);
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Peak Demand
-|--------------------------------------------------------------------------
-*/
-
-export async function getPeakDemand(siteId) {
-
-    const record =
-
-        await Telemetry.findOne({
-
-            site: siteId
-
-        })
-
-        .sort({
-
-            loadPower:-1
-
-        });
-
-    if(!record){
-
-        return null;
-
-    }
-
-    return{
-
-        peakDemand:
-
-            record.loadPower,
-
-        timestamp:
-
-            record.timestamp
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Average Demand
-|--------------------------------------------------------------------------
-*/
-
-export async function getAverageDemand(siteId){
-
-    const result=
-
-        await Telemetry.aggregate([
-
-        {
-
-            $match:{
-
-                site:
-
-                    new mongoose.Types.ObjectId(siteId)
-
-            }
-
-        },
-
-        {
-
-            $group:{
-
-                _id:null,
-
-                averageLoad:{
-
-                    $avg:
-
-                        "$loadPower"
-
-                }
-
-            }
-
-        }
-
-    ]);
-
-    return{
-
-        averageDemand:
-
-            result[0]?.averageLoad || 0
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Renewable Fraction
-|--------------------------------------------------------------------------
-*/
-
-export async function getRenewableFraction(siteId){
-
-    const latest=
-
-        await Telemetry.findOne({
-
-            site:siteId
-
-        })
-
-        .sort({
-
-            timestamp:-1
-
-        });
-
-    if(!latest){
-
-        return null;
-
-    }
-
-    const renewable=
-
-        latest.solarPower ??0;
-
-    const total=
-
-        renewable+
-
-        (latest.gridPower??0)+
-
-        (latest.generatorPower??0);
-
-    return{
-
-        renewableFraction:
-
-            total>0
-
-            ?Number(
-
-                (
-
-                    renewable/
-
-                    total
-
-                ).toFixed(3)
-
-            )
-
-            :0
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Generator Runtime Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function getGeneratorRuntimeSummary(siteId){
-
-    const running=
-
-        await Telemetry.countDocuments({
-
-            site:siteId,
-
-            generatorPower:{
-
-                $gt:0
-
-            }
-
-        });
-
-    return{
-
-        samplesRunning:
-
-            running
-
-    };
-
-}
-/*
-|--------------------------------------------------------------------------
-| Battery KPIs
-|--------------------------------------------------------------------------
-*/
-
-export async function getBatteryKPIs(siteId) {
-
-    const battery = await Battery.findOne({
-
-        site: siteId
-
-    });
-
-    const latest = await Telemetry.findOne({
-
-        site: siteId
-
-    }).sort({
-
-        timestamp: -1
-
-    });
-
-    if (!battery || !latest) {
-
-        return null;
-
-    }
-
-    return {
-
-        soc: latest.batterySOC ?? 0,
-
-        voltage: latest.batteryVoltage ?? 0,
-
-        current: latest.batteryCurrent ?? 0,
-
-        power: latest.batteryPower ?? 0,
-
-        capacity: battery.capacity ?? 0
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Power Balance
-|--------------------------------------------------------------------------
-*/
-
-export async function getPowerBalance(siteId) {
-
-    const latest = await Telemetry.findOne({
-
-        site: siteId
-
-    }).sort({
-
-        timestamp: -1
-
-    });
-
-    if (!latest) {
-
-        return null;
-
-    }
-
-    const generation =
-
-        (latest.solarPower ?? 0) +
-
-        (latest.generatorPower ?? 0) +
-
-        (latest.gridPower ?? 0);
-
-    const demand =
-
-        latest.loadPower ?? 0;
-
-    return {
-
-        generation,
-
-        demand,
-
-        surplus:
-
-            generation - demand
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Load Profile
-|--------------------------------------------------------------------------
-*/
-
-export async function getLoadProfile(
-
-    siteId,
-
-    hours = 24
-
-) {
-
-    const start = new Date();
-
-    start.setHours(
-
-        start.getHours() - hours
-
-    );
-
-    return await Telemetry.find({
-
-        site: siteId,
-
-        timestamp: {
-
-            $gte: start
-
-        }
-
-    })
-
-    .select(
-
-        "timestamp loadPower"
-
-    )
-
-    .sort({
-
-        timestamp: 1
-
-    });
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Energy Mix
-|--------------------------------------------------------------------------
-*/
-
-export async function getEnergyMix(siteId) {
-
-    const latest = await Telemetry.findOne({
-
-        site: siteId
-
-    }).sort({
-
-        timestamp: -1
-
-    });
-
-    if (!latest) {
-
-        return null;
-
-    }
-
-    return {
-
-        solar: latest.solarPower ?? 0,
-
-        grid: latest.gridPower ?? 0,
-
-        generator: latest.generatorPower ?? 0,
-
-        battery: latest.batteryPower ?? 0
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Overall System Efficiency
-|--------------------------------------------------------------------------
-*/
-
-export async function calculateSystemEfficiency(siteId) {
-
-    const latest = await Telemetry.findOne({
-
-        site: siteId
-
-    }).sort({
-
-        timestamp: -1
-
-    });
-
-    if (!latest) {
-
-        return null;
-
-    }
-
-    const input =
-
-        (latest.solarPower ?? 0) +
-
-        (latest.gridPower ?? 0) +
-
-        (latest.generatorPower ?? 0);
-
-    const output =
-
-        latest.loadPower ?? 0;
-
-    return {
-
-        efficiency:
-
-            input > 0
-
-                ? Number(
-
-                    (
-
-                        output /
-
-                        input
-
-                    ).toFixed(3)
-
-                )
-
-                : 0
-
-    };
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Estimated Carbon Reduction
-|--------------------------------------------------------------------------
-*/
-
-export async function calculateCarbonReduction(siteId) {
-
-    const latest = await Telemetry.findOne({
-
-        site: siteId
-
-    }).sort({
-
-        timestamp: -1
-
-    });
-
-    if (!latest) {
-
-        return null;
-
-    }
-
-    /*
-        Approximation using
-        0.7 kg CO₂/kWh grid factor.
-    */
-
-    const renewable =
-
-        latest.solarPower ?? 0;
-
-    const savedKg =
-
-        renewable *
-
-        0.7 /
-
-        1000;
-
-    return {
-
-        renewablePower: renewable,
-
-        estimatedCO2SavedKg:
-
-            Number(savedKg.toFixed(3))
+        generatorRuntime: 0
 
     };
 
@@ -690,69 +102,75 @@ export async function calculateCarbonReduction(siteId) {
 |--------------------------------------------------------------------------
 */
 
-export async function buildDashboardStatistics(siteId) {
+export async function getDashboardStatistics(filters = {}) {
 
     const [
 
-        latest,
+        totalSites,
 
-        battery,
+        activeSites,
 
-        powerBalance,
+        totalInstallations,
 
-        energyMix,
+        activeAlarms,
 
-        renewable,
+        latestTelemetry,
 
-        efficiency,
-
-        carbon,
-
-        peak,
-
-        average
+        fleet
 
     ] = await Promise.all([
 
-        getDashboardStatistics(siteId),
+        Site.countDocuments(),
 
-        getBatteryKPIs(siteId),
+        Site.countDocuments({
+            status: "ACTIVE"
+        }),
 
-        getPowerBalance(siteId),
+        Installation.countDocuments(),
 
-        getEnergyMix(siteId),
+        Alarm.countDocuments({
+            status: "ACTIVE"
+        }),
 
-        getRenewableFraction(siteId),
+        getLatestTelemetry(filters),
 
-        calculateSystemEfficiency(siteId),
-
-        calculateCarbonReduction(siteId),
-
-        getPeakDemand(siteId),
-
-        getAverageDemand(siteId)
+        getFleetStatistics(filters)
 
     ]);
 
     return {
 
-        latest,
+        totalSites,
 
-        battery,
+        activeSites,
 
-        powerBalance,
+        offlineSites:
 
-        energyMix,
+            Math.max(
+                totalSites - activeSites,
+                0
+            ),
 
-        renewable,
+        totalInstallations,
 
-        efficiency,
+        activeAlarms,
 
-        carbon,
+        energyGenerated:
+            fleet.totalEnergy,
 
-        peak,
+        renewablePercentage:
+            fleet.renewablePercentage,
 
-        average
+        averageSOC:
+            fleet.averageSOC,
+
+        generatorRuntime:
+            fleet.generatorRuntime,
+
+        latestTelemetry,
+
+        timestamp:
+            new Date()
 
     };
 
@@ -760,91 +178,257 @@ export async function buildDashboardStatistics(siteId) {
 
 /*
 |--------------------------------------------------------------------------
-| Save Statistics Snapshot
+| Energy Statistics
 |--------------------------------------------------------------------------
 */
 
-export async function saveStatisticsSnapshot(
+export async function getEnergyStatistics(filters = {}) {
 
-    siteId
+    const telemetry =
+        await getLatestTelemetry(filters);
 
-) {
+    return {
 
-    const dashboard =
+        solar:
+            telemetry?.solarPower ?? 0,
 
-        await buildDashboardStatistics(
+        battery:
+            telemetry?.batteryPower ?? 0,
 
-            siteId
+        grid:
+            telemetry?.gridPower ?? 0,
 
-        );
+        generator:
+            telemetry?.generatorPower ?? 0,
 
-    return await Statistics.create({
+        load:
+            telemetry?.loadPower ?? 0,
 
-        site: siteId,
+        totalEnergy:
+            telemetry?.energyGenerated ?? 0,
 
-        period: "DAILY",
+        renewablePercentage:
+            telemetry?.renewablePercentage ?? 0
 
-        timestamp: new Date(),
-
-        renewableFraction:
-
-            dashboard.renewable
-
-                ?.renewableFraction ?? 0,
-
-        batteryEfficiency:
-
-            dashboard.efficiency
-
-                ?.efficiency ?? 0,
-
-        ens: 0,
-
-        lolp: 0,
-
-        resilience: 0
-
-    });
+    };
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard Wrapper
+| Battery Statistics
 |--------------------------------------------------------------------------
 */
+
+export async function getBatteryStatistics(filters = {}) {
+
+    const telemetry =
+        await getLatestTelemetry(filters);
+
+    return {
+
+        soc:
+            telemetry?.batterySOC ?? 0,
+
+        voltage:
+            telemetry?.batteryVoltage ?? 0,
+
+        current:
+            telemetry?.batteryCurrent ?? 0,
+
+        temperature:
+            telemetry?.batteryTemperature ?? 0,
+
+        health:
+            telemetry?.batteryHealth ?? 0
+
+    };
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Solar Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getSolarStatistics(filters = {}) {
+
+    const telemetry =
+        await getLatestTelemetry(filters);
+
+    return {
+
+        power:
+            telemetry?.solarPower ?? 0,
+
+        voltage:
+            telemetry?.solarVoltage ?? 0,
+
+        current:
+            telemetry?.solarCurrent ?? 0,
+
+        irradiance:
+            telemetry?.irradiance ?? 0,
+
+        efficiency:
+            telemetry?.solarEfficiency ?? 0
+
+    };
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Generator Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getGeneratorStatistics(filters = {}) {
+
+    const telemetry =
+        await getLatestTelemetry(filters);
+
+    return {
+
+        status:
+            telemetry?.generatorStatus ?? "OFF",
+
+        runtime:
+            telemetry?.generatorRuntime ?? 0,
+
+        fuelLevel:
+            telemetry?.fuelLevel ?? 0,
+
+        power:
+            telemetry?.generatorPower ?? 0
+
+    };
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Grid Statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getGridStatistics(filters = {}) {
+
+    const telemetry =
+        await getLatestTelemetry(filters);
+
+    return {
+
+        status:
+            telemetry?.gridStatus ?? "UNKNOWN",
+
+        voltage:
+            telemetry?.gridVoltage ?? 0,
+
+        current:
+            telemetry?.gridCurrent ?? 0,
+
+        frequency:
+            telemetry?.gridFrequency ?? 0,
+
+        power:
+            telemetry?.gridPower ?? 0
+
+    };
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard KPIs
+|--------------------------------------------------------------------------
+*/
+
+export async function getKPIs(filters = {}) {
+
+    const dashboard =
+        await getDashboardStatistics(filters);
+
+    return {
+
+        totalSites:
+            dashboard.totalSites,
+
+        activeSites:
+            dashboard.activeSites,
+
+        offlineSites:
+            dashboard.offlineSites,
+
+        activeAlarms:
+            dashboard.activeAlarms,
+
+        renewablePercentage:
+            dashboard.renewablePercentage,
+
+        averageSOC:
+            dashboard.averageSOC
+
+    };
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Site Locations
+|--------------------------------------------------------------------------
+*/
+
+export async function getSiteLocations() {
+
+    const sites = await Site.find()
+
+        .select(
+            "name latitude longitude status"
+        )
+
+        .lean();
+
+    return sites.map(site => ({
+
+        id:
+            site._id,
+
+        name:
+            site.name,
+
+        latitude:
+            site.latitude,
+
+        longitude:
+            site.longitude,
+
+        status:
+            site.status
+
+    }));
+
+}
 
 export default {
 
     getDashboardStatistics,
 
-    getDailyEnergy,
+    getFleetStatistics,
 
-    getMonthlyEnergy,
+    getEnergyStatistics,
 
-    getPeakDemand,
+    getBatteryStatistics,
 
-    getAverageDemand,
+    getSolarStatistics,
 
-    getRenewableFraction,
+    getGeneratorStatistics,
 
-    getGeneratorRuntimeSummary,
+    getGridStatistics,
 
-    getBatteryKPIs,
+    getKPIs,
 
-    getPowerBalance,
-
-    getLoadProfile,
-
-    getEnergyMix,
-
-    calculateSystemEfficiency,
-
-    calculateCarbonReduction,
-
-    buildDashboardStatistics,
-
-    saveStatisticsSnapshot,
-
+    getSiteLocations
 
 };

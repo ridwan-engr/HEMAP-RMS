@@ -2,15 +2,17 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schemas
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
-    .hex()
-    .required();
+
+    .hex();
 
 /*
 |--------------------------------------------------------------------------
@@ -20,20 +22,23 @@ export const objectIdSchema = Joi.string()
 
 export const dashboardQuerySchema = Joi.object({
 
-    siteId: Joi.string()
-        .hex()
-        .length(24)
-        .optional(),
+    siteId: objectId.optional(),
 
-    installationId: Joi.string()
-        .hex()
-        .length(24)
-        .optional(),
+    installationId: objectId.optional(),
 
-    startDate: Joi.date(),
+    startDate: Joi.date()
+
+        .iso()
+
+        .optional(),
 
     endDate: Joi.date()
-        .min(Joi.ref("startDate")),
+
+        .iso()
+
+        .min(Joi.ref("startDate"))
+
+        .optional(),
 
     interval: Joi.string()
 
@@ -63,10 +68,7 @@ export const dashboardQuerySchema = Joi.object({
 
 export const dashboardCardSchema = Joi.object({
 
-    siteId: Joi.string()
-        .hex()
-        .length(24)
-        .optional(),
+    siteId: objectId.optional(),
 
     includeFinancial: Joi.boolean()
 
@@ -84,21 +86,25 @@ export const dashboardCardSchema = Joi.object({
 
 /*
 |--------------------------------------------------------------------------
-| KPI Request
+| KPI Query
 |--------------------------------------------------------------------------
 */
 
 export const kpiSchema = Joi.object({
 
-    siteId: Joi.string()
-        .hex()
-        .length(24)
-        .optional(),
+    siteId: objectId.optional(),
+
+    installationId: objectId.optional(),
 
     startDate: Joi.date()
+
+        .iso()
+
         .required(),
 
     endDate: Joi.date()
+
+        .iso()
 
         .min(Joi.ref("startDate"))
 
@@ -150,7 +156,7 @@ export const executiveDashboardSchema = Joi.object({
 
 /*
 |--------------------------------------------------------------------------
-| Map View
+| Dashboard Map
 |--------------------------------------------------------------------------
 */
 
@@ -176,13 +182,13 @@ export const mapViewSchema = Joi.object({
 
         .valid(
 
-            "Active",
+            "ACTIVE",
 
-            "Inactive",
+            "INACTIVE",
 
-            "Maintenance",
+            "MAINTENANCE",
 
-            "Fault"
+            "FAULT"
 
         )
 
@@ -192,7 +198,7 @@ export const mapViewSchema = Joi.object({
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard Refresh
+| Refresh Dashboard
 |--------------------------------------------------------------------------
 */
 
@@ -204,20 +210,24 @@ export const refreshDashboardSchema = Joi.object({
 
 });
 
+/*
+|--------------------------------------------------------------------------
+| Default Export
+|--------------------------------------------------------------------------
+*/
+
 export default {
-
-    objectIdSchema,
-
-    refreshDashboardSchema,
 
     dashboardQuerySchema,
 
     dashboardCardSchema,
 
-    kpiSchema,
-
     executiveDashboardSchema,
 
-    mapViewSchema
+    kpiSchema,
+
+    mapViewSchema,
+
+    refreshDashboardSchema
 
 };

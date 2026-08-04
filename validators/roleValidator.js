@@ -2,15 +2,99 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schemas
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
-    .hex()
-    .required();
+
+    .hex();
+
+/*
+|--------------------------------------------------------------------------
+| Permission
+|--------------------------------------------------------------------------
+*/
+
+const permission = Joi.string()
+
+    .trim()
+
+    .min(3)
+
+    .max(100);
+
+/*
+|--------------------------------------------------------------------------
+| Role ID
+|--------------------------------------------------------------------------
+*/
+
+export const roleIdValidator = Joi.object({
+
+    id: objectId.required()
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Role Query
+|--------------------------------------------------------------------------
+*/
+
+export const roleQueryValidator = Joi.object({
+
+    name: Joi.string()
+
+        .trim()
+
+        .optional(),
+
+    permission: Joi.string()
+
+        .trim()
+
+        .optional(),
+
+    page: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .default(1),
+
+    limit: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .max(100)
+
+        .default(20),
+
+    sort: Joi.string()
+
+        .valid(
+
+            "name",
+
+            "-name",
+
+            "createdAt",
+
+            "-createdAt"
+
+        )
+
+        .default("name")
+
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -18,35 +102,37 @@ export const objectIdSchema = Joi.string()
 |--------------------------------------------------------------------------
 */
 
-export const createRoleSchema = Joi.object({
+export const createRoleValidator = Joi.object({
 
     name: Joi.string()
-        .trim()
-        .min(2)
-        .max(50)
-        .required(),
 
-    displayName: Joi.string()
         .trim()
+
+        .uppercase()
+
+        .pattern(/^[A-Z_]+$/)
+
         .min(2)
-        .max(100)
+
+        .max(50)
+
         .required(),
 
     description: Joi.string()
+
         .trim()
-        .max(500)
+
         .allow("")
-        .optional(),
+
+        .default(""),
 
     permissions: Joi.array()
-        .items(Joi.string().trim())
-        .default([]),
 
-    isSystem: Joi.boolean()
-        .default(false),
+        .items(permission)
 
-    isActive: Joi.boolean()
-        .default(true)
+        .unique()
+
+        .default([])
 
 });
 
@@ -56,96 +142,54 @@ export const createRoleSchema = Joi.object({
 |--------------------------------------------------------------------------
 */
 
-export const updateRoleSchema = Joi.object({
+export const updateRoleValidator = Joi.object({
 
-    displayName: Joi.string()
+    name: Joi.string()
+
         .trim()
+
+        .uppercase()
+
+        .pattern(/^[A-Z_]+$/)
+
         .min(2)
-        .max(100),
+
+        .max(50)
+
+        .optional(),
 
     description: Joi.string()
+
         .trim()
-        .max(500)
-        .allow(""),
+
+        .allow("")
+
+        .optional(),
 
     permissions: Joi.array()
-        .items(Joi.string().trim()),
 
-    isActive: Joi.boolean()
+        .items(permission)
+
+        .unique()
+
+        .optional()
 
 }).min(1);
 
 /*
 |--------------------------------------------------------------------------
-| Assign Permissions
+| Default Export
 |--------------------------------------------------------------------------
 */
-
-export const permissionsSchema = Joi.object({
-
-    permissions: Joi.array()
-        .items(Joi.string().trim())
-        .min(1)
-        .required()
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Role Parameters
-|--------------------------------------------------------------------------
-*/
-
-export const roleIdSchema = Joi.object({
-
-    roleId: objectIdSchema
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Pagination / Search
-|--------------------------------------------------------------------------
-*/
-
-export const roleQuerySchema = Joi.object({
-
-    page: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
-
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(100)
-        .default(20),
-
-    search: Joi.string()
-        .trim()
-        .allow(""),
-
-    sortBy: Joi.string()
-        .default("createdAt"),
-
-    order: Joi.string()
-        .valid("asc", "desc")
-        .default("desc"),
-
-    isActive: Joi.boolean()
-
-});
 
 export default {
 
-    createRoleSchema,
+    roleIdValidator,
 
-    updateRoleSchema,
+    roleQueryValidator,
 
-    permissionsSchema,
+    createRoleValidator,
 
-    roleIdSchema,
-
-    roleQuerySchema
+    updateRoleValidator
 
 };

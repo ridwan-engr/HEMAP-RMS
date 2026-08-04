@@ -1,55 +1,157 @@
-import cron from "node-cron";
+import Site from "../models/Site.js";
 
-import optimizationService
-from "../services/analytics/optimizationService.js";
+import * as optimizationService from "../services/analytics/optimizationService.js";
 
 import logger from "../utils/logger.js";
 
-async function runOptimization() {
+import {
+    emitAnalytics
+} from "../websocket/eventEmitters.js";
 
-    try {
+/*
+|--------------------------------------------------------------------------
+| Optimization Scheduler
+|--------------------------------------------------------------------------
+*/
 
-        logger.info(
-            "Optimization scheduler started."
-        );
+export async function runOptimizationScheduler() {
 
-        const result =
+    const started = Date.now();
 
-            await optimizationService
-                .optimizeWithForecast();
+    let processed = 0;
 
-        logger.info(
-            "Optimization completed.",
-            result
-        );
+    let successful = 0;
 
-    }
+    let failed = 0;
 
-    catch (error) {
+    const sites = await Site.find({
 
-        logger.error(
-            "Optimization scheduler failed.",
-            error
-        );
+        status: "ACTIVE"
 
-    }
+    }).select("_id name");
 
-}
+    for (const site of sites) {
 
-export default function startOptimizationScheduler() {
+        processed++;
 
-    cron.schedule(
+        try {
 
-        "*/15 * * * *",
+            const optimization =
 
-        runOptimization,
+                await optimizationService.optimizeWithForecast(
 
-        {
+                    site._id.toString()
 
-            timezone: "Africa/Lagos"
+                );
+
+            /*
+            ------------------------------------------------------
+            Save Optimization Result
+            ------------------------------------------------------
+            */
+
+            await optimizationService.saveOptimizationResult(
+
+                site._id,
+
+                optimization
+
+            );
+
+            /*
+            ------------------------------------------------------
+            Notify Dashboard
+            ------------------------------------------------------
+            */
+
+            emitAnalytics(
+
+                site._id.toString(),
+
+                {
+
+                    module: "optimization",
+
+                    optimization
+
+                }
+
+            );
+
+            successful++;
+
+            logger.info({
+
+                message:
+
+                    "Optimization completed.",
+
+                siteId:
+
+                    site._id,
+
+                site:
+
+                    site.name
+
+            });
 
         }
 
-    );
+        catch (error) {
+
+            failed++;
+
+            logger.error({
+
+                message:
+
+                    "Optimization Scheduler Failed.",
+
+                siteId:
+
+                    site._id,
+
+                error:
+
+                    error.message
+
+            });
+
+        }
+
+    }
+
+    const summary = {
+
+        processed,
+
+        successful,
+
+        failed,
+
+        duration:
+
+            Date.now() - started
+
+    };
+
+    logger.info({
+
+        message:
+
+            "Optimization Scheduler Completed.",
+
+        ...summary
+
+    });
+
+    return summary;
 
 }
+
+export default {
+
+    runOptimizationScheduler
+
+};

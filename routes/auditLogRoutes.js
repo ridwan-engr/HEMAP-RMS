@@ -1,85 +1,100 @@
 import { Router } from "express";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import auditLogController from "../controllers/auditLogController.js";
+
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
+import validate from "../middlewares/validate.js";
 
 import {
-
-    createAuditLog,
-
-    getAuditLogs,
-
-    getAuditLog,
-
-    updateAuditLog,
-
-    deleteAuditLog,
-
-    getAuditSummary,
-
-    getAuditStatistics
-
-} from "../controllers/auditLogController.js";
+    auditLogQuerySchema,
+    auditLogIdSchema,
+    createAuditLogSchema
+} from "../validators/auditLogValidator.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Audit Logs
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Get Audit Logs
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/",
+    authorize("ADMIN"),
+    validate({
+        query: auditLogQuerySchema
+    }),
+    auditLogController.getAuditLogs
+);
+
+/*
+|--------------------------------------------------------------------------
+| Export Audit Logs
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/export",
+    authorize("ADMIN"),
+    validate({
+        query: auditLogQuerySchema
+    }),
+    auditLogController.exportAuditLogs
+);
+
+/*
+|--------------------------------------------------------------------------
+| Get Audit Log
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:auditLogId",
+    authorize("ADMIN"),
+    validate({
+        params: auditLogIdSchema
+    }),
+    auditLogController.getAuditLogById
+);
+
+/*
+|--------------------------------------------------------------------------
+| Create Audit Log
 |--------------------------------------------------------------------------
 */
 
 router.post(
     "/",
-    authenticate,
-    authorize("Administrator"),
-    createAuditLog
+    authorize("ADMIN"),
+    validate({
+        body: createAuditLogSchema
+    }),
+    auditLogController.createAuditLog
 );
 
-router.get(
-    "/",
-    authenticate,
-    authorize("Administrator"),
-    getAuditLogs
-);
-
-router.get(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
-    getAuditLog
-);
-
-router.patch(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
-    updateAuditLog
-);
+/*
+|--------------------------------------------------------------------------
+| Delete Audit Log
+|--------------------------------------------------------------------------
+*/
 
 router.delete(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
-    deleteAuditLog
-);
-
-router.get(
-
-    "/summary",
-    authenticate,
-    authorize("Administrator"),
-    getAuditSummary
-
-);
-
-router.get(
-
-    "/statistics",
-    authenticate,
-    authorize("Administrator"),
-    getAuditStatistics
-
+    "/:auditLogId",
+    authorize("ADMIN"),
+    validate({
+        params: auditLogIdSchema
+    }),
+    auditLogController.deleteAuditLog
 );
 
 export default router;

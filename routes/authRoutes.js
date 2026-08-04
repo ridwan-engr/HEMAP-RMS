@@ -3,8 +3,10 @@ import { Router } from "express";
 import * as authController from "../controllers/authController.js";
 
 // Middleware
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import authenticate from "../middlewares/auth.js";
+
+import authorize from "../middlewares/authorize.js";
+
 import validate from "../middlewares/validate.js";
 
 // Validation
@@ -32,57 +34,75 @@ const router = Router();
 
 router.post(
     "/register",
-    validate(registerValidator),
+    validate({
+        body: registerValidator
+    }),
     authController.register
 );
 
 router.post(
     "/login",
-    validate(loginValidator),
+    validate({
+        body: loginValidator
+    }),
     authController.login
 );
 
-router.post(
-    "/refresh-token",
-    authController.refreshToken
-);
+
 
 router.post(
     "/forgot-password",
-    validate(forgotPasswordValidator),
+    validate({
+        body: forgotPasswordValidator
+    }),
     authController.forgotPassword
 );
 
 router.post(
     "/reset-password",
-    validate(resetPasswordValidator),
+    validate({
+        body: resetPasswordValidator
+    }),
     authController.resetPassword
 );
+
+router.post(
+
+    "/refresh-token",
+
+    authController.refreshToken
+
+);
+
 /*
 |--------------------------------------------------------------------------
 | Protected Routes
 |--------------------------------------------------------------------------
 */
 
-// Logout
+
 router.post(
+
     "/logout",
+
     authenticate,
+
     authController.logout
 );
 
-// Current User
+
 router.get(
     "/me",
     authenticate,
     authController.getCurrentUser
 );
 
-// Change Password
 router.put(
     "/change-password",
     authenticate,
-    validate(changePasswordValidator),
+    validate({
+        body: changePasswordValidator
+    }),
     authController.changePassword
 );
 
@@ -92,20 +112,30 @@ router.put(
 |--------------------------------------------------------------------------
 */
 
-// Get Active Sessions
+
 router.get(
+
     "/sessions",
+
     authenticate,
-    authorize("admin"),
+
+    authorize("ADMIN"),
+
     authController.getActiveSessions
+
 );
 
-// Revoke Session
+
 router.delete(
+
     "/sessions/:sessionId",
+
     authenticate,
-    authorize("admin"),
+
+    authorize("ADMIN"),
+
     authController.revokeSession
+    
 );
 
 export default router;

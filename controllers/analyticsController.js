@@ -1,1575 +1,247 @@
-import * as statisticsService from "../services/analytics/statisticsService.js";
-import * as forecastService from "../services/analytics/forecastService.js";
-import * as optimizationService from "../services/analytics/optimizationService.js";
-import * as reliabilityService from "../services/analytics/reliabilityService.js";
-import * as insightsService from "../services/analytics/insightsService.js";
-import * as reportService from "../services/reports/reportService.js";
-import * as Analytics from "../models/Analytics.js";
-/*
-|--------------------------------------------------------------------------
-| Analytics Dashboard
-|--------------------------------------------------------------------------
-*/
+import asyncHandler from "../utils/asyncHandler.js";
 
-export async function analyticsDashboard(
-
-    req,
-
-    res,
-
-    next
-
-) {
-
-    try {
-
-        const {
-
-            site,
-
-            period,
-
-            startDate,
-
-            endDate
-
-        } = req.query;
-
-        let analytics = await findCachedAnalytics(
-
-            site,
-
-            period,
-
-            startDate,
-
-            endDate
-
-        );
-
-        if (!analytics) {
-
-            analytics = await buildAnalytics({
-
-                site,
-
-                period,
-
-                startDate,
-
-                endDate
-
-            });
-
-        }
-
-        return res.json({
-
-            success: true,
-
-            cached: !!analytics,
-
-            data: analytics
-
-        });
-
-    }
-
-    catch (error) {
-
-        next(error);
-
-    }
-}
-/*
-|--------------------------------------------------------------------------
-| Energy Statistics
-|--------------------------------------------------------------------------
-*/
-
-export async function energyStatistics(req, res) {
-
-    try {
-
-        const statistics =
-            await statisticsService.getEnergyStatistics(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: statistics
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Power Flow Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function powerFlowSummary(req, res) {
-
-    try {
-
-        const summary =
-            await statisticsService.getPowerFlowSummary(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: summary
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Renewable Energy Penetration
-|--------------------------------------------------------------------------
-*/
-
-export async function renewablePenetration(req, res) {
-
-    try {
-
-        const penetration =
-            await statisticsService.getRenewablePenetration(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: penetration
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Carbon Savings
-|--------------------------------------------------------------------------
-*/
-
-export async function carbonSavings(req, res) {
-
-    try {
-
-        const carbon =
-            await statisticsService.getCarbonSavings(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: carbon
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Fuel Savings
-|--------------------------------------------------------------------------
-*/
-
-export async function fuelSavings(req, res) {
-
-    try {
-
-        const savings =
-            await statisticsService.getFuelSavings(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: savings
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| System Efficiency
-|--------------------------------------------------------------------------
-*/
-
-export async function systemEfficiency(req, res) {
-
-    try {
-
-        const efficiency =
-            await statisticsService.getSystemEfficiency(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: efficiency
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Energy Forecast
-|--------------------------------------------------------------------------
-*/
-
-export async function energyForecast(req, res) {
-
-    try {
-
-        const forecast =
-            await forecastService.generateEnergyForecast({
-
-                siteId: req.body.siteId,
-
-                horizon: req.body.horizon || "24h",
-
-                interval: req.body.interval || "1h"
-
-            });
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: forecast
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
+import * as analyticsService from "../services/analytics/analyticsService.js";
 
 /*
 |--------------------------------------------------------------------------
-| Solar Forecast
+| Dashboard Analytics
 |--------------------------------------------------------------------------
 */
 
-export async function solarForecast(req, res) {
+export const getDashboardAnalytics = asyncHandler(async (req, res) => {
 
-    try {
+    const data = await analyticsService.getDashboardAnalytics(req.query);
 
-        const forecast =
-            await forecastService.generateSolarForecast(req.body);
+    return res.status(200).json({
 
-        return res.status(200).json({
+        success: true,
 
-            success: true,
+        message: "Dashboard analytics retrieved successfully.",
 
-            data: forecast
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Load Forecast
-|--------------------------------------------------------------------------
-*/
-
-export async function loadForecast(req, res) {
-
-    try {
-
-        const forecast =
-            await forecastService.generateLoadForecast(req.body);
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: forecast
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Battery Forecast
-|--------------------------------------------------------------------------
-*/
-
-export async function batteryForecast(req, res) {
-
-    try {
-
-        const forecast =
-            await forecastService.generateBatteryForecast(req.body);
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: forecast
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Weather Forecast
-|--------------------------------------------------------------------------
-*/
-
-export async function weatherForecast(req, res) {
-
-    try {
-
-        const forecast =
-            await forecastService.generateWeatherForecast(req.body);
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: forecast
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Energy Optimization
-|--------------------------------------------------------------------------
-*/
-
-export async function optimizeEnergy(req, res) {
-
-    try {
-
-        const result =
-            await optimizationService.optimizeEnergySystem(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: result
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Generator Dispatch Optimization
-|--------------------------------------------------------------------------
-*/
-
-export async function optimizeGeneratorDispatch(req, res) {
-
-    try {
-
-        const dispatch =
-            await optimizationService.optimizeGeneratorDispatch(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: dispatch
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Battery Optimization
-|--------------------------------------------------------------------------
-*/
-
-export async function optimizeBattery(req, res) {
-
-    try {
-
-        const optimization =
-            await optimizationService.optimizeBatteryOperation(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: optimization
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Grid Optimization
-|--------------------------------------------------------------------------
-*/
-
-export async function optimizeGrid(req, res) {
-
-    try {
-
-        const optimization =
-            await optimizationService.optimizeGridUsage(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: optimization
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Hybrid Dispatch Optimization
-|--------------------------------------------------------------------------
-*/
-
-export async function optimizeHybridDispatch(req, res) {
-
-    try {
-
-        const result =
-            await optimizationService.optimizeHybridDispatch(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: result
-
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Reliability Dashboard
-|--------------------------------------------------------------------------
-*/
-
-export async function reliabilityDashboard(req, res) {
-
-    try {
-
-        const dashboard =
-            await reliabilityService.getReliabilityDashboard(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: dashboard
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Reliability Indices
-|--------------------------------------------------------------------------
-*/
-
-export async function reliabilityIndices(req, res) {
-
-    try {
-
-        const indices =
-            await reliabilityService.calculateReliabilityIndices(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: indices
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Battery Health
-|--------------------------------------------------------------------------
-*/
-
-export async function batteryHealth(req, res) {
-
-    try {
-
-        const report =
-            await statisticsService.getBatteryHealth(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: report
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Solar Performance
-|--------------------------------------------------------------------------
-*/
-
-export async function solarPerformance(req, res) {
-
-    try {
-
-        const report =
-            await statisticsService.getSolarPerformance(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: report
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Generator Efficiency
-|--------------------------------------------------------------------------
-*/
-
-export async function generatorEfficiency(req, res) {
-
-    try {
-
-        const report =
-            await statisticsService.getGeneratorEfficiency(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: report
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Power Quality Analytics
-|--------------------------------------------------------------------------
-*/
-
-export async function powerQuality(req, res) {
-
-    try {
-
-        const report =
-            await statisticsService.getPowerQuality(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: report
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Financial Analytics
-|--------------------------------------------------------------------------
-*/
-
-export async function financialAnalytics(req, res) {
-
-    try {
-
-        const report =
-            await statisticsService.getFinancialAnalytics(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: report
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Maintenance Analytics
-|--------------------------------------------------------------------------
-*/
-
-export async function maintenanceAnalytics(req, res) {
-
-    try {
-
-        const report =
-            await statisticsService.getMaintenanceAnalytics(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: report
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| AI Operational Insights
-|--------------------------------------------------------------------------
-*/
-
-export async function operationalInsights(req, res) {
-
-    try {
-
-        const insights =
-            await insightsService.generateOperationalInsights(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: insights
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Asset Risk Assessment
-|--------------------------------------------------------------------------
-*/
-
-export async function assetRiskAssessment(req, res) {
-
-    try {
-
-        const assessment =
-            await reliabilityService.assessAssetRisk(req.body);
-
-        return res.status(200).json({
-            success: true,
-            data: assessment
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Generate Analytics Report
-|--------------------------------------------------------------------------
-*/
-
-export async function generateReport(req, res) {
-
-    try {
-
-        const report =
-            await reportService.generateAnalyticsReport(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: report
-
-        });
-
-    }
-
-    catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Export Report
-|--------------------------------------------------------------------------
-*/
-
-export async function exportReport(req, res) {
-
-    try {
-
-        const file =
-            await reportService.exportReport(
-
-                req.body.reportId,
-
-                req.body.format || "pdf"
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: file
-
-        });
-
-    }
-
-    catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Scheduled Analytics
-|--------------------------------------------------------------------------
-*/
-
-export async function scheduledAnalytics(req, res) {
-
-    try {
-
-        const result =
-            await reportService.scheduleAnalytics(
-
-                req.body
-
-            );
-
-        return res.status(201).json({
-
-            success: true,
-
-            data: result
-
-        });
-
-    }
-
-    catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Benchmark Comparison
-|--------------------------------------------------------------------------
-*/
-
-export async function benchmarkComparison(req, res) {
-
-    try {
-
-        const comparison =
-            await statisticsService.compareBenchmarks(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: comparison
-
-        });
-
-    }
-
-    catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Portfolio Analytics
-|--------------------------------------------------------------------------
-*/
-
-export async function portfolioAnalytics(req, res) {
-
-    try {
-
-        const portfolio =
-            await statisticsService.getPortfolioAnalytics(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: portfolio
-
-        });
-
-    }
-
-    catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-/*
-|--------------------------------------------------------------------------
-| Executive Dashboard
-|--------------------------------------------------------------------------
-*/
-
-export async function executiveDashboard(req, res) {
-
-    try {
-
-        const dashboard =
-            await statisticsService.getExecutiveDashboard(
-
-                req.body
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: dashboard
-
-        });
-
-    }
-
-    catch (error) {
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-export const overallKPIs = async (req, res, next) => {
-
-    try {
-
-        // TODO: Replace with actual KPI calculations
-
-        res.json({
-
-            success: true,
-
-            data: {
-
-                totalSites: 0,
-
-                activeSites: 0,
-
-                renewableEnergy: 0,
-
-                batterySOC: 0,
-
-                gridAvailability: 0
-
-            }
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-/*export async function findCachedAnalytics(
-
-    site,
-
-    period,
-
-    startDate,
-
-    endDate
-
-) {
-
-    return Analytics.findOne({
-
-        site,
-
-        period,
-
-        startDate,
-
-        endDate
+        data
 
     });
 
-}
+});
 
-export async function buildAnalytics({
+/*
+|--------------------------------------------------------------------------
+| Executive Analytics
+|--------------------------------------------------------------------------
+*/
 
-    site,
+export const getExecutiveAnalytics = asyncHandler(async (req, res) => {
 
-    period,
+    const data = await analyticsService.getExecutiveAnalytics(req.query);
 
-    startDate,
+    return res.status(200).json({
 
-    endDate
+        success: true,
 
-}) {
+        message: "Executive analytics retrieved successfully.",
 
-    const statistics = await statisticsService.calculateStatistics({
-
-        site,
-
-        startDate,
-
-        endDate
+        data
 
     });
 
-    const forecast = await forecastService.generateForecast({
+});
 
-        site,
+/*
+|--------------------------------------------------------------------------
+| Energy Analytics
+|--------------------------------------------------------------------------
+*/
 
-        startDate,
+export const getEnergyAnalytics = asyncHandler(async (req, res) => {
 
-        endDate
+    const data = await analyticsService.getEnergyAnalytics(req.query);
 
-    });
+    return res.status(200).json({
 
-    const optimization = await optimizationService.optimize({
+        success: true,
 
-        site,
+        message: "Energy analytics retrieved successfully.",
 
-        startDate,
-
-        endDate
-
-    });
-
-    const reliability = await reliabilityService.calculate({
-
-        site,
-
-        startDate,
-
-        endDate
+        data
 
     });
 
-    const insights = await insightsService.generateInsights({
+});
 
-        site,
+/*
+|--------------------------------------------------------------------------
+| Battery Analytics
+|--------------------------------------------------------------------------
+*/
 
-        statistics,
+export const getBatteryAnalytics = asyncHandler(async (req, res) => {
 
-        forecast,
+    const data = await analyticsService.getBatteryAnalytics(req.query);
 
-        optimization,
+    return res.status(200).json({
 
-        reliability
+        success: true,
 
-    });
+        message: "Battery analytics retrieved successfully.",
 
-    const analytics = await Analytics.create({
-
-        site,
-
-        period,
-
-        startDate,
-
-        endDate,
-
-        energy: statistics.energy,
-
-        battery: statistics.battery,
-
-        generator: statistics.generator,
-
-        weather: statistics.weather,
-
-        forecast,
-
-        optimization,
-
-        reliability,
-
-        insights
+        data
 
     });
 
-    return analytics;
+});
 
-}
+/*
+|--------------------------------------------------------------------------
+| Solar Analytics
+|--------------------------------------------------------------------------
+*/
 
-export async function refreshAnalytics(
+export const getSolarAnalytics = asyncHandler(async (req, res) => {
 
-    req,
+    const data = await analyticsService.getSolarAnalytics(req.query);
 
-    res,
+    return res.status(200).json({
 
-    next
+        success: true,
 
-) {
+        message: "Solar analytics retrieved successfully.",
 
-    try {
+        data
 
-        const {
+    });
 
-            site,
+});
 
-            period,
+/*
+|--------------------------------------------------------------------------
+| Generator Analytics
+|--------------------------------------------------------------------------
+*/
 
-            startDate,
+export const getGeneratorAnalytics = asyncHandler(async (req, res) => {
 
-            endDate
+    const data = await analyticsService.getGeneratorAnalytics(req.query);
 
-        } = req.body;
+    return res.status(200).json({
 
-        await Analytics.deleteMany({
+        success: true,
 
-            site,
+        message: "Generator analytics retrieved successfully.",
 
-            period,
+        data
 
-            startDate,
+    });
 
-            endDate
+});
 
-        });
+/*
+|--------------------------------------------------------------------------
+| Grid Analytics
+|--------------------------------------------------------------------------
+*/
 
-        const analytics = await buildAnalytics({
+export const getGridAnalytics = asyncHandler(async (req, res) => {
 
-            site,
+    const data = await analyticsService.getGridAnalytics(req.query);
 
-            period,
+    return res.status(200).json({
 
-            startDate,
+        success: true,
 
-            endDate
+        message: "Grid analytics retrieved successfully.",
 
-        });
+        data
 
-        res.json({
+    });
 
-            success: true,
+});
 
-            data: analytics
+/*
+|--------------------------------------------------------------------------
+| Reliability Analytics
+|--------------------------------------------------------------------------
+*/
 
-        });
+export const getReliabilityAnalytics = asyncHandler(async (req, res) => {
 
-    }
+    const data = await analyticsService.getReliabilityAnalytics(req.query);
 
-    catch (error) {
+    return res.status(200).json({
 
-        next(error);
+        success: true,
 
-    }
+        message: "Reliability analytics retrieved successfully.",
 
-}
+        data
 
-export async function analyticsHistory(
+    });
 
-    req,
+});
 
-    res,
+/*
+|--------------------------------------------------------------------------
+| Forecast Analytics
+|--------------------------------------------------------------------------
+*/
 
-    next
+export const getForecastAnalytics = asyncHandler(async (req, res) => {
 
-) {
+    const data = await analyticsService.getForecastAnalytics(req.query);
 
-    try {
+    return res.status(200).json({
 
-        const history = await Analytics.find({
+        success: true,
 
-            site: req.params.site
+        message: "Forecast analytics retrieved successfully.",
 
-        })
+        data
 
-        .sort({
+    });
 
-            startDate: -1
+});
 
-        });
+/*
+|--------------------------------------------------------------------------
+| Optimization Analytics
+|--------------------------------------------------------------------------
+*/
 
-        res.json({
+export const getOptimizationAnalytics = asyncHandler(async (req, res) => {
 
-            success: true,
+    const data = await analyticsService.getOptimizationAnalytics(req.query);
 
-            data: history
+    return res.status(200).json({
 
-        });
+        success: true,
 
-    }
+        message: "Optimization analytics retrieved successfully.",
 
-    catch (error) {
+        data
 
-        next(error);
+    });
 
-    }
+});
 
-}*/
-
-};
 export default {
 
-    // Dashboard
-    analyticsDashboard,
+    getDashboardAnalytics,
 
-    overallKPIs,
+    getExecutiveAnalytics,
 
-    //overallKPIs,
+    getEnergyAnalytics,
 
-    energyStatistics,
+    getBatteryAnalytics,
 
-    powerFlowSummary,
+    getSolarAnalytics,
 
-    renewablePenetration,
+    getGeneratorAnalytics,
 
-    carbonSavings,
+    getGridAnalytics,
 
-    fuelSavings,
+    getReliabilityAnalytics,
 
-    systemEfficiency,
+    getForecastAnalytics,
 
-    // Forecasting
-
-    energyForecast,
-
-    solarForecast,
-
-    loadForecast,
-
-    batteryForecast,
-
-    weatherForecast,
-
-    // Optimization
-
-    optimizeEnergy,
-
-    optimizeGeneratorDispatch,
-
-    optimizeBattery,
-
-    optimizeGrid,
-
-    optimizeHybridDispatch,
-
-    // Reliability
-
-    reliabilityDashboard,
-
-    reliabilityIndices,
-
-    batteryHealth,
-
-    solarPerformance,
-
-    generatorEfficiency,
-
-    powerQuality,
-
-    financialAnalytics,
-
-    maintenanceAnalytics,
-
-    operationalInsights,
-
-    assetRiskAssessment,
-
-    // Reports
-
-    generateReport,
-
-    exportReport,
-
-    scheduledAnalytics,
-
-    benchmarkComparison,
-
-    portfolioAnalytics,
-
-    executiveDashboard
-
-    //analyticsHistory,
-
-    //refreshAnalytics,
-
-    //buildAnalytics,
-
-    //findCachedAnalytics
+    getOptimizationAnalytics
 
 };

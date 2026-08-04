@@ -1,5 +1,4 @@
 import express from "express";
-import http from "http";
 
 import cors from "cors";
 import helmet from "helmet";
@@ -17,6 +16,16 @@ import notFound from "./middlewares/notFound.js";
 
 const app = express();
 
+const API_PREFIX = "/api/v1";
+
+/*
+|--------------------------------------------------------------------------
+| Trust Proxy
+|--------------------------------------------------------------------------
+*/
+
+app.set("trust proxy", 1);
+
 /*
 |--------------------------------------------------------------------------
 | Security
@@ -31,7 +40,7 @@ app.use(
 
 app.use(
     cors({
-        origin: env.clientOrigins,
+        origin: env.clientOrigins, // Verify this exists in env.js
         credentials: true
     })
 );
@@ -42,7 +51,11 @@ app.use(
 |--------------------------------------------------------------------------
 */
 
-app.use(express.json({ limit: "10mb" }));
+app.use(
+    express.json({
+        limit: "10mb"
+    })
+);
 
 app.use(
     express.urlencoded({
@@ -57,17 +70,35 @@ app.use(compression());
 
 /*
 |--------------------------------------------------------------------------
-| Logging
+| HTTP Logging
 |--------------------------------------------------------------------------
 */
 
 app.use(
     morgan("combined", {
         stream: {
-            write: message => logger.info(message.trim())
+            write: message =>
+                logger.info(message.trim())
         }
     })
 );
+
+/*
+|--------------------------------------------------------------------------
+| Root Endpoint
+|--------------------------------------------------------------------------
+*/
+
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        application: "HEMAP-RMS",
+        version: "1.0.0",
+        environment: env.nodeEnv,
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+    });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -75,33 +106,21 @@ app.use(
 |--------------------------------------------------------------------------
 */
 
-app.get("/", (req, res) => {
-
+app.get(`${API_PREFIX}/health`, (req, res) => {
     res.status(200).json({
-
         success: true,
-
-        application: "HEMAP",
-
-        version: "1.0.0",
-
-        environment: env.nodeEnv,
-
-        uptime: process.uptime(),
-
-        timestamp: new Date()
-
+        status: "healthy",
+        timestamp: new Date().toISOString()
     });
-
 });
 
 /*
 |--------------------------------------------------------------------------
-| API
+| API Routes
 |--------------------------------------------------------------------------
 */
 
-app.use("/api/v1", routes);
+app.use(API_PREFIX, routes);
 
 /*
 |--------------------------------------------------------------------------
@@ -113,7 +132,7 @@ app.use(notFound);
 
 /*
 |--------------------------------------------------------------------------
-| Error Handler
+| Global Error Handler
 |--------------------------------------------------------------------------
 */
 

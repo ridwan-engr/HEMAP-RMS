@@ -1,7 +1,5 @@
 import { Router } from "express";
 
-import {authenticate} from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
 
 import {
 
@@ -14,23 +12,24 @@ import {
     updateGenerator,
 
     deleteGenerator
-
-    //getGeneratorBySite
-
+    
 } from "../controllers/generatorController.js";
+
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
 
 const router = Router();
 
-/*router.get(
-|   "/site/:siteId",
-|    authenticate,
-|    getGeneratorBySite
-);*/
+/*
+|--------------------------------------------------------------------------
+| Generator CRUD
+|--------------------------------------------------------------------------
+*/
 
 router.post(
     "/",
     authenticate,
-    authorize("Administrator", "Engineer"),
+    authorize("ADMIN", "ENGINEER"),
     createGenerator
 );
 
@@ -49,14 +48,14 @@ router.get(
 router.put(
     "/:id",
     authenticate,
-    authorize("Administrator", "Engineer"),
+    authorize("ADMIN", "ENGINEER"),
     updateGenerator
 );
 
 router.delete(
     "/:id",
     authenticate,
-    authorize("Administrator"),
+    authorize("ADMIN"),
     deleteGenerator
 );
 

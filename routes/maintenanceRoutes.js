@@ -1,76 +1,144 @@
 import { Router } from "express";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import maintenanceController from "../controllers/maintenanceController.js";
+
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
+import validate from "../middlewares/validate.js";
 
 import {
-    createMaintenance,
-    getMaintenanceRecords,
-    getMaintenanceById,
-    getMaintenanceBySite,
-    updateMaintenance,
-    completeMaintenance,
-    deleteMaintenance
-} from "../controllers/maintenanceController.js";
+    maintenanceScheduleValidator,
+    maintenanceHistoryValidator,
+    maintenanceIdValidator,
+    createMaintenanceValidator,
+    updateMaintenanceValidator,
+    completeMaintenanceValidator
+} from "../validators/maintenanceValidator.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Site Maintenance
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Maintenance Schedule
 |--------------------------------------------------------------------------
 */
 
 router.get(
-    "/site/:siteId",
-    authenticate,
-    getMaintenanceBySite
+    "/schedule",
+    validate({
+        query: maintenanceScheduleValidator
+    }),
+    maintenanceController.getMaintenanceSchedule
 );
 
 /*
 |--------------------------------------------------------------------------
-| CRUD
+| Maintenance History
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/history",
+    validate({
+        query: maintenanceHistoryValidator
+    }),
+    maintenanceController.getMaintenanceHistory
+);
+
+/*
+|--------------------------------------------------------------------------
+| Maintenance Details
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:maintenanceId",
+    validate({
+        params: maintenanceIdValidator
+    }),
+    maintenanceController.getMaintenanceById
+);
+
+/*
+|--------------------------------------------------------------------------
+| Create Maintenance
 |--------------------------------------------------------------------------
 */
 
 router.post(
     "/",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    createMaintenance
+    authorize(
+        "ADMIN",
+        "SUPERVISOR",
+        "ENGINEER"
+    ),
+    validate({
+        body: createMaintenanceValidator
+    }),
+    maintenanceController.createMaintenance
 );
 
-router.get(
-    "/",
-    authenticate,
-    getMaintenanceRecords
-);
-
-router.get(
-    "/:id",
-    authenticate,
-    getMaintenanceById
-);
+/*
+|--------------------------------------------------------------------------
+| Update Maintenance
+|--------------------------------------------------------------------------
+*/
 
 router.put(
-    "/:id",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    updateMaintenance
+    "/:maintenanceId",
+    authorize(
+        "ADMIN",
+        "SUPERVISOR",
+        "ENGINEER"
+    ),
+    validate({
+        params: maintenanceIdValidator,
+        body: updateMaintenanceValidator
+    }),
+    maintenanceController.updateMaintenance
 );
+
+/*
+|--------------------------------------------------------------------------
+| Complete Maintenance
+|--------------------------------------------------------------------------
+*/
 
 router.patch(
-    "/:id/complete",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    completeMaintenance
+    "/:maintenanceId/complete",
+    authorize(
+        "ADMIN",
+        "SUPERVISOR",
+        "ENGINEER"
+    ),
+    validate({
+        params: maintenanceIdValidator,
+        body: completeMaintenanceValidator
+    }),
+    maintenanceController.completeMaintenance
 );
 
+/*
+|--------------------------------------------------------------------------
+| Delete Maintenance
+|--------------------------------------------------------------------------
+*/
+
 router.delete(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
-    deleteMaintenance
+    "/:maintenanceId",
+    authorize("ADMIN"),
+    validate({
+        params: maintenanceIdValidator
+    }),
+    maintenanceController.deleteMaintenance
 );
 
 export default router;

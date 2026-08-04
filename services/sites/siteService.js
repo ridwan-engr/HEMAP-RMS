@@ -2,31 +2,7 @@ import Site from "../../models/Site.js";
 
 /*
 |--------------------------------------------------------------------------
-| Create Site
-|--------------------------------------------------------------------------
-*/
-
-export async function createSite(siteData) {
-
-    const exists = await Site.findOne({
-        installationId: siteData.installationId
-    });
-
-    if (exists) {
-
-        throw new Error(
-            "Site already exists."
-        );
-
-    }
-
-    return await Site.create(siteData);
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get All Sites
+| Get Sites
 |--------------------------------------------------------------------------
 */
 
@@ -34,40 +10,53 @@ export async function getSites(filters = {}) {
 
     const query = {};
 
+    if (filters.customer) {
+
+        query.customer = filters.customer;
+
+    }
+
+    if (filters.state) {
+
+        query.state = filters.state;
+
+    }
+
     if (filters.status) {
 
         query.status = filters.status;
 
     }
 
-    if (filters.systemType) {
+    if (filters.isActive !== undefined) {
 
-        query.systemType = filters.systemType;
+        query.isActive = filters.isActive;
 
     }
 
-    return await Site.find(query)
+    return Site.find(query)
+
         .sort({
-            name: 1
+
+            createdAt: -1
+
         });
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Get Site By ID
+| Get Site
 |--------------------------------------------------------------------------
 */
 
-export async function getSiteById(id) {
+export async function getSite(id) {
 
     const site = await Site.findById(id);
 
     if (!site) {
 
-        throw new Error(
-            "Site not found."
-        );
+        throw new Error("Site not found.");
 
     }
 
@@ -77,27 +66,29 @@ export async function getSiteById(id) {
 
 /*
 |--------------------------------------------------------------------------
-| Get Site By Installation ID
+| Create Site
 |--------------------------------------------------------------------------
 */
 
-export async function getSiteByInstallationId(
-    installationId
-) {
+export async function createSite(data) {
 
-    const site = await Site.findOne({
-        installationId
+    const exists = await Site.findOne({
+
+        code: data.code
+
     });
 
-    if (!site) {
+    if (exists) {
 
         throw new Error(
-            "Site not found."
+
+            "Site code already exists."
+
         );
 
     }
 
-    return site;
+    return Site.create(data);
 
 }
 
@@ -107,31 +98,45 @@ export async function getSiteByInstallationId(
 |--------------------------------------------------------------------------
 */
 
-export async function updateSite(
-    id,
-    payload
-) {
+export async function updateSite(id, data) {
 
-    const site = await Site.findByIdAndUpdate(
-
-        id,
-
-        payload,
-
-        {
-            new: true,
-            runValidators: true
-        }
-
-    );
+    const site = await Site.findById(id);
 
     if (!site) {
 
-        throw new Error(
-            "Site not found."
-        );
+        throw new Error("Site not found.");
 
     }
+
+    if (data.code) {
+
+        const duplicate = await Site.findOne({
+
+            code: data.code,
+
+            _id: {
+
+                $ne: id
+
+            }
+
+        });
+
+        if (duplicate) {
+
+            throw new Error(
+
+                "Site code already exists."
+
+            );
+
+        }
+
+    }
+
+    Object.assign(site, data);
+
+    await site.save();
 
     return site;
 
@@ -145,15 +150,47 @@ export async function updateSite(
 
 export async function deleteSite(id) {
 
-    const site = await Site.findByIdAndDelete(id);
+    const site = await Site.findById(id);
 
     if (!site) {
 
         throw new Error(
+
             "Site not found."
+
         );
 
     }
+
+    await site.deleteOne();
+
+    return true;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Activate Site
+|--------------------------------------------------------------------------
+*/
+
+export async function activateSite(id) {
+
+    const site = await Site.findById(id);
+
+    if (!site) {
+
+        throw new Error(
+
+            "Site not found."
+
+        );
+
+    }
+
+    site.isActive = true;
+
+    await site.save();
 
     return site;
 
@@ -161,48 +198,46 @@ export async function deleteSite(id) {
 
 /*
 |--------------------------------------------------------------------------
-| Update Synchronization
+| Deactivate Site
 |--------------------------------------------------------------------------
 */
 
-export async function updateSiteSync(
-    installationId,
-    status = "ONLINE"
-) {
+export async function deactivateSite(id) {
 
-    return await Site.findOneAndUpdate(
+    const site = await Site.findById(id);
 
-        {
-            installationId
-        },
+    if (!site) {
 
-        {
-            lastSync: new Date(),
-            status
-        },
+        throw new Error(
 
-        {
-            new: true
-        }
+            "Site not found."
 
-    );
+        );
+
+    }
+
+    site.isActive = false;
+
+    await site.save();
+
+    return site;
 
 }
 
 export default {
 
-    createSite,
-
     getSites,
 
-    getSiteById,
+    getSite,
 
-    getSiteByInstallationId,
+    createSite,
 
     updateSite,
 
     deleteSite,
 
-    updateSiteSync
+    activateSite,
+
+    deactivateSite
 
 };

@@ -2,63 +2,50 @@ import Joi from "joi";
 
 /*
 |--------------------------------------------------------------------------
-| Common Schemas
+| Common ObjectId
 |--------------------------------------------------------------------------
 */
 
-export const objectIdSchema = Joi.string()
+const objectId = Joi.string()
+
     .trim()
+
     .length(24)
-    .hex()
-    .required();
 
-export const dateRangeSchema = Joi.object({
-
-    startDate: Joi.date()
-        .required(),
-
-    endDate: Joi.date()
-        .min(Joi.ref("startDate"))
-        .required()
-
-});
-
-export const paginationSchema = Joi.object({
-
-    page: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
-
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(500)
-        .default(100)
-
-});
+    .hex();
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard Query
+| Common Analytics Query
 |--------------------------------------------------------------------------
 */
 
-export const dashboardQuerySchema = Joi.object({
+const analyticsQuery = Joi.object({
 
-    siteId: objectIdSchema.optional(),
+    siteId: objectId.optional(),
 
-    installationId: Joi.string()
+    installationId: objectId.optional(),
+
+    customer: Joi.string()
+
         .trim()
-        .length(24)
-        .hex()
+
+        .allow("")
+
         .optional(),
 
-    startDate: Joi.date(),
+    startDate: Joi.date()
 
-    endDate: Joi.date(),
+        .optional(),
+
+    endDate: Joi.date()
+
+        .min(Joi.ref("startDate"))
+
+        .optional(),
 
     interval: Joi.string()
+
         .valid(
 
             "hour",
@@ -72,233 +59,177 @@ export const dashboardQuerySchema = Joi.object({
             "year"
 
         )
-        .default("day")
+
+        .default("day"),
+
+    includeForecast: Joi.boolean()
+
+        .default(false),
+
+    includeOptimization: Joi.boolean()
+
+        .default(false),
+
+    page: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .default(1),
+
+    limit: Joi.number()
+
+        .integer()
+
+        .min(1)
+
+        .max(500)
+
+        .default(100)
 
 });
 
 /*
 |--------------------------------------------------------------------------
-| Statistics Query
+| Dashboard Analytics
 |--------------------------------------------------------------------------
 */
 
-export const statisticsQuerySchema = Joi.object({
+export const dashboardAnalyticsValidator = analyticsQuery;
 
-    siteId: objectIdSchema.required(),
+/*
+|--------------------------------------------------------------------------
+| Energy Analytics
+|--------------------------------------------------------------------------
+*/
 
-    startDate: Joi.date().required(),
+export const energyAnalyticsValidator = analyticsQuery.keys({
 
-    endDate: Joi.date()
-        .min(Joi.ref("startDate"))
-        .required(),
+    energySource: Joi.string()
 
-    metric: Joi.string()
         .valid(
 
-            "energy",
+            "GRID",
 
-            "battery",
+            "SOLAR",
 
-            "solar",
+            "GENERATOR",
 
-            "generator",
+            "BATTERY",
 
-            "grid",
-
-            "fuel",
-
-            "power"
+            "ALL"
 
         )
+
+        .default("ALL")
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Battery Analytics
+|--------------------------------------------------------------------------
+*/
+
+export const batteryAnalyticsValidator = analyticsQuery.keys({
+
+    batteryId: objectId.optional()
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Solar Analytics
+|--------------------------------------------------------------------------
+*/
+
+export const solarAnalyticsValidator = analyticsQuery.keys({
+
+    arrayId: objectId.optional()
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Generator Analytics
+|--------------------------------------------------------------------------
+*/
+
+export const generatorAnalyticsValidator = analyticsQuery.keys({
+
+    generatorId: objectId.optional()
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Grid Analytics
+|--------------------------------------------------------------------------
+*/
+
+export const gridAnalyticsValidator = analyticsQuery.keys({
+
+    feeder: Joi.string()
+
+        .trim()
+
+        .allow("")
+
         .optional()
 
 });
 
 /*
 |--------------------------------------------------------------------------
-| Forecast Request
+| Reliability Analytics
 |--------------------------------------------------------------------------
 */
 
-export const forecastSchema = Joi.object({
+export const reliabilityAnalyticsValidator = analyticsQuery.keys({
 
-    siteId: objectIdSchema.required(),
+    metric: Joi.string()
 
-    forecastType: Joi.string()
         .valid(
-
-            "load",
-
-            "solar",
-
-            "battery",
-
-            "generator",
-
-            "energy",
-
-            "weather"
-
-        )
-        .required(),
-
-    horizon: Joi.number()
-        .integer()
-        .min(1)
-        .max(365)
-        .default(24),
-
-    unit: Joi.string()
-        .valid(
-
-            "hour",
-
-            "day"
-
-        )
-        .default("hour")
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Optimization Request
-|--------------------------------------------------------------------------
-*/
-
-export const optimizationSchema = Joi.object({
-
-    siteId: objectIdSchema.required(),
-
-    objective: Joi.string()
-        .valid(
-
-            "minimum_cost",
-
-            "minimum_fuel",
-
-            "minimum_emission",
-
-            "maximum_renewable",
-
-            "maximum_reliability"
-
-        )
-        .required(),
-
-    constraints: Joi.object({
-
-        minimumSOC: Joi.number()
-            .min(0)
-            .max(100),
-
-        maximumGeneratorPower: Joi.number()
-            .min(0),
-
-        reserveMargin: Joi.number()
-            .min(0),
-
-        gridAvailable: Joi.boolean()
-
-    }).default({})
-
-});
-
-/*
-|--------------------------------------------------------------------------
-| Reliability Analysis
-|--------------------------------------------------------------------------
-*/
-
-export const reliabilitySchema = Joi.object({
-
-    siteId: objectIdSchema.required(),
-
-    startDate: Joi.date().required(),
-
-    endDate: Joi.date()
-        .min(Joi.ref("startDate"))
-        .required(),
-
-    indices: Joi.array()
-
-        .items(
-
-            Joi.string().valid(
-
-                "SAIDI",
-
-                "SAIFI",
-
-                "CAIDI",
-
-                "ENS",
-
-                "LOLP",
-
-                "Availability",
-
-                "MTBF",
-
-                "MTTR"
-
-            )
-
-        )
-
-        .default([
 
             "SAIDI",
 
             "SAIFI",
 
-            "ENS"
+            "MTBF",
 
-        ])
+            "MTTR",
+
+            "AVAILABILITY",
+
+            "ALL"
+
+        )
+
+        .default("ALL")
 
 });
 
 /*
 |--------------------------------------------------------------------------
-| Operational Insights
+| Default Export
 |--------------------------------------------------------------------------
 */
 
-export const insightsSchema = Joi.object({
-
-    siteId: objectIdSchema.required(),
-
-    startDate: Joi.date(),
-
-    endDate: Joi.date(),
-
-    includeRecommendations: Joi.boolean()
-        .default(true),
-
-    includeForecast: Joi.boolean()
-        .default(true),
-
-    includeReliability: Joi.boolean()
-        .default(true)
-
-});
-
 export default {
 
-    dashboardQuerySchema,
+    dashboardAnalyticsValidator,
 
-    statisticsQuerySchema,
+    energyAnalyticsValidator,
 
-    forecastSchema,
+    batteryAnalyticsValidator,
 
-    optimizationSchema,
+    solarAnalyticsValidator,
 
-    reliabilitySchema,
+    generatorAnalyticsValidator,
 
-    insightsSchema,
+    gridAnalyticsValidator,
 
-    paginationSchema,
-
-    dateRangeSchema
+    reliabilityAnalyticsValidator
 
 };

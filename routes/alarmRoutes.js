@@ -1,59 +1,141 @@
 import { Router } from "express";
 
-import { authenticate } from "../middlewares/auth.js";
+import alarmController from "../controllers/alarmController.js";
+
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
+import validate from "../middlewares/validate.js";
 
 import {
-
-    createAlarm,
-
-    getAlarms,
-
-    getAlarm,
-
-    acknowledgeAlarm,
-
-    resolveAlarm,
-
-    deleteAlarm
-
-} from "../controllers/alarmController.js";
+    activeAlarmValidator,
+    alarmHistoryValidator,
+    alarmStatisticsValidator,
+    alarmIdValidator,
+    resolveAlarmValidator
+} from "../validators/alarmValidator.js";
 
 const router = Router();
 
-router.post(
-    "/",
-    authenticate,
-    createAlarm
-);
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Active Alarms
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-    "/",
-    authenticate,
-    getAlarms
+    "/active",
+    validate({
+        query: activeAlarmValidator
+    }),
+    alarmController.getActiveAlarms
 );
+
+/*
+|--------------------------------------------------------------------------
+| Alarm History
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-    "/:id",
-    authenticate,
-    getAlarm
+    "/history",
+    validate({
+        query: alarmHistoryValidator
+    }),
+    alarmController.getAlarmHistory
 );
 
-router.patch(
-    "/:id/acknowledge",
-    authenticate,
-    acknowledgeAlarm
+/*
+|--------------------------------------------------------------------------
+| Alarm Statistics
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/statistics",
+    validate({
+        query: alarmStatisticsValidator
+    }),
+    alarmController.getAlarmStatistics
 );
 
-router.patch(
-    "/:id/resolve",
-    authenticate,
-    resolveAlarm
+/*
+|--------------------------------------------------------------------------
+| Alarm Summary
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/summary",
+    validate({
+        query: alarmStatisticsValidator
+    }),
+    alarmController.getAlarmSummary
 );
+
+/*
+|--------------------------------------------------------------------------
+| Alarm Details
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:alarmId",
+    validate({
+        params: alarmIdValidator
+    }),
+    alarmController.getAlarmById
+);
+
+/*
+|--------------------------------------------------------------------------
+| Acknowledge Alarm
+|--------------------------------------------------------------------------
+*/
+
+router.patch(
+    "/:alarmId/acknowledge",
+    validate({
+        params: alarmIdValidator
+    }),
+    alarmController.acknowledgeAlarm
+);
+
+/*
+|--------------------------------------------------------------------------
+| Resolve Alarm
+|--------------------------------------------------------------------------
+*/
+
+router.patch(
+    "/:alarmId/resolve",
+    validate({
+        params: alarmIdValidator,
+        body: resolveAlarmValidator
+    }),
+    alarmController.resolveAlarm
+);
+
+/*
+|--------------------------------------------------------------------------
+| Delete Alarm
+|--------------------------------------------------------------------------
+*/
 
 router.delete(
-    "/:id",
-    authenticate,
-    deleteAlarm
+    "/:alarmId",
+    authorize("ADMIN"),
+    validate({
+        params: alarmIdValidator
+    }),
+    alarmController.deleteAlarm
 );
 
 export default router;

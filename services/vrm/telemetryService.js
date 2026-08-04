@@ -1,11 +1,26 @@
 import { get } from "./apiClient.js";
 import logger from "../../utils/logger.js";
 
+/*
+|--------------------------------------------------------------------------
+| Constants
+|--------------------------------------------------------------------------
+*/
+
+const ALLOWED_INTERVALS = [
+
+    "15mins",
+
+    "hour",
+
+    "day"
+
+];
+
 /**
  * Get latest installation statistics.
  *
- * These values are suitable for
- * dashboard KPIs and live monitoring.
+ * Suitable for dashboard KPIs and live monitoring.
  *
  * @param {number|string} installationId
  */
@@ -18,7 +33,9 @@ export async function getLiveTelemetry(
     if (!installationId) {
 
         throw new Error(
+
             "Installation ID is required."
+
         );
 
     }
@@ -35,7 +52,19 @@ export async function getLiveTelemetry(
 
     catch (error) {
 
-        logger.error(error);
+        logger.error({
+
+            installationId,
+
+            endpoint: "/stats",
+
+            message: error.message,
+
+            status: error.response?.status,
+
+            data: error.response?.data
+
+        });
 
         throw error;
 
@@ -44,7 +73,7 @@ export async function getLiveTelemetry(
 }
 
 /**
- * Get historical statistics.
+ * Get historical telemetry.
  *
  * @param {number|string} installationId
  * @param {Object} options
@@ -68,39 +97,106 @@ export async function getHistoricalTelemetry(
     if (!installationId) {
 
         throw new Error(
+
             "Installation ID is required."
+
         );
 
     }
 
-    return await get(
+    if (
 
-        `/installations/${installationId}/stats`,
+        start &&
 
-        {
+        end &&
+
+        new Date(start) > new Date(end)
+
+    ) {
+
+        throw new Error(
+
+            "Start date cannot be later than end date."
+
+        );
+
+    }
+
+    if (
+
+        !ALLOWED_INTERVALS.includes(interval)
+
+    ) {
+
+        throw new Error(
+
+            `Unsupported interval: ${interval}`
+
+        );
+
+    }
+
+    try {
+
+        return await get(
+
+            `/installations/${installationId}/stats`,
+
+            {
+
+                start,
+
+                end,
+
+                interval
+
+            }
+
+        );
+
+    }
+
+    catch (error) {
+
+        logger.error({
+
+            installationId,
+
+            endpoint: "/stats",
 
             start,
 
             end,
 
-            interval
+            interval,
 
-        }
+            message: error.message,
 
-    );
+            status: error.response?.status,
+
+            data: error.response?.data
+
+        });
+
+        throw error;
+
+    }
 
 }
 
 /**
- * Get diagnostics.
+ * Get installation diagnostics.
  *
- * Includes battery,
- * inverter,
- * PV,
- * grid,
- * generator,
- * alarms,
- * etc.
+ * Includes:
+ * - Battery
+ * - Inverter
+ * - PV
+ * - Grid
+ * - Generator
+ * - Alarms
+ * - System health
+ *
+ * @param {number|string} installationId
  */
 export async function getDiagnostics(
 
@@ -111,16 +207,42 @@ export async function getDiagnostics(
     if (!installationId) {
 
         throw new Error(
+
             "Installation ID is required."
+
         );
 
     }
 
-    return await get(
+    try {
 
-        `/installations/${installationId}/diagnostics`
+        return await get(
 
-    );
+            `/installations/${installationId}/diagnostics`
+
+        );
+
+    }
+
+    catch (error) {
+
+        logger.error({
+
+            installationId,
+
+            endpoint: "/diagnostics",
+
+            message: error.message,
+
+            status: error.response?.status,
+
+            data: error.response?.data
+
+        });
+
+        throw error;
+
+    }
 
 }
 

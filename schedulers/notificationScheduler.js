@@ -1,57 +1,123 @@
-import cron from "node-cron";
+import Site from "../models/Site.js";
 
-import notificationService
-from "../services/notifications/notificationService.js";
+import * as notificationService from "../services/notifications/notificationService.js";
 
 import logger from "../utils/logger.js";
 
-async function processNotifications() {
+/*
+|--------------------------------------------------------------------------
+| Notification Scheduler
+|--------------------------------------------------------------------------
+*/
 
-    try {
+export async function runNotificationScheduler() {
 
-        const result =
+    const started = Date.now();
 
-            await notificationService
-                .processScheduledNotifications();
+    let processed = 0;
 
-        logger.info(
+    let successful = 0;
 
-            "Notification queue processed.",
+    let failed = 0;
 
-            result
+    const sites = await Site.find({
 
-        );
+        status: "ACTIVE"
 
-    }
+    }).select("_id name");
 
-    catch (error) {
+    for (const site of sites) {
 
-        logger.error(
+        processed++;
 
-            "Notification scheduler failed.",
+        try {
 
-            error
+            const result =
 
-        );
+                await notificationService.processScheduledNotifications(
 
-    }
+                    site._id.toString()
 
-}
+                );
 
-export default function startNotificationScheduler() {
+            successful++;
 
-    cron.schedule(
+            logger.info({
 
-        "*/5 * * * *",
+                message:
 
-        processNotifications,
+                    "Notification processing completed.",
 
-        {
+                siteId:
 
-            timezone: "Africa/Lagos"
+                    site._id,
+
+                site:
+
+                    site.name,
+
+                notifications:
+
+                    result?.count ?? 0
+
+            });
 
         }
 
-    );
+        catch (error) {
+
+            failed++;
+
+            logger.error({
+
+                message:
+
+                    "Notification Scheduler Failed.",
+
+                siteId:
+
+                    site._id,
+
+                error:
+
+                    error.message
+
+            });
+
+        }
+
+    }
+
+    const summary = {
+
+        processed,
+
+        successful,
+
+        failed,
+
+        duration:
+
+            Date.now() - started
+
+    };
+
+    logger.info({
+
+        message:
+
+            "Notification Scheduler Completed.",
+
+        ...summary
+
+    });
+
+    return summary;
 
 }
+
+export default {
+
+    runNotificationScheduler
+
+};

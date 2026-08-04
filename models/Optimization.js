@@ -523,10 +523,6 @@ optimizationRunSchema.index({
 });
 
 optimizationRunSchema.index({
-    requestId: 1
-});
-
-optimizationRunSchema.index({
     "solver.status": 1
 });
 

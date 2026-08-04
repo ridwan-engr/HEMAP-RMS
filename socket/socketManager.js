@@ -414,6 +414,136 @@ export function emitSyncStatus(
 
 /*
 |--------------------------------------------------------------------------
+| Analytics
+|--------------------------------------------------------------------------
+*/
+
+export function emitAnalytics(
+
+    siteId,
+
+    analytics
+
+) {
+
+    if (!canEmit()) return;
+
+    io.to(
+
+        String(siteId)
+
+    ).emit(
+
+        "analytics.updated",
+
+        analytics
+
+    );
+
+    logger.debug({
+
+        event:
+
+            "analytics.updated",
+
+        siteId
+
+    });
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Notification
+|--------------------------------------------------------------------------
+*/
+
+export function emitNotification(
+
+    userId,
+
+    notification
+
+) {
+
+    if (!canEmit()) return;
+
+    io.to(
+
+        `user:${userId}`
+
+    ).emit(
+
+        "notification.created",
+
+        notification
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Forecast
+|--------------------------------------------------------------------------
+*/
+
+export function emitForecast(
+
+    siteId,
+
+    forecast
+
+) {
+
+    if (!canEmit()) return;
+
+    io.to(
+
+        String(siteId)
+
+    ).emit(
+
+        "forecast.updated",
+
+        forecast
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Optimization
+|--------------------------------------------------------------------------
+*/
+
+export function emitOptimization(
+
+    siteId,
+
+    optimization
+
+) {
+
+    if (!canEmit()) return;
+
+    io.to(
+
+        String(siteId)
+
+    ).emit(
+
+        "optimization.updated",
+
+        optimization
+
+    );
+
+}
+
+/*
+|--------------------------------------------------------------------------
 | Export
 |--------------------------------------------------------------------------
 */
@@ -429,6 +559,14 @@ export default {
     emitAlarm,
 
     emitStatistic,
+
+    emitAnalytics,
+
+    emitForecast,
+
+    emitOptimization,
+
+    emitNotification,
 
     emitSite,
 

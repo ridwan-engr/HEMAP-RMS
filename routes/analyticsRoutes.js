@@ -2,27 +2,33 @@ import { Router } from "express";
 
 import analyticsController from "../controllers/analyticsController.js";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
-import { validate } from "../middlewares/validate.js";
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
+import validate from "../middlewares/validate.js";
 
 import {
-
-    dashboardQuerySchema,
-
-    statisticsQuerySchema,
-
-    forecastSchema,
-
-    optimizationSchema,
-
-    reliabilitySchema,
-
-    insightsSchema
-
+    dashboardAnalyticsValidator,
+    energyAnalyticsValidator,
+    batteryAnalyticsValidator,
+    solarAnalyticsValidator,
+    generatorAnalyticsValidator,
+    gridAnalyticsValidator,
+    reliabilityAnalyticsValidator
 } from "../validators/analyticsValidator.js";
 
 const router = Router();
+
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(
+
+    authenticate
+
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -31,270 +37,195 @@ const router = Router();
 */
 
 router.get(
+
     "/dashboard",
-    authenticate,
-    validate({ query: dashboardQuerySchema }),
-    analyticsController.analyticsDashboard
+
+    authorize(
+
+        "ADMIN",
+
+        "ENGINEER",
+
+        "SUPERVISOR"
+
+    ),
+
+    validate({
+    query: dashboardAnalyticsValidator
+}),
+
+    analyticsController.getDashboardAnalytics
+
 );
 
-router.get(
-    "/kpis",
-    authenticate,
-    analyticsController.overallKPIs
-);
+/*
+|--------------------------------------------------------------------------
+| Energy
+|--------------------------------------------------------------------------
+*/
 
 router.get(
+
     "/energy",
-    authenticate,
-    validate({ query: statisticsQuerySchema }),
-    analyticsController.energyStatistics
-);
 
-router.get(
-    "/power-flow",
-    authenticate,
-    analyticsController.powerFlowSummary
-);
+    authorize(
 
-router.get(
-    "/renewable-penetration",
-    authenticate,
-    analyticsController.renewablePenetration
-);
+        "ADMIN",
 
-router.get(
-    "/carbon-savings",
-    authenticate,
-    analyticsController.carbonSavings
-);
+        "ENGINEER",
 
-router.get(
-    "/fuel-savings",
-    authenticate,
-    analyticsController.fuelSavings
-);
+        "SUPERVISOR"
 
-router.get(
-    "/efficiency",
-    authenticate,
-    analyticsController.systemEfficiency
+    ),
+
+    validate({
+    query: energyAnalyticsValidator
+}),
+
+    analyticsController.getEnergyAnalytics
+
 );
 
 /*
 |--------------------------------------------------------------------------
-| Forecasting
+| Battery
 |--------------------------------------------------------------------------
 */
 
-router.post(
-    "/forecast/energy",
-    authenticate,
-    validate({ body: forecastSchema }),
-    analyticsController.energyForecast
-);
+router.get(
 
-router.post(
-    "/forecast/solar",
-    authenticate,
-    validate({ body: forecastSchema }),
-    analyticsController.solarForecast
-);
+    "/battery",
 
-router.post(
-    "/forecast/load",
-    authenticate,
-    validate({ body: forecastSchema }),
-    analyticsController.loadForecast
-);
+    authorize(
 
-router.post(
-    "/forecast/battery",
-    authenticate,
-    validate({ body: forecastSchema }),
-    analyticsController.batteryForecast
-);
+        "ADMIN",
 
-router.post(
-    "/forecast/weather",
-    authenticate,
-    validate({ body: forecastSchema }),
-    analyticsController.weatherForecast
+        "ENGINEER",
+
+        "SUPERVISOR"
+
+    ),
+
+    validate({
+    query: batteryAnalyticsValidator
+}),
+
+    analyticsController.getBatteryAnalytics
+
 );
 
 /*
 |--------------------------------------------------------------------------
-| Optimization
+| Solar
 |--------------------------------------------------------------------------
 */
 
-router.post(
-    "/optimization/energy",
-    authenticate,
-    authorize("ADMIN"),
-    validate({ body: optimizationSchema }),
-    analyticsController.optimizeEnergy
-);
+router.get(
 
-router.post(
-    "/optimization/generator",
-    authenticate,
-    authorize("ADMIN"),
-    validate({ body: optimizationSchema }),
-    analyticsController.optimizeGeneratorDispatch
-);
+    "/solar",
 
-router.post(
-    "/optimization/battery",
-    authenticate,
-    authorize("ADMIN"),
-    validate({ body: optimizationSchema }),
-    analyticsController.optimizeBattery
-);
+    authorize(
 
-router.post(
-    "/optimization/grid",
-    authenticate,
-    authorize("ADMIN"),
-    validate({ body: optimizationSchema }),
-    analyticsController.optimizeGrid
-);
+        "ADMIN",
 
-router.post(
-    "/optimization/hybrid",
-    authenticate,
-    authorize("ADMIN"),
-    validate({ body: optimizationSchema }),
-    analyticsController.optimizeHybridDispatch
+        "ENGINEER",
+
+        "SUPERVISOR"
+
+    ),
+
+    validate({
+    query: solarAnalyticsValidator
+}),
+
+    analyticsController.getSolarAnalytics
+
 );
 
 /*
 |--------------------------------------------------------------------------
-| Reliability & Asset Analytics
+| Generator
 |--------------------------------------------------------------------------
 */
 
 router.get(
-    "/reliability/dashboard",
-    authenticate,
-    validate({ query: reliabilitySchema }),
-    analyticsController.reliabilityDashboard
-);
 
-router.get(
-    "/reliability/indices",
-    authenticate,
-    validate({ query: reliabilitySchema }),
-    analyticsController.reliabilityIndices
-);
+    "/generator",
 
-router.get(
-    "/battery-health",
-    authenticate,
-    analyticsController.batteryHealth
-);
+    authorize(
 
-router.get(
-    "/solar-performance",
-    authenticate,
-    analyticsController.solarPerformance
-);
+        "ADMIN",
 
-router.get(
-    "/generator-efficiency",
-    authenticate,
-    analyticsController.generatorEfficiency
-);
+        "ENGINEER",
 
-router.get(
-    "/power-quality",
-    authenticate,
-    analyticsController.powerQuality
-);
+        "SUPERVISOR"
 
-router.get(
-    "/financial",
-    authenticate,
-    analyticsController.financialAnalytics
-);
+    ),
 
-router.get(
-    "/maintenance",
-    authenticate,
-    analyticsController.maintenanceAnalytics
-);
+    validate({
+    query: generatorAnalyticsValidator
+}),
 
-router.get(
-    "/insights",
-    authenticate,
-    validate({ query: insightsSchema }),
-    analyticsController.operationalInsights
-);
+    analyticsController.getGeneratorAnalytics
 
-router.get(
-    "/asset-risk",
-    authenticate,
-    analyticsController.assetRiskAssessment
 );
 
 /*
 |--------------------------------------------------------------------------
-| Reports
+| Grid
 |--------------------------------------------------------------------------
 */
 
-router.post(
-    "/reports/generate",
-    authenticate,
-    analyticsController.generateReport
+router.get(
+
+    "/grid",
+
+    authorize(
+
+        "ADMIN",
+
+        "ENGINEER",
+
+        "SUPERVISOR"
+
+    ),
+
+    validate({
+    query: gridAnalyticsValidator
+}),
+
+    analyticsController.getGridAnalytics
+
 );
+
+/*
+|--------------------------------------------------------------------------
+| Reliability
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-    "/reports/export",
-    authenticate,
-    analyticsController.exportReport
+
+    "/reliability",
+
+    authorize(
+
+        "ADMIN",
+
+        "ENGINEER",
+
+        "SUPERVISOR"
+
+    ),
+
+    validate({
+    query: reliabilityAnalyticsValidator
+}),
+
+    analyticsController.getReliabilityAnalytics
+
 );
 
-router.get(
-    "/reports/scheduled",
-    authenticate,
-    analyticsController.scheduledAnalytics
-);
-
-router.get(
-    "/benchmark",
-    authenticate,
-    analyticsController.benchmarkComparison
-);
-
-router.get(
-    "/portfolio",
-    authenticate,
-    analyticsController.portfolioAnalytics
-);
-
-router.get(
-    "/executive-dashboard",
-    authenticate,
-    analyticsController.executiveDashboard
-);
-
-router.get(
-    "/dashboard",
-    authenticate,
-    analyticsController.analyticsDashboard
-);
-
-/*router.post(
-    "/refresh",
-    authenticate,
-    authorize("ADMIN"),
-    analyticsController.refreshAnalytics
-);
-
-router.get(
-    "/history/:site",
-    authenticate,
-    analyticsController.analyticsHistory
-);*/
+console.log("analytics router =", router);
 
 export default router;

@@ -1,80 +1,8 @@
+import asyncHandler from "../utils/asyncHandler.js";
+
 import * as userService from "../services/users/userService.js";
 
-
-/*
-|--------------------------------------------------------------------------
-| Create User
-|--------------------------------------------------------------------------
-*/
-
-export async function createUser(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const user =
-
-            await userService.createUser(
-
-                req.body
-
-            );
-
-
-
-        res.status(201)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "User created successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
+import logger from "../utils/logger.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -82,158 +10,89 @@ export async function createUser(
 |--------------------------------------------------------------------------
 */
 
-export async function getUsers(
+export const getUsers = asyncHandler(async (req, res) => {
 
-    req,
+    const users = await userService.getUsers(
 
-    res
+        req.query
 
-){
+    );
 
+    return res.status(200).json({
 
-    try {
+        success: true,
 
+        message: "Users retrieved successfully.",
 
-        const users =
+        data: users
 
-            await userService.getUsers(
+    });
 
-                req.body
-
-            );
-
-
-
-        res.json({
-
-
-            success:true,
-
-
-            data:
-
-                users
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(500)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
+});
 
 /*
 |--------------------------------------------------------------------------
-| Get User By ID
+| Get User
 |--------------------------------------------------------------------------
 */
 
-export async function getUserById(
+export const getUser = asyncHandler(async (req, res) => {
 
-    req,
+    const user = await userService.getUser(
 
-    res
+        req.params.id
 
-){
+    );
 
+    return res.status(200).json({
 
-    try {
+        success: true,
 
+        message: "User retrieved successfully.",
 
-        const user =
+        data: user
 
-            await userService.getUserById(
+    });
 
-                req.body.id
+});
 
-            );
+/*
+|--------------------------------------------------------------------------
+| Create User
+|--------------------------------------------------------------------------
+*/
 
+export const createUser = asyncHandler(async (req, res) => {
 
+    const user = await userService.createUser(
 
-        if(!user){
+        req.body,
 
+        req.user
 
-            return res.status(404)
+    );
 
-            .json({
+    logger.info({
 
+        message: "User created.",
 
-                success:false,
+        userId: user._id,
 
+        email: user.email
 
-                message:
+    });
 
-                    "User not found"
+    return res.status(201).json({
 
+        success: true,
 
-            });
+        message: "User created successfully.",
 
+        data: user
 
-        }
+    });
 
-
-
-        res.json({
-
-
-            success:true,
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(500)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -241,552 +100,37 @@ export async function getUserById(
 |--------------------------------------------------------------------------
 */
 
-export async function updateUser(
+export const updateUser = asyncHandler(async (req, res) => {
 
-    req,
+    const user = await userService.updateUser(
 
-    res
+        req.params.id,
 
-){
+        req.body,
 
+        req.user
 
-    try {
+    );
 
+    logger.info({
 
-        const user =
+        message: "User updated.",
 
-            await userService.updateUser(
+        userId: user._id
 
-                req.body.id,
+    });
 
-                req.body
+    return res.status(200).json({
 
-            );
+        success: true,
 
+        message: "User updated successfully.",
 
+        data: user
 
-        res.json({
+    });
 
-
-            success:true,
-
-
-            message:
-
-                "User updated successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Update User Profile
-|--------------------------------------------------------------------------
-*/
-
-export async function updateProfile(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const user =
-
-            await userService.updateProfile(
-
-                req.body.id,
-
-                req.body
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "Profile updated successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Change Password
-|--------------------------------------------------------------------------
-*/
-
-export async function changePassword(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const {
-
-            currentPassword,
-
-            newPassword
-
-        } = req.body;
-
-
-
-        const result =
-
-            await userService.changePassword(
-
-                req.body.id,
-
-                currentPassword,
-
-                newPassword
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            data:
-
-                result
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Assign Sites To User
-|--------------------------------------------------------------------------
-*/
-
-export async function assignSites(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const {
-
-            siteIds
-
-        } = req.body;
-
-
-
-        const user =
-
-            await userService.assignSitesToUser(
-
-                req.body.id,
-
-                siteIds
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "Sites assigned successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Remove Site Assignment
-|--------------------------------------------------------------------------
-*/
-
-export async function removeSite(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const user =
-
-            await userService.removeSiteAssignment(
-
-                req.body.id,
-
-                req.body.siteId
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "Site removed successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Activate User
-|--------------------------------------------------------------------------
-*/
-
-export async function activateUser(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const user =
-
-            await userService.activateUser(
-
-                req.body.id
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "User activated successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Deactivate User
-|--------------------------------------------------------------------------
-*/
-
-export async function deactivateUser(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const user =
-
-            await userService.deactivateUser(
-
-                req.body.id
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "User deactivated successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -794,1115 +138,104 @@ export async function deactivateUser(
 |--------------------------------------------------------------------------
 */
 
-export async function deleteUser(
+export const deleteUser = asyncHandler(async (req, res) => {
 
-    req,
+    await userService.deleteUser(
 
-    res
+        req.params.id,
 
-){
+        req.user
 
+    );
 
-    try {
+    logger.info({
 
+        message: "User deleted.",
 
-        const user =
+        userId: req.params.id
 
-            await userService.deleteUser(
+    });
 
-                req.body.id
+    return res.status(200).json({
 
-            );
+        success: true,
 
+        message: "User deleted successfully."
 
+    });
 
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "User deleted successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
+});
 
 /*
 |--------------------------------------------------------------------------
-| Restore User
+| Activate User
 |--------------------------------------------------------------------------
 */
 
-export async function restoreUser(
+export const activateUser = asyncHandler(async (req, res) => {
 
-    req,
+    const user = await userService.activateUser(
 
-    res
+        req.params.id,
 
-){
+        req.user
 
+    );
 
-    try {
+    return res.status(200).json({
 
+        success: true,
 
-        const user =
+        message: "User activated successfully.",
 
-            await userService.restoreUser(
+        data: user
 
-                req.body.id
+    });
 
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "User restored successfully",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
+});
 
 /*
 |--------------------------------------------------------------------------
-| Permanently Delete User
+| Deactivate User
 |--------------------------------------------------------------------------
 */
 
-export async function permanentlyDeleteUser(
+export const deactivateUser = asyncHandler(async (req, res) => {
 
-    req,
+    const user = await userService.deactivateUser(
 
-    res
+        req.params.id,
 
-){
+        req.user
 
+    );
 
-    try {
+    return res.status(200).json({
 
+        success: true,
 
-        await userService.permanentlyDeleteUser(
+        message: "User deactivated successfully.",
 
-            req.body.id
+        data: user
 
-        );
+    });
 
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "User permanently deleted"
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Search Users
-|--------------------------------------------------------------------------
-*/
-
-export async function searchUsers(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const users =
-
-            await userService.searchUsers(
-
-                req.body.keyword
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            data:
-
-                users
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(500)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| User Statistics
-|--------------------------------------------------------------------------
-*/
-
-export async function userStatistics(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const statistics =
-
-            await userService.getUserStatistics();
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            data:
-
-                statistics
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(500)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Paginated Users
-|--------------------------------------------------------------------------
-*/
-
-export async function paginatedUsers(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const result =
-
-            await userService.getPaginatedUsers({
-
-                page:
-
-                    Number(
-
-                        req.body.page || 1
-
-                    ),
-
-
-                limit:
-
-                    Number(
-
-                        req.body.limit || 20
-
-                    ),
-
-
-                sortBy:
-
-                    req.body.sortBy || "createdAt",
-
-
-                order:
-
-                    req.body.order || "desc"
-
-            });
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            data:
-
-                result
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(500)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Bulk Activate Users
-|--------------------------------------------------------------------------
-*/
-
-export async function bulkActivate(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const result =
-
-            await userService.bulkActivateUsers(
-
-                req.body.userIds
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "Users activated successfully",
-
-
-            data:
-
-                result
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Bulk Deactivate Users
-|--------------------------------------------------------------------------
-*/
-
-export async function bulkDeactivate(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const result =
-
-            await userService.bulkDeactivateUsers(
-
-                req.body.userIds
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "Users deactivated successfully",
-
-
-            data:
-
-                result
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Export Users
-|--------------------------------------------------------------------------
-*/
-
-export async function exportUsers(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const users =
-
-            await userService.exportUsers(
-
-                req.body
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            data:
-
-                users
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(500)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get User Permission Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function permissionSummary(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const permissions =
-
-            await userService.getUserPermissionSummary(
-
-                req.body.id
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            data:
-
-                permissions
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(404)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Get User Profile Summary
-|--------------------------------------------------------------------------
-*/
-
-export async function profileSummary(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const profile =
-
-            await userService.getProfileSummary(
-
-                req.body.id
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            data:
-
-                profile
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(404)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Update Last Login
-|--------------------------------------------------------------------------
-*/
-
-export async function updateLastLogin(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const user =
-
-            await userService.updateLastLogin(
-
-                req.body.id
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            message:
-
-                "Login activity updated",
-
-
-            data:
-
-                user
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Validate Site Access
-|--------------------------------------------------------------------------
-*/
-
-export async function validateSiteAccess(
-
-    req,
-
-    res
-
-){
-
-
-    try {
-
-
-        const access =
-
-            await userService.hasSiteAccess(
-
-                req.body.id,
-
-                req.body.siteId
-
-            );
-
-
-
-        res.status(200)
-
-        .json({
-
-
-            success:true,
-
-
-            hasAccess:
-
-                access
-
-
-        });
-
-
-    }
-
-    catch(error){
-
-
-        res.status(400)
-
-        .json({
-
-
-            success:false,
-
-
-            message:
-
-                error.message
-
-
-        });
-
-
-    }
-
-}
-
-export async function getProfile(req, res) {
-
-    try {
-
-        const profile = await userService.getUserById(req.user.id);
-
-        res.json({
-
-            success: true,
-
-            data: profile
-
-        });
-
-    }
-
-    catch (error) {
-
-        res.status(500).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-export async function assignRole(req, res) {
-
-    try {
-
-        const user = await userService.assignRole(
-
-            req.body.userId,
-
-            req.body.roleId
-
-        );
-
-        res.json({
-
-            success: true,
-
-            message: "Role assigned successfully.",
-
-            data: user
-
-        });
-
-    }
-
-    catch (error) {
-
-        res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-export async function updateStatus(req, res) {
-
-    try {
-
-        const user = await userService.updateStatus(
-
-            req.body.userId,
-
-            req.body.status
-
-        );
-
-        res.json({
-
-            success: true,
-
-            message: "User status updated.",
-
-            data: user
-
-        });
-
-    }
-
-    catch (error) {
-
-        res.status(400).json({
-
-            success: false,
-
-            message: error.message
-
-        });
-
-    }
-
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| Default Export
-|--------------------------------------------------------------------------
-*/
+});
 
 export default {
 
-    createUser,
     getUsers,
-    getUserById,
+
+    getUser,
+
+    createUser,
+
     updateUser,
 
-    getProfile,
-    updateProfile,
-
-    assignRole,
-    updateStatus,
-
-    changePassword,
-
-    assignSites,
-    removeSite,
-
     activateUser,
+
     deactivateUser,
 
-    deleteUser,
-    restoreUser,
-    permanentlyDeleteUser,
-
-    searchUsers,
-    userStatistics,
-    paginatedUsers,
-
-    bulkActivate,
-    bulkDeactivate,
-
-    exportUsers,
-
-    permissionSummary,
-    profileSummary,
-
-    updateLastLogin,
-    validateSiteAccess
+    deleteUser
 
 };

@@ -1,7 +1,7 @@
 import { Router } from "express";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
 
 import {
     createBattery,
@@ -16,13 +16,26 @@ const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Site Batteries
+| Authentication
 |--------------------------------------------------------------------------
 */
 
-router.get(
-    "/site/:siteId",
-    authenticate,
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Site Batteries
+|--------------------------------------------------------------------------
+|
+| NOTE:
+| batteryController currently expects req.body.siteId.
+| If you later update the controller to use req.params.siteId,
+| change this route back to "/site/:siteId".
+|
+*/
+
+router.post(
+    "/site",
     getBatteryBySite
 );
 
@@ -34,34 +47,29 @@ router.get(
 
 router.post(
     "/",
-    authenticate,
-    authorize("Administrator", "Engineer"),
+    authorize("ADMIN", "ENGINEER"),
     createBattery
 );
 
 router.get(
     "/",
-    authenticate,
     getBatteries
 );
 
-router.get(
-    "/:id",
-    authenticate,
+router.post(
+    "/details",
     getBatteryById
 );
 
 router.put(
-    "/:id",
-    authenticate,
-    authorize("Administrator", "Engineer"),
+    "/",
+    authorize("ADMIN", "ENGINEER"),
     updateBattery
 );
 
 router.delete(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
+    "/",
+    authorize("ADMIN"),
     deleteBattery
 );
 

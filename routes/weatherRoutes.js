@@ -1,68 +1,111 @@
 import { Router } from "express";
 
+import weatherController from "../controllers/weatherController.js";
+
 import authenticate from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import validate from "../middlewares/validate.js";
 
 import {
-    createWeather,
-    getWeatherHistory,
-    getLatestWeather,
-    getWeatherById,
-    updateWeather,
-    deleteWeather
-} from "../controllers/weatherController.js";
+    currentWeatherValidator,
+    forecastValidator,
+    historyValidator,
+    irradianceValidator,
+    windValidator,
+    weatherSummaryValidator
+} from "../validators/weatherValidator.js";
 
 const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| Site Weather
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Current Weather
 |--------------------------------------------------------------------------
 */
 
 router.get(
-    "/site/:siteId",
-    authenticate,
-    getLatestWeather
+    "/current",
+    validate({
+        query: currentWeatherValidator
+    }),
+    weatherController.getCurrentWeather
 );
 
 /*
 |--------------------------------------------------------------------------
-| CRUD
+| Weather Forecast
 |--------------------------------------------------------------------------
 */
 
-router.post(
-    "/",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    createWeather
+router.get(
+    "/forecast",
+    validate({
+        query: forecastValidator
+    }),
+    weatherController.getForecast
 );
+
+/*
+|--------------------------------------------------------------------------
+| Historical Weather
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-    "/",
-    authenticate,
-    getWeatherHistory
+    "/history",
+    validate({
+        query: historyValidator
+    }),
+    weatherController.getHistory
 );
+
+/*
+|--------------------------------------------------------------------------
+| Solar Irradiance
+|--------------------------------------------------------------------------
+*/
 
 router.get(
-    "/:id",
-    authenticate,
-    getWeatherById
+    "/irradiance",
+    validate({
+        query: irradianceValidator
+    }),
+    weatherController.getSolarIrradiance
 );
 
-router.put(
-    "/:id",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    updateWeather
+/*
+|--------------------------------------------------------------------------
+| Wind Data
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/wind",
+    validate({
+        query: windValidator
+    }),
+    weatherController.getWindData
 );
 
-router.delete(
-    "/:id",
-    authenticate,
-    authorize("Administrator"),
-    deleteWeather
+/*
+|--------------------------------------------------------------------------
+| Weather Summary
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/summary",
+    validate({
+        query: weatherSummaryValidator
+    }),
+    weatherController.getWeatherSummary
 );
 
 export default router;

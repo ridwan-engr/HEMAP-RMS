@@ -1,12 +1,29 @@
 import Telemetry from "../../models/Telemetry.js";
 import Weather from "../../models/Weather.js";
 import EnergyForecast from "../../models/EnergyForecast.js";
-
+import mongoose from "mongoose";
+import {
+    emitAnalytics
+} from "../../websocket/eventEmitters.js";
 /*
 |--------------------------------------------------------------------------
 | Historical Telemetry
 |--------------------------------------------------------------------------
 */
+
+function buildSiteQuery(siteId) {
+
+    if (
+        typeof siteId === "string" &&
+        mongoose.Types.ObjectId.isValid(siteId)
+    ) {
+        return {
+            site: siteId
+        };
+    }
+
+    return {};
+}
 
 export async function getHistoricalTelemetry(
     siteId,
@@ -14,20 +31,21 @@ export async function getHistoricalTelemetry(
     limit = 288
 ) {
 
-    const records = await Telemetry.find({
-        site: siteId
-    })
-    .select(`timestamp ${field}`)
-    .sort({
-        timestamp: -1
-    })
-    .limit(limit)
-    .lean();
+    const records = await Telemetry.find(
+
+        buildSiteQuery(siteId)
+
+    )
+        .select(`timestamp ${field}`)
+        .sort({
+            timestamp: -1
+        })
+        .limit(limit)
+        .lean();
 
     return records.reverse();
 
 }
-
 /*
 |--------------------------------------------------------------------------
 | Historical Weather
@@ -40,15 +58,17 @@ export async function getHistoricalWeather(
     limit = 288
 ) {
 
-    const records = await Weather.find({
-        site: siteId
-    })
-    .select(`timestamp ${field}`)
-    .sort({
-        timestamp: -1
-    })
-    .limit(limit)
-    .lean();
+    const records = await Weather.find(
+
+        buildSiteQuery(siteId)
+
+    )
+        .select(`timestamp ${field}`)
+        .sort({
+            timestamp: -1
+        })
+        .limit(limit)
+        .lean();
 
     return records.reverse();
 
@@ -331,7 +351,7 @@ export async function forecastSolar(
 
     );
 
-    return {
+    const forecast = {
 
         parameter: "solarPower",
 
@@ -344,6 +364,8 @@ export async function forecastSolar(
         generatedAt: new Date()
 
     };
+
+    return broadcastForecast(siteId, forecast);
 
 }
 
@@ -385,7 +407,7 @@ export async function forecastBatterySOC(
 
     );
 
-    return {
+    const forecast = {
 
         parameter: "batterySOC",
 
@@ -398,6 +420,8 @@ export async function forecastBatterySOC(
         generatedAt: new Date()
 
     };
+
+    return broadcastForecast(siteId, forecast);
 
 }
 
@@ -439,7 +463,7 @@ export async function forecastLoad(
 
     );
 
-    return {
+    const forecast = {
 
         parameter: "loadPower",
 
@@ -453,6 +477,7 @@ export async function forecastLoad(
 
     };
 
+    return broadcastForecast(siteId, forecast);
 }
 
 /*
@@ -493,7 +518,7 @@ export async function forecastGrid(
 
     );
 
-    return {
+    const forecast = {
 
         parameter: "gridPower",
 
@@ -506,6 +531,8 @@ export async function forecastGrid(
         generatedAt: new Date()
 
     };
+
+    return broadcastForecast(siteId, forecast);
 
 }
 
@@ -547,7 +574,7 @@ export async function forecastGenerator(
 
     );
 
-    return {
+    const forecast = {
 
         parameter: "generatorPower",
 
@@ -560,6 +587,8 @@ export async function forecastGenerator(
         generatedAt: new Date()
 
     };
+
+    return broadcastForecast(siteId, forecast);
 
 }
 
@@ -593,7 +622,7 @@ export async function forecastWeather(
 
     );
 
-    return {
+    const forecast = {
 
         temperature: Number(
 
@@ -637,6 +666,7 @@ export async function forecastWeather(
 
     };
 
+    return broadcastForecast(siteId, forecast);
 }
 
 /*
@@ -657,9 +687,7 @@ export async function saveForecast(
 
 ) {
 
-    return await EnergyForecast.create({
-
-        site: siteId,
+    const payload = {
 
         parameter,
 
@@ -671,7 +699,38 @@ export async function saveForecast(
 
         createdAt: new Date()
 
+    };
+
+    if (
+        typeof siteId === "string" &&
+        mongoose.Types.ObjectId.isValid(siteId)
+    ) {
+        payload.site = siteId;
+    }
+
+    return EnergyForecast.create(payload);
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Broadcast Forecast
+|--------------------------------------------------------------------------
+*/
+
+async function broadcastForecast(siteId, forecast) {
+
+    if (!siteId) {
+        return forecast;
+    }
+
+    emitAnalytics(siteId, {
+        type: "forecast",
+        data: forecast,
+        timestamp: new Date()
     });
+
+    return forecast;
 
 }
 
@@ -719,7 +778,7 @@ export async function getForecastDashboard(
 
     ]);
 
-    return {
+    const dashboard = {
 
         solar,
 
@@ -737,392 +796,400 @@ export async function getForecastDashboard(
 
     };
 
-}
+    emitAnalytics(siteId, {
+        type: "forecast-dashboard",
+        data: dashboard
+    });
 
-/*
-|--------------------------------------------------------------------------
-| Mean Absolute Error (MAE)
-|--------------------------------------------------------------------------
-*/
-
-export function calculateMAE(actual, predicted) {
-
-    if (!actual.length || actual.length !== predicted.length) {
-
-        return 0;
-
-    }
-
-    const error = actual.reduce((sum, value, index) => {
-
-        return sum + Math.abs(value - predicted[index]);
-
-    }, 0);
-
-    return Number((error / actual.length).toFixed(4));
+    return dashboard;
 
 }
 
-/*
-|--------------------------------------------------------------------------
-| Root Mean Square Error (RMSE)
-|--------------------------------------------------------------------------
-*/
+    /*
+    |--------------------------------------------------------------------------
+    | Mean Absolute Error (MAE)
+    |--------------------------------------------------------------------------
+    */
 
-export function calculateRMSE(actual, predicted) {
+    export function calculateMAE(actual, predicted) {
 
-    if (!actual.length || actual.length !== predicted.length) {
+        if (!actual.length || actual.length !== predicted.length) {
 
-        return 0;
-
-    }
-
-    const mse = actual.reduce((sum, value, index) => {
-
-        return sum + Math.pow(value - predicted[index], 2);
-
-    }, 0) / actual.length;
-
-    return Number(Math.sqrt(mse).toFixed(4));
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Mean Absolute Percentage Error (MAPE)
-|--------------------------------------------------------------------------
-*/
-
-export function calculateMAPE(actual, predicted) {
-
-    if (!actual.length || actual.length !== predicted.length) {
-
-        return 0;
-
-    }
-
-    const percentageError = actual.reduce((sum, value, index) => {
-
-        if (value === 0) {
-
-            return sum;
+            return 0;
 
         }
 
-        return sum + Math.abs((value - predicted[index]) / value);
+        const error = actual.reduce((sum, value, index) => {
 
-    }, 0);
+            return sum + Math.abs(value - predicted[index]);
 
-    return Number(
+        }, 0);
 
-        ((percentageError / actual.length) * 100).toFixed(2)
+        return Number((error / actual.length).toFixed(4));
 
-    );
+    }
 
-}
+    /*
+    |--------------------------------------------------------------------------
+    | Root Mean Square Error (RMSE)
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Forecast Accuracy Evaluation
-|--------------------------------------------------------------------------
-*/
+    export function calculateRMSE(actual, predicted) {
 
-export function evaluateForecastAccuracy(actual, predicted) {
+        if (!actual.length || actual.length !== predicted.length) {
 
-    return {
+            return 0;
 
-        mae: calculateMAE(actual, predicted),
+        }
 
-        rmse: calculateRMSE(actual, predicted),
+        const mse = actual.reduce((sum, value, index) => {
 
-        mape: calculateMAPE(actual, predicted)
+            return sum + Math.pow(value - predicted[index], 2);
+
+        }, 0) / actual.length;
+
+        return Number(Math.sqrt(mse).toFixed(4));
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mean Absolute Percentage Error (MAPE)
+    |--------------------------------------------------------------------------
+    */
+
+    export function calculateMAPE(actual, predicted) {
+
+        if (!actual.length || actual.length !== predicted.length) {
+
+            return 0;
+
+        }
+
+        const percentageError = actual.reduce((sum, value, index) => {
+
+            if (value === 0) {
+
+                return sum;
+
+            }
+
+            return sum + Math.abs((value - predicted[index]) / value);
+
+        }, 0);
+
+        return Number(
+
+            ((percentageError / actual.length) * 100).toFixed(2)
+
+        );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forecast Accuracy Evaluation
+    |--------------------------------------------------------------------------
+    */
+
+    export function evaluateForecastAccuracy(actual, predicted) {
+
+        return {
+
+            mae: calculateMAE(actual, predicted),
+
+            rmse: calculateRMSE(actual, predicted),
+
+            mape: calculateMAPE(actual, predicted)
+
+        };
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Automatic Algorithm Selection
+    |--------------------------------------------------------------------------
+    */
+
+    export function selectBestAlgorithm(results) {
+
+        if (!Array.isArray(results) || !results.length) {
+
+            return null;
+
+        }
+
+        return results.reduce((best, current) => {
+
+            return current.rmse < best.rmse ? current : best;
+
+        });
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-Step Forecast Series
+    |--------------------------------------------------------------------------
+    */
+
+    export function generateForecastSeries(
+
+        initialValue,
+
+        steps = 24
+
+    ) {
+
+        return Array.from({ length: steps }, (_, index) => ({
+
+            step: index + 1,
+
+            predictedValue: Number(initialValue.toFixed(2))
+
+        }));
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forecast Next 24 Hours
+    |--------------------------------------------------------------------------
+    */
+
+    export async function forecastNext24Hours(
+
+        siteId,
+
+        algorithm = "moving-average"
+
+    ) {
+
+        const solar = await forecastSolar(siteId, algorithm);
+
+        return generateForecastSeries(
+
+            solar.predictedValue,
+
+            24
+
+        );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forecast Next 7 Days
+    |--------------------------------------------------------------------------
+    */
+
+    export async function forecastNext7Days(
+
+        siteId,
+
+        algorithm = "moving-average"
+
+    ) {
+
+        const load = await forecastLoad(siteId, algorithm);
+
+        return generateForecastSeries(
+
+            load.predictedValue,
+
+            7
+
+        );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forecast Model Registry
+    |--------------------------------------------------------------------------
+    */
+
+    const forecastModels = {
+
+        persistence: persistenceForecast,
+
+        movingAverage,
+
+        weighted: weightedMovingAverage,
+
+        exponential: exponentialSmoothing,
+
+        linear: linearRegressionForecast
 
     };
 
-}
+    /*
+    |--------------------------------------------------------------------------
+    | Register Custom Forecast Model
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Automatic Algorithm Selection
-|--------------------------------------------------------------------------
-*/
+    export function registerForecastModel(
 
-export function selectBestAlgorithm(results) {
+        name,
 
-    if (!Array.isArray(results) || !results.length) {
+        handler
 
-        return null;
+    ) {
 
-    }
+        if (typeof handler !== "function") {
 
-    return results.reduce((best, current) => {
+            throw new Error("Forecast model must be a function.");
 
-        return current.rmse < best.rmse ? current : best;
+        }
 
-    });
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Multi-Step Forecast Series
-|--------------------------------------------------------------------------
-*/
-
-export function generateForecastSeries(
-
-    initialValue,
-
-    steps = 24
-
-) {
-
-    return Array.from({ length: steps }, (_, index) => ({
-
-        step: index + 1,
-
-        predictedValue: Number(initialValue.toFixed(2))
-
-    }));
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Forecast Next 24 Hours
-|--------------------------------------------------------------------------
-*/
-
-export async function forecastNext24Hours(
-
-    siteId,
-
-    algorithm = "moving-average"
-
-) {
-
-    const solar = await forecastSolar(siteId, algorithm);
-
-    return generateForecastSeries(
-
-        solar.predictedValue,
-
-        24
-
-    );
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Forecast Next 7 Days
-|--------------------------------------------------------------------------
-*/
-
-export async function forecastNext7Days(
-
-    siteId,
-
-    algorithm = "moving-average"
-
-) {
-
-    const load = await forecastLoad(siteId, algorithm);
-
-    return generateForecastSeries(
-
-        load.predictedValue,
-
-        7
-
-    );
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Forecast Model Registry
-|--------------------------------------------------------------------------
-*/
-
-const forecastModels = {
-
-    persistence: persistenceForecast,
-
-    movingAverage,
-
-    weighted: weightedMovingAverage,
-
-    exponential: exponentialSmoothing,
-
-    linear: linearRegressionForecast
-
-};
-
-/*
-|--------------------------------------------------------------------------
-| Register Custom Forecast Model
-|--------------------------------------------------------------------------
-*/
-
-export function registerForecastModel(
-
-    name,
-
-    handler
-
-) {
-
-    if (typeof handler !== "function") {
-
-        throw new Error("Forecast model must be a function.");
+        forecastModels[name] = handler;
 
     }
 
-    forecastModels[name] = handler;
+    /*
+    |--------------------------------------------------------------------------
+    | Get Registered Forecast Models
+    |--------------------------------------------------------------------------
+    */
 
-}
+    export function getForecastModels() {
 
-/*
-|--------------------------------------------------------------------------
-| Get Registered Forecast Models
-|--------------------------------------------------------------------------
-*/
+        return Object.keys(forecastModels);
 
-export function getForecastModels() {
+    }
 
-    return Object.keys(forecastModels);
+    /*
+    |--------------------------------------------------------------------------
+    | Future ML Hooks
+    |--------------------------------------------------------------------------
+    */
 
-}
+    export async function runARIMAForecast() {
 
-/*
-|--------------------------------------------------------------------------
-| Future ML Hooks
-|--------------------------------------------------------------------------
-*/
+        throw new Error(
 
-export async function runARIMAForecast() {
+            "ARIMA model not yet implemented."
 
-    throw new Error(
+        );
 
-        "ARIMA model not yet implemented."
+    }
 
-    );
+    export async function runLSTMForecast() {
 
-}
+        throw new Error(
 
-export async function runLSTMForecast() {
+            "LSTM model not yet implemented."
 
-    throw new Error(
+        );
 
-        "LSTM model not yet implemented."
+    }
 
-    );
+    export async function runProphetForecast() {
 
-}
+        throw new Error(
 
-export async function runProphetForecast() {
+            "Prophet model not yet implemented."
 
-    throw new Error(
+        );
 
-        "Prophet model not yet implemented."
+    }
 
-    );
+    export async function runPyTorchForecast() {
 
-}
+        throw new Error(
 
-export async function runPyTorchForecast() {
+            "PyTorch forecast model not yet implemented."
 
-    throw new Error(
+        );
 
-        "PyTorch forecast model not yet implemented."
+    }
 
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard Wrapper
+    |--------------------------------------------------------------------------
+    */
 
-}
+    export async function getDashboardForecast(filters = {}) {
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard Wrapper
-|--------------------------------------------------------------------------
-*/
+        const siteId = filters.siteId || null;
 
-export async function getDashboardForecast(filters = {}) {
+        return getForecastDashboard(siteId);
 
-    return getForecastDashboard(filters);
+    }
+    /*
+    |--------------------------------------------------------------------------
+    | Default Export
+    |--------------------------------------------------------------------------
+    */
 
-}
+    export default {
 
-/*
-|--------------------------------------------------------------------------
-| Default Export
-|--------------------------------------------------------------------------
-*/
+        getHistoricalTelemetry,
 
-export default {
+        getHistoricalWeather,
 
-    getHistoricalTelemetry,
+        extractSeries,
 
-    getHistoricalWeather,
+        persistenceForecast,
 
-    extractSeries,
+        movingAverage,
 
-    persistenceForecast,
+        weightedMovingAverage,
 
-    movingAverage,
+        exponentialSmoothing,
 
-    weightedMovingAverage,
+        linearRegressionForecast,
 
-    exponentialSmoothing,
+        runForecast,
 
-    linearRegressionForecast,
+        forecastSolar,
 
-    runForecast,
+        forecastBatterySOC,
 
-    forecastSolar,
+        forecastLoad,
 
-    forecastBatterySOC,
+        forecastGrid,
 
-    forecastLoad,
+        forecastGenerator,
 
-    forecastGrid,
+        forecastWeather,
 
-    forecastGenerator,
+        saveForecast,
 
-    forecastWeather,
+        getForecastDashboard,
 
-    saveForecast,
+        calculateMAE,
 
-    getForecastDashboard,
+        calculateRMSE,
 
-    calculateMAE,
+        calculateMAPE,
 
-    calculateRMSE,
+        evaluateForecastAccuracy,
 
-    calculateMAPE,
+        selectBestAlgorithm,
 
-    evaluateForecastAccuracy,
+        generateForecastSeries,
 
-    selectBestAlgorithm,
+        forecastNext24Hours,
 
-    generateForecastSeries,
+        forecastNext7Days,
 
-    forecastNext24Hours,
+        registerForecastModel,
 
-    forecastNext7Days,
+        getForecastModels,
 
-    registerForecastModel,
+        runARIMAForecast,
 
-    getForecastModels,
+        runLSTMForecast,
 
-    runARIMAForecast,
+        runProphetForecast,
 
-    runLSTMForecast,
+        runPyTorchForecast,
 
-    runProphetForecast,
+        getDashboardForecast
 
-    runPyTorchForecast,
-
-    getDashboardForecast
-
-};
+    };
