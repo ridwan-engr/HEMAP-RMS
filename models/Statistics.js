@@ -9,6 +9,14 @@ const statisticsSchema = new mongoose.Schema(
             index: true
         },
 
+        installation: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Installation",
+            required: true
+        },
+
+        installationId: Number,
+
         period: {
             type: String,
             enum: [
@@ -78,7 +86,16 @@ const statisticsSchema = new mongoose.Schema(
         resilience: {
             type: Number,
             default: 0
-        }
+        },
+
+        batterySOC: Number,
+        batteryVoltage: Number,
+        batteryCurrent: Number,
+        solarPower: Number,
+        loadPower: Number,
+        gridPower: Number,
+        generatorPower: Number,
+        inverterPower: Number
     },
     {
         timestamps: true

@@ -1,27 +1,23 @@
-import installationService
-from "../vrm/installationService.js";
+import Installation from "../../models/Installation.js";
 
-import telemetryService
-from "../vrm/telemetryService.js";
+import {
+    synchronizeTelemetry
+} from "../services/telemetry/telemetryService.js";
 
-import statisticsService
-from "../analytics/statisticsService.js";
+import statisticsService from "../analytics/statisticsService.js";
 
-import normalizeTelemetry
-from "../vrm/alarmService.js";
-
-import Telemetry
-from "../../models/Telemetry.js";
-
-import logger
-from "../../utils/logger.js";
+import logger from "../../utils/logger.js";
 
 class SyncService {
 
-    async sync() {
+    /**
+     * Synchronize all installations
+     */
+    async synchronizeAll() {
 
-        const installations =
-            await installationService.getInstallations();
+        const installations = await Installation.find({
+            status: "ACTIVE"
+        }).lean();
 
         const updates = [];
 
@@ -29,40 +25,54 @@ class SyncService {
 
             try {
 
-                const raw =
-                    await telemetryService
-                        .getLiveTelemetry(
-                            installation.Id
-                        );
-
                 const telemetry =
-                    normalizeTelemetry(
-                        raw,
-                        installation
+                    await telemetryService.synchronizeTelemetry(
+                        installation.installationId
                     );
 
-                await Telemetry.create(
-                    telemetry
-                );
-
-                updates.push(
-                    telemetry
-                );
+                updates.push(telemetry);
 
             }
 
             catch (error) {
 
-                logger.error(error);
+                logger.error({
+
+                    installationId:
+                        installation.installationId,
+
+                    message:
+                        error.message
+
+                });
 
             }
 
         }
 
-        await statisticsService
-            .saveStatisticsSnapshot();
+        await statisticsService.saveStatisticsSnapshot();
 
         return updates;
+
+    }
+
+    /**
+     * Synchronize a single installation
+     */
+    async synchronizeInstallation(installationId) {
+
+        return telemetryService.synchronizeTelemetry(
+            installationId
+        );
+
+    }
+
+    /**
+     * Backward compatibility
+     */
+    async sync() {
+
+        return this.synchronizeAll();
 
     }
 

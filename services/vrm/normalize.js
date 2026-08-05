@@ -1,11 +1,47 @@
-/**
- * Normalize telemetry from Victron VRM.
- */
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
+
+function value(attribute) {
+
+    if (!attribute) return 0;
+
+    if (attribute.rawValue !== undefined)
+        return Number(attribute.rawValue);
+
+    if (
+
+        Array.isArray(attribute.instances) &&
+
+        attribute.instances.length
+
+    ) {
+
+        return Number(
+
+            attribute.instances[0].rawValue
+
+        );
+
+    }
+
+    return 0;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Normalize Telemetry
+|--------------------------------------------------------------------------
+*/
+
 export function normalizeTelemetry(
 
     installation,
 
-    telemetry = {},
+    dashboard = {},
 
     alarms = [],
 
@@ -13,65 +49,61 @@ export function normalizeTelemetry(
 
 ) {
 
+    const attributes =
+        dashboard.attributes ?? {};
+
+    const totals =
+        statistics.totals ?? {};
+
     return {
 
-        site: installation.site,
+        site:
+            installation.site,
 
-        installation: installation._id,
+        installation:
+            installation._id,
 
-        installationId: installation.installationId,
+        installationId:
+            installation.installationId,
 
         timestamp:
+            new Date(),
 
-            telemetry.timestamp
-
-                ? new Date(telemetry.timestamp)
-
-                : new Date(),
-
-        solarPower:
-
-            Number(telemetry.pvPower ?? 0),
-
-        batteryPower:
-
-            Number(telemetry.batteryPower ?? 0),
+        firmware:
+            attributes.v?.formattedValue ?? "",
 
         batterySOC:
-
-            Number(telemetry.soc ?? 0),
+            value(attributes.SOC),
 
         batteryVoltage:
-
-            Number(telemetry.batteryVoltage ?? 0),
+            value(attributes.BV),
 
         batteryCurrent:
+            value(attributes.BC),
 
-            Number(telemetry.batteryCurrent ?? 0),
+        batteryPower:
+            value(attributes.BP),
 
-        gridPower:
+        solarPower:
+            value(attributes.PPV),
 
-            Number(telemetry.gridPower ?? 0),
-
-        generatorPower:
-
-            Number(telemetry.generatorPower ?? 0),
-
-        loadPower:
-
-            Number(telemetry.loadPower ?? 0),
+        solarVoltage:
+            value(attributes.PV),
 
         inverterPower:
+            value(attributes.P),
 
-            Number(telemetry.inverterPower ?? 0),
+        gridVoltage:
+            value(attributes.IV1),
 
-        frequency:
+        gridFrequency:
+            value(attributes.IF1),
 
-            Number(telemetry.frequency ?? 0),
+        generatorPower:
+            totals.total_genset ?? 0,
 
-        temperature:
-
-            Number(telemetry.temperature ?? 0),
+        loadPower:
+            totals.total_consumption ?? 0,
 
         alarms,
 
@@ -81,34 +113,99 @@ export function normalizeTelemetry(
 
 }
 
-/**
- * Normalize alarm from Victron VRM.
- */
+/*
+|--------------------------------------------------------------------------
+| Normalize Statistics
+|--------------------------------------------------------------------------
+*/
+
+export function normalizeStatistics(
+
+    installation,
+
+    statistics = {}
+
+) {
+
+    const totals =
+        statistics.totals ?? {};
+
+    return {
+
+        site:
+            installation.site,
+
+        installation:
+            installation._id,
+
+        installationId:
+            installation.installationId,
+
+        timestamp:
+            new Date(),
+
+        batterySOC:
+            totals.bs ?? 0,
+
+        batteryVoltage:
+            totals.bv ?? 0,
+
+        energyConsumed:
+            totals.total_consumption ?? 0,
+
+        generatorEnergy:
+            totals.total_genset ?? 0,
+
+        solarYield:
+            totals.total_solar_yield ?? 0,
+
+        gridImport:
+            totals.grid_history_from ?? 0,
+
+        gridExport:
+            totals.grid_history_to ?? 0
+
+    };
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Normalize Alarm
+|--------------------------------------------------------------------------
+*/
+
 export function normalizeAlarm(
 
     installation,
 
-    raw = {}
+    raw
 
 ) {
 
     return {
 
         site:
-
             installation.site,
 
         installation:
-
             installation._id,
 
         installationId:
-
             installation.installationId,
 
         vrmAlarmId:
+            String(
 
-            String(raw.id ?? raw.alarmId ?? ""),
+                raw.id ??
+
+                raw.alarmId ??
+
+                raw.code ??
+
+                ""
+
+            ),
 
         name:
 
@@ -116,21 +213,22 @@ export function normalizeAlarm(
 
             raw.title ??
 
+            raw.description ??
+
             "Unknown Alarm",
+
+        severity:
+            normalizeSeverity(
+
+                raw.severity
+
+            ),
 
         category:
 
             raw.category ??
 
             "SYSTEM",
-
-        severity:
-
-            normalizeSeverity(
-
-                raw.severity
-
-            ),
 
         message:
 
@@ -150,21 +248,21 @@ export function normalizeAlarm(
 
         startedAt:
 
-            raw.startedAt
+            raw.timestamp
 
-                ? new Date(raw.startedAt)
+                ? new Date(
 
-                : raw.timestamp
+                    raw.timestamp * 1000
 
-                    ? new Date(raw.timestamp)
+                )
 
-                    : new Date(),
+                : new Date(),
 
         resolvedAt:
 
-            raw.cleared && raw.resolvedAt
+            raw.cleared
 
-                ? new Date(raw.resolvedAt)
+                ? new Date()
 
                 : null
 
@@ -172,99 +270,15 @@ export function normalizeAlarm(
 
 }
 
-/**
- * Normalize statistics from Victron VRM.
- */
-export function normalizeStatistics(
+/*
+|--------------------------------------------------------------------------
+| Severity
+|--------------------------------------------------------------------------
+*/
 
-    installation,
-
-    raw = {}
-
-) {
-
-    return {
-
-        site:
-
-            installation.site,
-
-        installation:
-
-            installation._id,
-
-        installationId:
-
-            installation.installationId,
-
-        period:
-
-            raw.period ??
-
-            "DAILY",
-
-        timestamp:
-
-            raw.timestamp
-
-                ? new Date(raw.timestamp)
-
-                : new Date(),
-
-        energyGenerated:
-
-            Number(raw.energyGenerated ?? 0),
-
-        energyConsumed:
-
-            Number(raw.energyConsumed ?? 0),
-
-        gridAvailability:
-
-            Number(raw.gridAvailability ?? 0),
-
-        batteryEfficiency:
-
-            Number(raw.batteryEfficiency ?? 0),
-
-        renewableFraction:
-
-            Number(raw.renewableFraction ?? 0),
-
-        generatorRuntime:
-
-            Number(raw.generatorRuntime ?? 0),
-
-        saidi:
-
-            Number(raw.saidi ?? 0),
-
-        saifi:
-
-            Number(raw.saifi ?? 0),
-
-        ens:
-
-            Number(raw.ens ?? 0),
-
-        lolp:
-
-            Number(raw.lolp ?? 0),
-
-        resilience:
-
-            Number(raw.resilience ?? 0)
-
-    };
-
-}
-
-/**
- * Normalize alarm severity.
- */
 export function normalizeSeverity(
 
-    severity = ""
+    severity
 
 ) {
 
@@ -286,13 +300,9 @@ export function normalizeSeverity(
 
         case "warning":
 
-        case "warn":
-
             return "WARNING";
 
         case "info":
-
-        case "information":
 
             return "INFO";
 
@@ -305,13 +315,13 @@ export function normalizeSeverity(
 }
 
 export default {
-    
-    normalizeAlarm,
-    
-    normalizeSeverity,
 
     normalizeTelemetry,
 
-    normalizeStatistics
+    normalizeStatistics,
+
+    normalizeAlarm,
+
+    normalizeSeverity
 
 };

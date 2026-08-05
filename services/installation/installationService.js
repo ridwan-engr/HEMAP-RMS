@@ -11,38 +11,64 @@ export async function getInstallations(filters = {}) {
     const query = {};
 
     if (filters.siteId) {
-
         query.site = filters.siteId;
-
     }
 
-    if (filters.customer) {
+    if (filters.installationId) {
+        query.installationId = filters.installationId;
+    }
 
-        query.customer = filters.customer;
+    if (filters.identifier) {
+        query.identifier = {
+            $regex: filters.identifier,
+            $options: "i"
+        };
+    }
 
+    if (filters.systemType) {
+        query.systemType = filters.systemType;
     }
 
     if (filters.status) {
-
         query.status = filters.status;
-
     }
 
-    if (filters.type) {
-
-        query.type = filters.type;
-
+    if (filters.isActive !== undefined) {
+        query.isActive = filters.isActive;
     }
 
-    return Installation.find(query)
+    const page = filters.page || 1;
+    const limit = filters.limit || 20;
 
-        .populate("site")
+    const [installations, total] = await Promise.all([
 
-        .sort({
+        Installation.find(query)
+            .populate("site")
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit),
 
-            createdAt: -1
+        Installation.countDocuments(query)
 
-        });
+    ]);
+
+    return {
+
+        data: installations,
+
+        pagination: {
+
+            page,
+
+            limit,
+
+            total,
+
+            pages: Math.ceil(total / limit)
+
+        }
+
+    };
 
 }
 
@@ -55,16 +81,11 @@ export async function getInstallations(filters = {}) {
 export async function getInstallation(id) {
 
     const installation = await Installation.findById(id)
-
         .populate("site");
 
     if (!installation) {
 
-        throw new Error(
-
-            "Installation not found."
-
-        );
+        throw new Error("Installation not found.");
 
     }
 
@@ -80,17 +101,35 @@ export async function getInstallation(id) {
 
 export async function createInstallation(data) {
 
-    const exists = await Installation.findOne({
+    const duplicateInstallationId =
+        await Installation.findOne({
 
-        code: data.code
+            installationId: data.installationId
 
-    });
+        });
 
-    if (exists) {
+    if (duplicateInstallationId) {
 
         throw new Error(
 
-            "Installation code already exists."
+            "Installation ID already exists."
+
+        );
+
+    }
+
+    const duplicateIdentifier =
+        await Installation.findOne({
+
+            identifier: data.identifier
+
+        });
+
+    if (duplicateIdentifier) {
+
+        throw new Error(
+
+            "Installation identifier already exists."
 
         );
 
@@ -120,25 +159,55 @@ export async function updateInstallation(id, data) {
 
     }
 
-    if (data.code) {
+    if (
 
-        const duplicate = await Installation.findOne({
+        data.installationId &&
+        data.installationId !== installation.installationId
 
-            code: data.code,
+    ) {
 
-            _id: {
+        const duplicate =
+            await Installation.findOne({
 
-                $ne: id
+                installationId: data.installationId,
 
-            }
+                _id: { $ne: id }
 
-        });
+            });
 
         if (duplicate) {
 
             throw new Error(
 
-                "Installation code already exists."
+                "Installation ID already exists."
+
+            );
+
+        }
+
+    }
+
+    if (
+
+        data.identifier &&
+        data.identifier !== installation.identifier
+
+    ) {
+
+        const duplicate =
+            await Installation.findOne({
+
+                identifier: data.identifier,
+
+                _id: { $ne: id }
+
+            });
+
+        if (duplicate) {
+
+            throw new Error(
+
+                "Installation identifier already exists."
 
             );
 
@@ -168,7 +237,8 @@ export async function updateInstallation(id, data) {
 
 export async function deleteInstallation(id) {
 
-    const installation = await Installation.findById(id);
+    const installation =
+        await Installation.findById(id);
 
     if (!installation) {
 
@@ -182,7 +252,11 @@ export async function deleteInstallation(id) {
 
     await installation.deleteOne();
 
-    return true;
+    return {
+
+        success: true
+
+    };
 
 }
 
@@ -194,7 +268,8 @@ export async function deleteInstallation(id) {
 
 export async function synchronizeInstallation(id) {
 
-    const installation = await Installation.findById(id);
+    const installation =
+        await Installation.findById(id);
 
     if (!installation) {
 
@@ -206,7 +281,7 @@ export async function synchronizeInstallation(id) {
 
     }
 
-    installation.lastSynchronization = new Date();
+    installation.lastSync = new Date();
 
     await installation.save();
 
@@ -222,9 +297,9 @@ export async function synchronizeInstallation(id) {
 
 export async function getInstallationStatistics(id) {
 
-    const installation = await Installation.findById(id)
-
-        .populate("site");
+    const installation =
+        await Installation.findById(id)
+            .populate("site");
 
     if (!installation) {
 
@@ -238,25 +313,27 @@ export async function getInstallationStatistics(id) {
 
     return {
 
-        installationId: installation._id,
+        id: installation._id,
 
-        code: installation.code,
+        installationId: installation.installationId,
 
-        site: installation.site,
+        identifier: installation.identifier,
+
+        name: installation.name,
+
+        systemType: installation.systemType,
 
         status: installation.status,
 
-        lastSynchronization:
+        lastSync: installation.lastSync,
 
-            installation.lastSynchronization,
+        lastTelemetry: installation.lastTelemetry,
 
-        createdAt:
+        isActive: installation.isActive,
 
-            installation.createdAt,
+        createdAt: installation.createdAt,
 
-        updatedAt:
-
-            installation.updatedAt
+        updatedAt: installation.updatedAt
 
     };
 

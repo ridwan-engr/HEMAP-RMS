@@ -4,6 +4,8 @@ import Site from "../../models/Site.js";
 import Installation from "../../models/Installation.js";
 import Alarm from "../../models/Alarm.js";
 import Telemetry from "../../models/Telemetry.js";
+import Statistics from "../../models/Statistics.js";
+import logger from "../../utils/logger.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -411,6 +413,97 @@ export async function getSiteLocations() {
 
 }
 
+export async function saveStatisticsSnapshot() {
+
+    const installations = await Installation.find().lean();
+
+    const snapshots = [];
+
+    for (const installation of installations) {
+
+        const latest = await Telemetry
+            .findOne({
+                installation: installation._id
+            })
+            .sort({ timestamp: -1 })
+            .lean();
+
+        if (!latest) {
+            continue;
+        }
+
+        const snapshot = await Statistics.create({
+
+            site: installation.site,
+
+            installation: installation._id,
+
+            installationId: installation.installationId,
+
+            period: "HOURLY",
+
+            timestamp: new Date(),
+
+            energyGenerated: latest.solarPower || 0,
+
+            energyConsumed: latest.loadPower || 0,
+
+            gridAvailability: latest.gridPower > 0 ? 100 : 0,
+
+            batteryEfficiency: latest.batterySOC || 0,
+
+            renewableFraction:
+                latest.loadPower > 0
+                    ? ((latest.solarPower || 0) / latest.loadPower) * 100
+                    : 0,
+
+            generatorRuntime:
+                latest.generatorPower > 0 ? 1 : 0,
+
+            saidi: 0,
+
+            saifi: 0,
+
+            ens: 0,
+
+            lolp: 0,
+
+            resilience: 0,
+
+            batterySOC: latest.batterySOC,
+
+            batteryVoltage: latest.batteryVoltage,
+
+            batteryCurrent: latest.batteryCurrent,
+
+            solarPower: latest.solarPower,
+
+            loadPower: latest.loadPower,
+
+            gridPower: latest.gridPower,
+
+            generatorPower: latest.generatorPower,
+
+            inverterPower: latest.inverterPower
+
+        });
+
+        snapshots.push(snapshot);
+
+    }
+
+    logger.success({
+
+        message: "Statistics snapshot created.",
+
+        total: snapshots.length
+
+    });
+
+    return snapshots;
+
+}
+
 export default {
 
     getDashboardStatistics,
@@ -429,6 +522,9 @@ export default {
 
     getKPIs,
 
-    getSiteLocations
+    getSiteLocations,
+
+    saveStatisticsSnapshot
+
 
 };

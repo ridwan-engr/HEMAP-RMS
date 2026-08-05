@@ -3,7 +3,7 @@ import logger from "../../utils/logger.js";
 
 /*
 |--------------------------------------------------------------------------
-| Constants
+| Supported intervals
 |--------------------------------------------------------------------------
 */
 
@@ -79,16 +79,13 @@ function validateRequest(
 
 }
 
-/**
- * Get installation statistics.
- *
- * @param {number|string} installationId
- * @param {string|number} start
- * @param {string|number} end
- * @param {string} interval
- * @returns {Promise<Object>}
- */
-export async function energyStatistics(
+/*
+|--------------------------------------------------------------------------
+| Fetch raw statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function getStatistics(
 
     installationId,
 
@@ -114,7 +111,7 @@ export async function energyStatistics(
 
     try {
 
-        return await get(
+        const response = await get(
 
             `/installations/${installationId}/stats`,
 
@@ -129,6 +126,8 @@ export async function energyStatistics(
             }
 
         );
+
+        return response.records ?? {};
 
     }
 
@@ -146,36 +145,76 @@ export async function energyStatistics(
 
             interval,
 
-            message: error.message,
-
             status: error.response?.status,
 
-            data: error.response?.data
+            data: error.response?.data,
+
+            message: error.message
 
         });
 
-        throw new Error(
-
-            `Unable to retrieve energy statistics: ${error.message}`,
-
-            {
-
-                cause: error
-
-            }
-
-        );
+        throw error;
 
     }
 
 }
 
-/**
- * Battery statistics.
- *
- * Battery information is extracted
- * from the VRM statistics payload.
- */
+/*
+|--------------------------------------------------------------------------
+| Fetch totals only
+|--------------------------------------------------------------------------
+*/
+
+export async function getTotals(
+
+    installationId,
+
+    start,
+
+    end,
+
+    interval = "15mins"
+
+) {
+
+    validateRequest(
+
+        installationId,
+
+        start,
+
+        end,
+
+        interval
+
+    );
+
+    const response = await get(
+
+        `/installations/${installationId}/stats`,
+
+        {
+
+            start,
+
+            end,
+
+            interval
+
+        }
+
+    );
+
+    return response.totals ?? {};
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Battery statistics
+|--------------------------------------------------------------------------
+*/
+
 export async function batteryStatistics(
 
     installationId,
@@ -188,7 +227,7 @@ export async function batteryStatistics(
 
 ) {
 
-    const stats = await energyStatistics(
+    const stats = await getStatistics(
 
         installationId,
 
@@ -200,16 +239,22 @@ export async function batteryStatistics(
 
     );
 
-    return stats.battery ?? {};
+    return {
+
+        soc: stats.bs ?? [],
+
+        voltage: stats.bv ?? []
+
+    };
 
 }
 
-/**
- * Solar statistics.
- *
- * PV information is extracted
- * from the VRM statistics payload.
- */
+/*
+|--------------------------------------------------------------------------
+| Solar statistics
+|--------------------------------------------------------------------------
+*/
+
 export async function solarStatistics(
 
     installationId,
@@ -222,7 +267,7 @@ export async function solarStatistics(
 
 ) {
 
-    const stats = await energyStatistics(
+    const stats = await getStatistics(
 
         installationId,
 
@@ -234,14 +279,21 @@ export async function solarStatistics(
 
     );
 
-    return stats.solar ?? {};
+    return {
+
+        yield: stats.total_solar_yield ?? []
+
+    };
 
 }
 
-/**
- * Grid statistics.
- */
-export async function gridStatistics(
+/*
+|--------------------------------------------------------------------------
+| Consumption statistics
+|--------------------------------------------------------------------------
+*/
+
+export async function consumptionStatistics(
 
     installationId,
 
@@ -253,7 +305,7 @@ export async function gridStatistics(
 
 ) {
 
-    const stats = await energyStatistics(
+    const stats = await getStatistics(
 
         installationId,
 
@@ -265,13 +317,16 @@ export async function gridStatistics(
 
     );
 
-    return stats.grid ?? {};
+    return stats.total_consumption ?? [];
 
 }
 
-/**
- * Generator statistics.
- */
+/*
+|--------------------------------------------------------------------------
+| Generator statistics
+|--------------------------------------------------------------------------
+*/
+
 export async function generatorStatistics(
 
     installationId,
@@ -284,7 +339,7 @@ export async function generatorStatistics(
 
 ) {
 
-    const stats = await energyStatistics(
+    const stats = await getStatistics(
 
         installationId,
 
@@ -296,19 +351,21 @@ export async function generatorStatistics(
 
     );
 
-    return stats.generator ?? {};
+    return stats.total_genset ?? [];
 
 }
 
 export default {
 
-    energyStatistics,
+    getStatistics,
+
+    getTotals,
 
     batteryStatistics,
 
     solarStatistics,
 
-    gridStatistics,
+    consumptionStatistics,
 
     generatorStatistics
 

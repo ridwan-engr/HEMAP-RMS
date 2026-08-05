@@ -6,7 +6,8 @@ import {
 
     broadcast,
 
-    getSocketIO
+    getSocketIO,
+
 
 } from "./socket.js";
 
@@ -381,6 +382,15 @@ export function emitForecastCompleted(siteId, forecast) {
 
 }
 
+export function emitStatisticsUpdate(data) {
+
+    broadcast(
+        "statistics:update",
+        data
+    );
+
+}
+
 export default {
 
     emitDashboardUpdate,
@@ -400,6 +410,8 @@ export default {
     emitNotification,
 
     emitOptimization,
+
+    emitStatisticsUpdate,
 
     emitReport,
 

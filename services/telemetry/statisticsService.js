@@ -4,6 +4,11 @@ import vrmStatisticsService from "../vrm/statisticsService.js";
 
 import normalize from "../vrm/normalize.js";
 
+import {
+    emitStatistics,
+    emitAnalytics
+} from "../../websocket/eventEmitters.js";
+
 /*
 |--------------------------------------------------------------------------
 | Energy Statistics
@@ -272,7 +277,7 @@ export async function synchronizeStatistics(
 
         site: siteId,
 
-        period,
+        period: "HOURLY",
 
         timestamp:
 
@@ -328,6 +333,59 @@ export async function synchronizeStatistics(
 
 }
 
+export async function synchronizeStatistics(
+    installationId,
+    start,
+    end,
+    interval = "hour"
+) {
+
+    const installation =
+        await Installation.findOne({
+            installationId
+        });
+
+    if (!installation) {
+
+        throw new Error(
+            "Installation not found."
+        );
+
+    }
+
+    const raw =
+        await energyStatistics(
+            installationId,
+            start,
+            end,
+            interval
+        );
+
+    const normalized =
+        normalizeStatistics(
+            installation,
+            raw
+        );
+
+    const saved =
+        await Statistics.create(
+            normalized
+        );
+
+    emitStatistics(
+        installation.site.toString(),
+        saved
+    );
+
+    emitAnalytics(
+        installation.site.toString(),
+        saved
+    );
+
+    return saved;
+
+}
+
 /*
 |--------------------------------------------------------------------------
 | Default Export
@@ -341,6 +399,8 @@ export default {
     batteryStatistics,
 
     solarStatistics,
+
+    synchronizeStatistics,
 
     generatorStatistics,
 

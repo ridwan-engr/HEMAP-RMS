@@ -7,12 +7,24 @@ import Joi from "joi";
 */
 
 const objectId = Joi.string()
-
     .trim()
-
     .length(24)
-
     .hex();
+
+/*
+|--------------------------------------------------------------------------
+| Coordinates
+|--------------------------------------------------------------------------
+*/
+
+const locationSchema = Joi.object({
+    address: Joi.string().trim().allow("").optional(),
+    city: Joi.string().trim().allow("").optional(),
+    state: Joi.string().trim().allow("").optional(),
+    country: Joi.string().trim().allow("").optional(),
+    latitude: Joi.number().min(-90).max(90).optional(),
+    longitude: Joi.number().min(-180).max(180).optional()
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -21,9 +33,7 @@ const objectId = Joi.string()
 */
 
 export const installationIdValidator = Joi.object({
-
     id: objectId.required()
-
 });
 
 /*
@@ -36,52 +46,44 @@ export const installationQueryValidator = Joi.object({
 
     siteId: objectId.optional(),
 
-    customer: Joi.string()
-
-        .trim()
-
+    installationId: Joi.number()
+        .integer()
+        .positive()
         .optional(),
 
-    type: Joi.string()
-
+    identifier: Joi.string()
         .trim()
+        .optional(),
 
+    systemType: Joi.string()
+        .valid(
+            "Grid",
+            "Solar",
+            "Hybrid",
+            "Off-Grid"
+        )
         .optional(),
 
     status: Joi.string()
-
         .valid(
-
             "ONLINE",
-
             "OFFLINE",
-
             "WARNING",
-
-            "FAULT",
-
-            "MAINTENANCE"
-
+            "FAULT"
         )
-
         .optional(),
 
+    isActive: Joi.boolean().optional(),
+
     page: Joi.number()
-
         .integer()
-
         .min(1)
-
         .default(1),
 
     limit: Joi.number()
-
         .integer()
-
         .min(1)
-
         .max(100)
-
         .default(20)
 
 });
@@ -94,101 +96,73 @@ export const installationQueryValidator = Joi.object({
 
 export const createInstallationValidator = Joi.object({
 
-    code: Joi.string()
+    site: objectId.required(),
 
+    installationId: Joi.number()
+        .integer()
+        .positive()
+        .required(),
+
+    identifier: Joi.string()
         .trim()
-
-        .max(50)
-
+        .max(100)
         .required(),
 
     name: Joi.string()
-
         .trim()
-
         .max(150)
-
         .required(),
 
-    site: objectId.required(),
-
-    customer: Joi.string()
-
+    portalId: Joi.string()
         .trim()
-
         .allow("")
-
-        .default(""),
-
-    type: Joi.string()
-
-        .trim()
-
-        .required(),
-
-    manufacturer: Joi.string()
-
-        .trim()
-
-        .allow("")
-
-        .default(""),
-
-    model: Joi.string()
-
-        .trim()
-
-        .allow("")
-
-        .default(""),
-
-    serialNumber: Joi.string()
-
-        .trim()
-
-        .allow("")
-
-        .default(""),
-
-    vrmInstallationId: Joi.string()
-
-        .trim()
-
-        .allow("")
-
-        .default(""),
-
-    status: Joi.string()
-
-        .valid(
-
-            "ONLINE",
-
-            "OFFLINE",
-
-            "WARNING",
-
-            "FAULT",
-
-            "MAINTENANCE"
-
-        )
-
-        .default("ONLINE"),
-
-    commissionedDate: Joi.date()
-
-        .iso()
-
         .optional(),
 
-    description: Joi.string()
+    systemType: Joi.string()
+        .valid(
+            "Grid",
+            "Solar",
+            "Hybrid",
+            "Off-Grid"
+        )
+        .default("Hybrid"),
 
+    firmwareVersion: Joi.string()
         .trim()
-
         .allow("")
+        .optional(),
 
-        .default("")
+    vrmUrl: Joi.string()
+        .uri()
+        .allow("")
+        .optional(),
+
+    location: locationSchema.optional(),
+
+    timezone: Joi.string()
+        .trim()
+        .default("Africa/Lagos"),
+
+    status: Joi.string()
+        .valid(
+            "ONLINE",
+            "OFFLINE",
+            "WARNING",
+            "FAULT"
+        )
+        .default("ONLINE"),
+
+    lastSync: Joi.date().optional(),
+
+    lastTelemetry: Joi.date().optional(),
+
+    isActive: Joi.boolean()
+        .default(true),
+
+    notes: Joi.string()
+        .trim()
+        .allow("")
+        .optional()
 
 });
 
@@ -200,107 +174,78 @@ export const createInstallationValidator = Joi.object({
 
 export const updateInstallationValidator = Joi.object({
 
-    code: Joi.string()
+    site: objectId.optional(),
 
+    installationId: Joi.number()
+        .integer()
+        .positive()
+        .optional(),
+
+    identifier: Joi.string()
         .trim()
-
-        .max(50)
-
+        .max(100)
         .optional(),
 
     name: Joi.string()
-
         .trim()
-
         .max(150)
-
         .optional(),
 
-    site: objectId.optional(),
-
-    customer: Joi.string()
-
+    portalId: Joi.string()
         .trim()
-
         .allow("")
-
         .optional(),
 
-    type: Joi.string()
-
-        .trim()
-
+    systemType: Joi.string()
+        .valid(
+            "Grid",
+            "Solar",
+            "Hybrid",
+            "Off-Grid"
+        )
         .optional(),
 
-    manufacturer: Joi.string()
-
+    firmwareVersion: Joi.string()
         .trim()
-
         .allow("")
-
         .optional(),
 
-    model: Joi.string()
-
-        .trim()
-
+    vrmUrl: Joi.string()
+        .uri()
         .allow("")
-
         .optional(),
 
-    serialNumber: Joi.string()
+    location: locationSchema.optional(),
 
+    timezone: Joi.string()
         .trim()
-
-        .allow("")
-
-        .optional(),
-
-    vrmInstallationId: Joi.string()
-
-        .trim()
-
-        .allow("")
-
         .optional(),
 
     status: Joi.string()
-
         .valid(
-
             "ONLINE",
-
             "OFFLINE",
-
             "WARNING",
-
-            "FAULT",
-
-            "MAINTENANCE"
-
+            "FAULT"
         )
-
         .optional(),
 
-    commissionedDate: Joi.date()
+    lastSync: Joi.date().optional(),
 
-        .iso()
+    lastTelemetry: Joi.date().optional(),
 
-        .optional(),
+    isActive: Joi.boolean().optional(),
 
-    description: Joi.string()
-
+    notes: Joi.string()
         .trim()
-
         .allow("")
-
         .optional()
 
 }).min(1);
 
 /*
 |--------------------------------------------------------------------------
-| Default Export
+| Export
 |--------------------------------------------------------------------------
 */
 

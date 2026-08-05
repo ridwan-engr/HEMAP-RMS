@@ -18,7 +18,7 @@ export async function getSites(filters = {}) {
 
     if (filters.state) {
 
-        query.state = filters.state;
+        query["location.state"] = filters.state;
 
     }
 
@@ -74,7 +74,7 @@ export async function createSite(data) {
 
     const exists = await Site.findOne({
 
-        code: data.code
+        siteCode: data.siteCode
 
     });
 
@@ -108,11 +108,11 @@ export async function updateSite(id, data) {
 
     }
 
-    if (data.code) {
+    if (data.siteCode) {
 
         const duplicate = await Site.findOne({
 
-            code: data.code,
+            siteCode: data.siteCode,
 
             _id: {
 

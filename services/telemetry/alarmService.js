@@ -315,74 +315,47 @@ export async function alarmStatistics(siteId) {
 */
 
 export async function synchronizeAlarms(
-
-    installationId,
-
-    siteId
-
+    installationId
 ) {
 
+    const installation = await Installation.findOne({
+        installationId
+    });
+
+    if (!installation) {
+        throw new Error("Installation not found.");
+    }
+
     const alarms =
-
-        await vrmAlarmService
-
-            .getActiveAlarms(
-
-                installationId
-
-            );
+        await vrmAlarmService.getActiveAlarms(
+            installationId
+        );
 
     const synchronized = [];
 
-    for (
-
-        const alarm
-
-        of alarms
-
-    ) {
+    for (const alarm of alarms) {
 
         const normalized =
-
-            normalizeAlarm;
-
-        const document =
-
-            await Alarm.findOneAndUpdate(
-
-                {
-
-                    vrmAlarmId:
-
-                        normalized.vrmAlarmId
-
-                },
-
-                {
-
-                    ...normalized,
-
-                    site: siteId
-
-                },
-
-                {
-
-                    upsert: true,
-
-                    new: true,
-
-                    setDefaultsOnInsert: true
-
-                }
-
+            normalizeAlarm(
+                installation,
+                alarm
             );
 
-        synchronized.push(
+        const document =
+            await Alarm.findOneAndUpdate(
+                {
+                    vrmAlarmId:
+                        normalized.vrmAlarmId
+                },
+                normalized,
+                {
+                    upsert: true,
+                    new: true,
+                    setDefaultsOnInsert: true
+                }
+            );
 
-            document
-
-        );
+        synchronized.push(document);
 
     }
 

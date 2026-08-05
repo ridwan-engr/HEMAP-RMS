@@ -1,7 +1,9 @@
 import Alarm from "../../models/Alarm.js";
 import Site from "../../models/Site.js";
 import Installation from "../../models/Installation.js";
-
+import {
+    emitAlarm
+} from "../../websocket/eventEmitters.js";
 /*
 |--------------------------------------------------------------------------
 | Active Alarms
@@ -242,11 +244,11 @@ export async function getAlarmSummary(filters = {}) {
 
         } : {})
 
-        .sort({
+            .sort({
 
-            createdAt: -1
+                createdAt: -1
 
-        })
+            })
 
     ]);
 
@@ -278,6 +280,11 @@ export async function acknowledgeAlarm(alarmId, user) {
 
     await alarm.save();
 
+    emitAlarm(
+        alarm.site.toString(),
+        alarm
+    );
+
     return alarm;
 
 }
@@ -301,6 +308,11 @@ export async function resolveAlarm(alarmId, user, payload = {}) {
     alarm.resolutionComment = payload.resolutionComment || "";
 
     await alarm.save();
+
+    emitAlarm(
+        alarm.site.toString(),
+        alarm
+    );
 
     return alarm;
 

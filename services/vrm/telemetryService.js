@@ -44,7 +44,7 @@ export async function getLiveTelemetry(
 
         return await get(
 
-            `/installations/${installationId}/stats`
+            `/installations/${installationId}/dashboard`
 
         );
 
@@ -69,6 +69,8 @@ export async function getLiveTelemetry(
         throw error;
 
     }
+
+    return getDashboard(installationId);
 
 }
 
@@ -246,9 +248,55 @@ export async function getDiagnostics(
 
 }
 
+export async function getDashboard(
+    installationId
+) {
+
+    if (!installationId) {
+
+        throw new Error(
+            "Installation ID is required."
+        );
+
+    }
+
+    try {
+
+        return await get(
+
+            `/installations/${installationId}/dashboard`
+
+        );
+
+    }
+
+    catch (error) {
+
+        logger.error({
+
+            installationId,
+
+            endpoint: "/dashboard",
+
+            message: error.message,
+
+            status: error.response?.status,
+
+            data: error.response?.data
+
+        });
+
+        throw error;
+
+    }
+
+}
+
 export default {
 
     getLiveTelemetry,
+
+    getDashboard,
 
     getHistoricalTelemetry,
 

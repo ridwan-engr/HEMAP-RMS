@@ -1,5 +1,14 @@
 import { get } from "./apiClient.js";
 import logger from "../../utils/logger.js";
+import Alarm from "../../models/Alarm.js";
+import Installation from "../../models/Installation.js";
+
+import * as notificationService
+from "../notifications/notificationService.js";
+
+import {
+    emitAlarm
+} from "../../websocket/eventEmitters.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -269,6 +278,131 @@ export async function getCriticalAlarms(
 
 }
 
+export async function synchronizeAlarms(
+    installationId
+) {
+
+    validateRequest(
+        installationId
+    );
+
+    const installation =
+        await Installation.findOne({
+            installationId
+        });
+
+    if (!installation) {
+
+        throw new Error(
+            "Installation not found."
+        );
+
+    }
+
+    const vrmAlarms =
+        await getActiveAlarms(
+            installationId
+        );
+
+    const synchronized = [];
+
+    for (const alarm of vrmAlarms) {
+
+        const exists =
+            await Alarm.findOne({
+
+                installation: installation._id,
+
+                alarmCode:
+                    alarm.code,
+
+                status: "ACTIVE"
+
+            });
+
+        if (exists) {
+
+            continue;
+
+        }
+
+        const created =
+            await Alarm.create({
+
+                site:
+                    installation.site,
+
+                installation:
+                    installation._id,
+
+                alarmCode:
+                    alarm.code,
+
+                title:
+                    alarm.description,
+
+                message:
+                    alarm.description,
+
+                severity:
+                    alarm.severity,
+
+                status: "ACTIVE",
+
+                source: "VRM",
+
+                metadata: alarm
+
+            });
+
+        synchronized.push(
+            created
+        );
+
+        emitAlarm(
+            installation.site.toString(),
+            created
+        );
+
+        if (
+            ["critical", "high"]
+                .includes(
+                    String(
+                        alarm.severity
+                    ).toLowerCase()
+                )
+        ) {
+
+            await notificationService.sendCriticalAlarm(
+
+                installation.site,
+
+                installation.site.assignedEngineer,
+
+                created
+
+            );
+
+        }
+
+    }
+
+    logger.info({
+
+        installationId,
+
+        synchronized:
+            synchronized.length,
+
+        message:
+            "Alarm synchronization completed."
+
+    });
+
+    return synchronized;
+
+}
+
 export default {
 
     getActiveAlarms,
@@ -277,6 +411,8 @@ export default {
 
     countActiveAlarms,
 
-    getCriticalAlarms
+    getCriticalAlarms,
+
+    synchronizeAlarms
 
 };

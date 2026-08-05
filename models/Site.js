@@ -21,8 +21,8 @@ const siteSchema = new mongoose.Schema(
         installationId: {
             type: String,
             trim: true,
-           // sparse: true,
-            //unique: true
+            sparse: true,
+            unique: true
         },
 
         siteCode: {
@@ -111,6 +111,11 @@ const siteSchema = new mongoose.Schema(
                 "FAULT"
             ],
             default: "ONLINE"
+        },
+
+        isActive: {
+            type: Boolean,
+            default: true
         }
 
     },

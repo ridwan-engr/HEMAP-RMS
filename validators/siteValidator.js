@@ -7,11 +7,8 @@ import Joi from "joi";
 */
 
 const objectId = Joi.string()
-
     .trim()
-
     .length(24)
-
     .hex();
 
 /*
@@ -20,19 +17,62 @@ const objectId = Joi.string()
 |--------------------------------------------------------------------------
 */
 
-const siteStatus = Joi.string()
+const siteStatus = Joi.string().valid(
+    "ONLINE",
+    "OFFLINE",
+    "WARNING",
+    "FAULT"
+);
 
-    .valid(
+/*
+|--------------------------------------------------------------------------
+| Site Type
+|--------------------------------------------------------------------------
+*/
 
-        "Active",
+const siteType = Joi.string().valid(
+    "Telecom",
+    "Commercial",
+    "Industrial",
+    "Residential",
+    "Utility",
+    "Other"
+);
 
-        "Inactive",
+/*
+|--------------------------------------------------------------------------
+| System Type
+|--------------------------------------------------------------------------
+*/
 
-        "Maintenance",
+const systemType = Joi.string().valid(
+    "Hybrid",
+    "Solar",
+    "Grid",
+    "Generator",
+    "Battery"
+);
 
-        "Fault"
+/*
+|--------------------------------------------------------------------------
+| Location
+|--------------------------------------------------------------------------
+*/
 
-    );
+const locationSchema = Joi.object({
+    address: Joi.string().trim().allow(""),
+    city: Joi.string().trim().allow(""),
+    state: Joi.string().trim().allow(""),
+    country: Joi.string().trim().default("Nigeria"),
+
+    latitude: Joi.number()
+        .min(-90)
+        .max(90),
+
+    longitude: Joi.number()
+        .min(-180)
+        .max(180)
+}).and("latitude", "longitude");
 
 /*
 |--------------------------------------------------------------------------
@@ -41,9 +81,7 @@ const siteStatus = Joi.string()
 */
 
 export const siteIdValidator = Joi.object({
-
     id: objectId.required()
-
 });
 
 /*
@@ -55,71 +93,38 @@ export const siteIdValidator = Joi.object({
 export const siteQueryValidator = Joi.object({
 
     customer: Joi.string()
-
         .trim()
-
         .optional(),
 
-    region: Joi.string()
+    siteType: siteType.optional(),
 
-        .trim()
-
-        .max(100)
-
-        .optional(),
-
-    state: Joi.string()
-
-        .trim()
-
-        .max(100)
-
-        .optional(),
+    systemType: systemType.optional(),
 
     status: siteStatus.optional(),
 
-    isActive: Joi.boolean()
-
-        .optional(),
+    assignedEngineer: objectId.optional(),
 
     page: Joi.number()
-
         .integer()
-
         .min(1)
-
         .default(1),
 
     limit: Joi.number()
-
         .integer()
-
         .min(1)
-
         .max(100)
-
         .default(20),
 
     sort: Joi.string()
-
         .valid(
-
             "name",
-
             "-name",
-
-            "code",
-
-            "-code",
-
+            "siteCode",
+            "-siteCode",
             "createdAt",
-
             "-createdAt"
-
         )
-
         .default("name")
-
 });
 
 /*
@@ -130,93 +135,63 @@ export const siteQueryValidator = Joi.object({
 
 export const createSiteValidator = Joi.object({
 
-    code: Joi.string()
-
+    installationId: Joi.string()
         .trim()
+        .optional(),
 
+    siteCode: Joi.string()
+        .trim()
         .uppercase()
-
         .pattern(/^[A-Z0-9_-]+$/)
-
         .max(50)
-
         .required(),
 
     name: Joi.string()
-
         .trim()
-
         .min(2)
-
         .max(150)
-
         .required(),
 
     customer: Joi.string()
-
         .trim()
-
         .allow("")
-
         .optional(),
 
-    region: Joi.string()
-
+    description: Joi.string()
         .trim()
-
-        .max(100)
-
         .allow("")
-
         .optional(),
 
-    state: Joi.string()
+    siteType: siteType.default("Telecom"),
 
+    location: locationSchema.optional(),
+
+    timezone: Joi.string()
         .trim()
+        .default("Africa/Lagos"),
 
-        .max(100)
+    installedCapacity: Joi.number()
+        .min(0)
+        .default(0),
 
-        .allow("")
-
+    commissioningDate: Joi.date()
         .optional(),
 
-    address: Joi.string()
+    tags: Joi.array()
+        .items(Joi.string())
+        .default([]),
 
+    systemType: systemType.default("Hybrid"),
+
+    firmwareVersion: Joi.string()
         .trim()
-
-        .max(500)
-
         .allow("")
-
         .optional(),
 
-    latitude: Joi.number()
+    assignedEngineer: objectId.optional(),
 
-        .min(-90)
-
-        .max(90)
-
-        .optional(),
-
-    longitude: Joi.number()
-
-        .min(-180)
-
-        .max(180)
-
-        .optional(),
-
-    installation: objectId.optional(),
-
-    status: siteStatus.default("Active"),
-
-    isActive: Joi.boolean()
-
-        .default(true)
-
-})
-
-.and("latitude", "longitude");
+    status: siteStatus.default("ONLINE")
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -226,99 +201,68 @@ export const createSiteValidator = Joi.object({
 
 export const updateSiteValidator = Joi.object({
 
-    code: Joi.string()
-
+    installationId: Joi.string()
         .trim()
+        .optional(),
 
+    siteCode: Joi.string()
+        .trim()
         .uppercase()
-
         .pattern(/^[A-Z0-9_-]+$/)
-
         .max(50)
-
         .optional(),
 
     name: Joi.string()
-
         .trim()
-
         .min(2)
-
         .max(150)
-
         .optional(),
 
     customer: Joi.string()
-
         .trim()
-
         .allow("")
-
         .optional(),
 
-    region: Joi.string()
-
+    description: Joi.string()
         .trim()
-
-        .max(100)
-
         .allow("")
-
         .optional(),
 
-    state: Joi.string()
+    siteType: siteType.optional(),
 
+    location: locationSchema.optional(),
+
+    timezone: Joi.string()
         .trim()
-
-        .max(100)
-
-        .allow("")
-
         .optional(),
 
-    address: Joi.string()
+    installedCapacity: Joi.number()
+        .min(0)
+        .optional(),
 
+    commissioningDate: Joi.date()
+        .optional(),
+
+    tags: Joi.array()
+        .items(Joi.string())
+        .optional(),
+
+    systemType: systemType.optional(),
+
+    firmwareVersion: Joi.string()
         .trim()
-
-        .max(500)
-
         .allow("")
-
         .optional(),
 
-    latitude: Joi.number()
+    assignedEngineer: objectId.optional(),
 
-        .min(-90)
+    status: siteStatus.optional()
 
-        .max(90)
-
-        .optional(),
-
-    longitude: Joi.number()
-
-        .min(-180)
-
-        .max(180)
-
-        .optional(),
-
-    installation: objectId.optional(),
-
-    status: siteStatus.optional(),
-
-    isActive: Joi.boolean()
-
-        .optional()
-
-})
-
-.and("latitude", "longitude")
-
-.min(1);
+}).min(1);
 
 /*
 |--------------------------------------------------------------------------
-| Default Export
+| Export
 |--------------------------------------------------------------------------
 */
 

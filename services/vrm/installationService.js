@@ -4,7 +4,7 @@ import Installation from "../../models/Installation.js";
 
 /*
 |--------------------------------------------------------------------------
-| Fetch Active Installations from MongoDB
+| Active Installations
 |--------------------------------------------------------------------------
 */
 
@@ -18,15 +18,15 @@ export async function getInstallations() {
 
         })
 
-            .populate(
+        .populate(
 
-                "site",
+            "site",
 
-                "name code location"
+            "name code location"
 
-            )
+        )
 
-            .lean();
+        .lean();
 
     }
 
@@ -36,9 +36,7 @@ export async function getInstallations() {
 
             message: "Failed to retrieve installations.",
 
-            error: error.message,
-
-            stack: error.stack
+            error: error.message
 
         });
 
@@ -50,7 +48,7 @@ export async function getInstallations() {
 
 /*
 |--------------------------------------------------------------------------
-| Fetch One Installation From VRM
+| Single Installation
 |--------------------------------------------------------------------------
 */
 
@@ -58,21 +56,35 @@ export async function getInstallation(installationId) {
 
     if (!installationId) {
 
-        throw new Error(
-
-            "Installation ID is required."
-
-        );
+        throw new Error("Installation ID is required.");
 
     }
 
     try {
 
-        return await get(
+        const installation = await Installation.findOne({
 
-            `/installations/${installationId}`
+            installationId
 
-        );
+        })
+
+        .populate(
+
+            "site",
+
+            "name code location"
+
+        )
+
+        .lean();
+
+        if (!installation) {
+
+            throw new Error("Installation not found.");
+
+        }
+
+        return installation;
 
     }
 
@@ -80,13 +92,9 @@ export async function getInstallation(installationId) {
 
         logger.error({
 
-            message: "Failed to retrieve installation from VRM.",
-
             installationId,
 
-            status: error.response?.status,
-
-            data: error.response?.data,
+            message: "Failed to retrieve installation.",
 
             error: error.message
 

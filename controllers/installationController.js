@@ -1,6 +1,37 @@
-import asyncHandler from "../utils/asyncHandler.js";
+import asyncHandler from "express-async-handler";
 
 import * as installationService from "../services/installation/installationService.js";
+
+import dashboardStatisticsService
+    from "../services/dashboard/dashboardStatisticsService.js";
+
+import {
+
+    emitDashboardUpdate
+    
+} from "../websocket/eventEmitters.js";
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard Refresh Helper
+|--------------------------------------------------------------------------
+*/
+
+async function refreshDashboard() {
+
+    const dashboard =
+        await dashboardStatisticsService.getDashboardStatistics();
+
+    emitDashboardUpdate(dashboard);
+
+    emitStatisticsUpdate({
+        installationCount: dashboard.installationCount,
+        siteCount: dashboard.siteCount,
+        onlineSites: dashboard.onlineSites,
+        offlineSites: dashboard.offlineSites
+    });
+
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -10,19 +41,16 @@ import * as installationService from "../services/installation/installationServi
 
 export const getInstallations = asyncHandler(async (req, res) => {
 
-    const installations = await installationService.getInstallations(
+    const result =
+        await installationService.getInstallations(req.query);
 
-        req.query
-
-    );
-
-    return res.status(200).json({
+    res.status(200).json({
 
         success: true,
 
         message: "Installations retrieved successfully.",
 
-        data: installations
+        ...result
 
     });
 
@@ -36,11 +64,10 @@ export const getInstallations = asyncHandler(async (req, res) => {
 
 export const getInstallation = asyncHandler(async (req, res) => {
 
-    const { id } = req.params;
+    const installation =
+        await installationService.getInstallation(req.params.id);
 
-    const installation = await installationService.getInstallation(id);
-
-    return res.status(200).json({
+    res.status(200).json({
 
         success: true,
 
@@ -60,15 +87,12 @@ export const getInstallation = asyncHandler(async (req, res) => {
 
 export const createInstallation = asyncHandler(async (req, res) => {
 
-    const installation = await installationService.createInstallation(
+    const installation =
+        await installationService.createInstallation(req.body);
 
-        req.body,
+    await refreshDashboard();
 
-        req.user
-
-    );
-
-    return res.status(201).json({
+    res.status(201).json({
 
         success: true,
 
@@ -88,19 +112,30 @@ export const createInstallation = asyncHandler(async (req, res) => {
 
 export const updateInstallation = asyncHandler(async (req, res) => {
 
-    const { id } = req.params;
+    const installation =
+        await installationService.updateInstallation(
 
-    const installation = await installationService.updateInstallation(
+            req.params.id,
 
-        id,
+            req.body
 
-        req.body,
+        );
 
-        req.user
+    const dashboard =
+        await dashboardStatisticsService.getDashboardStatistics();
 
-    );
+    emitDashboardUpdate(dashboard);
 
-    return res.status(200).json({
+    emitStatisticsUpdate({
+        installationCount: dashboard.installationCount,
+        siteCount: dashboard.siteCount,
+        onlineSites: dashboard.onlineSites,
+        offlineSites: dashboard.offlineSites
+    });
+
+    await refreshDashboard();
+
+    res.status(200).json({
 
         success: true,
 
@@ -120,17 +155,23 @@ export const updateInstallation = asyncHandler(async (req, res) => {
 
 export const deleteInstallation = asyncHandler(async (req, res) => {
 
-    const { id } = req.params;
+    await installationService.deleteInstallation(req.params.id);
 
-    await installationService.deleteInstallation(
+    const dashboard =
+        await dashboardStatisticsService.getDashboardStatistics();
 
-        id,
+    emitDashboardUpdate(dashboard);
 
-        req.user
+    emitStatisticsUpdate({
+        installationCount: dashboard.installationCount,
+        siteCount: dashboard.siteCount,
+        onlineSites: dashboard.onlineSites,
+        offlineSites: dashboard.offlineSites
+    });
 
-    );
+    await refreshDashboard();
 
-    return res.status(200).json({
+    res.status(200).json({
 
         success: true,
 
@@ -148,23 +189,22 @@ export const deleteInstallation = asyncHandler(async (req, res) => {
 
 export const synchronizeInstallation = asyncHandler(async (req, res) => {
 
-    const { id } = req.params;
+    const installation =
+        await installationService.synchronizeInstallation(
 
-    const result = await installationService.synchronizeInstallation(
+            req.params.id
 
-        id,
+        );
 
-        req.user
+    await refreshDashboard();
 
-    );
-
-    return res.status(200).json({
+    res.status(200).json({
 
         success: true,
 
         message: "Installation synchronized successfully.",
 
-        data: result
+        data: installation
 
     });
 
@@ -178,11 +218,14 @@ export const synchronizeInstallation = asyncHandler(async (req, res) => {
 
 export const getInstallationStatistics = asyncHandler(async (req, res) => {
 
-    const { id } = req.params;
+    const statistics =
+        await installationService.getInstallationStatistics(
 
-    const statistics = await installationService.getInstallationStatistics(id);
+            req.params.id
 
-    return res.status(200).json({
+        );
+
+    res.status(200).json({
 
         success: true,
 

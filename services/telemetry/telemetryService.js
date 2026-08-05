@@ -149,13 +149,13 @@ export async function getLatestTelemetry(
 
     })
 
-    .sort({
+        .sort({
 
-        timestamp: -1
+            timestamp: -1
 
-    })
+        })
 
-    .lean();
+        .lean();
 
 }
 
@@ -194,16 +194,26 @@ export async function synchronizeTelemetry(
     }
 
     /*
+ |--------------------------------------------------------------------------
+ | Retrieve Live Dashboard
+ |--------------------------------------------------------------------------
+ */
+
+    const dashboard =
+        await vrmTelemetryService.getLiveTelemetry(
+            installationId
+        );
+
+    /*
     |--------------------------------------------------------------------------
-    | Retrieve VRM Live Data
+    | Retrieve Statistics
     |--------------------------------------------------------------------------
     */
 
-    const telemetry = await vrmTelemetryService.getLiveTelemetry(
-
-        installationId
-
-    );
+    const statistics =
+        await vrmTelemetryService.getHistoricalTelemetry(
+            installationId
+        );
 
     /*
     |--------------------------------------------------------------------------
@@ -211,26 +221,36 @@ export async function synchronizeTelemetry(
     |--------------------------------------------------------------------------
     */
 
-    const normalized = normalizeTelemetry(
-
-        installation,
-
-        telemetry
-
-    );
-
+    const normalized =
+        normalizeTelemetry(
+            installation,
+            dashboard,
+            [],
+            statistics
+        );
     /*
     |--------------------------------------------------------------------------
     | Save
     |--------------------------------------------------------------------------
     */
 
-    const saved = await Telemetry.create(
+    const saved =
+        await Telemetry.findOneAndUpdate(
+            {
+                installation: installation._id
+            },
+            normalized,
+            {
+                upsert: true,
+                new: true
+            }
+        );
 
-        normalized
-
-    );
-
+    /*
+    |--------------------------------------------------------------------------
+    | Realtime Events
+    |--------------------------------------------------------------------------
+    */
     /*
     |--------------------------------------------------------------------------
     | Realtime Events
@@ -239,7 +259,7 @@ export async function synchronizeTelemetry(
 
     emitTelemetry(
 
-        installation.site,
+        installation.site.toString(),
 
         saved
 
@@ -247,7 +267,7 @@ export async function synchronizeTelemetry(
 
     emitDashboardUpdate({
 
-        siteId: installation.site,
+        siteId: installation.site.toString(),
 
         timestamp: saved.timestamp,
 
@@ -265,7 +285,7 @@ export async function synchronizeTelemetry(
 
     emitStatistics(
 
-        installation.site,
+        installation.site.toString(),
 
         {
 
@@ -283,7 +303,7 @@ export async function synchronizeTelemetry(
 
     emitAnalytics(
 
-        installation.site,
+        installation.site.toString(),
 
         {
 
@@ -309,13 +329,21 @@ export async function synchronizeTelemetry(
 
     logger.success({
 
-        installationId,
+    installationId,
 
-        siteId: installation.site,
+    siteId: installation.site,
 
-        message: "Telemetry synchronized."
+    batterySOC: saved.batterySOC,
 
-    });
+    batteryVoltage: saved.batteryVoltage,
+
+    solarPower: saved.solarPower,
+
+    loadPower: saved.loadPower,
+
+    message: "Telemetry synchronized successfully."
+    
+});
 
     return saved;
 
@@ -587,7 +615,7 @@ export default {
 
     getDeviceStatus,
 
-    getTelemetrySummary, 
+    getTelemetrySummary,
 
     refreshDashboard
 

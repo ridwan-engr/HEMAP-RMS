@@ -1,23 +1,30 @@
-import { Router } from "express";
+import express from "express";
 
-import installationController from "../controllers/installationController.js";
+import * as installationController from "../controllers/installationController.js";
 
 import authenticate from "../middlewares/auth.js";
+
 import authorize from "../middlewares/authorize.js";
+
 import validate from "../middlewares/validate.js";
 
 import {
+
     installationIdValidator,
+
     installationQueryValidator,
+
     createInstallationValidator,
+
     updateInstallationValidator
+
 } from "../validators/installationValidator.js";
 
-const router = Router();
+const router = express.Router();
 
 /*
 |--------------------------------------------------------------------------
-| Authentication
+| All Installation Routes Require Authentication
 |--------------------------------------------------------------------------
 */
 
@@ -25,105 +32,128 @@ router.use(authenticate);
 
 /*
 |--------------------------------------------------------------------------
-| Get Installations
+| Installation Routes
 |--------------------------------------------------------------------------
 */
 
+/*
+| GET /api/installations
+*/
+
 router.get(
+
     "/",
-    validate({
-        query: installationQueryValidator
-    }),
+
+    validate(installationQueryValidator, "query"),
+
     installationController.getInstallations
+
 );
 
 /*
-|--------------------------------------------------------------------------
-| Get Installation
-|--------------------------------------------------------------------------
+| GET /api/installations/:id
 */
 
 router.get(
+
     "/:id",
-    validate({
-        params: installationIdValidator
-    }),
+
+    validate(installationIdValidator, "params"),
+
     installationController.getInstallation
+
 );
 
 /*
-|--------------------------------------------------------------------------
-| Create Installation
-|--------------------------------------------------------------------------
+| POST /api/installations
 */
 
 router.post(
+
     "/",
-    authorize("ADMIN"),
-    validate({
-        body: createInstallationValidator
-    }),
+
+    authorize("ADMIN", "ENGINEER"),
+
+    validate(createInstallationValidator),
+
     installationController.createInstallation
+
 );
 
 /*
-|--------------------------------------------------------------------------
-| Update Installation
-|--------------------------------------------------------------------------
+| PUT /api/installations/:id
 */
 
 router.put(
+
     "/:id",
-    authorize("ADMIN"),
-    validate({
-        params: installationIdValidator,
-        body: updateInstallationValidator
-    }),
+
+    authorize("ADMIN", "ENGINEER"),
+
+    validate(installationIdValidator, "params"),
+
+    validate(updateInstallationValidator),
+
     installationController.updateInstallation
+
 );
 
 /*
-|--------------------------------------------------------------------------
-| Synchronize Installation
-|--------------------------------------------------------------------------
-*/
-
-router.post(
-    "/:id/synchronize",
-    authorize("ADMIN"),
-    validate({
-        params: installationIdValidator
-    }),
-    installationController.synchronizeInstallation
-);
-
-/*
-|--------------------------------------------------------------------------
-| Installation Statistics
-|--------------------------------------------------------------------------
-*/
-
-router.get(
-    "/:id/statistics",
-    validate({
-        params: installationIdValidator
-    }),
-    installationController.getInstallationStatistics
-);
-
-/*
-|--------------------------------------------------------------------------
-| Delete Installation
-|--------------------------------------------------------------------------
+| DELETE /api/installations/:id
 */
 
 router.delete(
+
     "/:id",
+
     authorize("ADMIN"),
-    validate({
-        params: installationIdValidator
-    }),
+
+    validate(installationIdValidator, "params"),
+
     installationController.deleteInstallation
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Synchronization
+|--------------------------------------------------------------------------
+*/
+
+/*
+| POST /api/installations/:id/synchronize
+*/
+
+router.post(
+
+    "/:id/synchronize",
+
+    authorize("ADMIN", "ENGINEER"),
+
+    validate(installationIdValidator, "params"),
+
+    installationController.synchronizeInstallation
+
+);
+
+/*
+|--------------------------------------------------------------------------
+| Statistics
+|--------------------------------------------------------------------------
+*/
+
+/*
+| GET /api/installations/:id/statistics
+*/
+
+router.get(
+
+    "/:id/statistics",
+
+    validate(installationIdValidator, "params"),
+
+    installationController.getInstallationStatistics
+
 );
 
 export default router;

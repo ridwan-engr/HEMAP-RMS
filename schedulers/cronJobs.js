@@ -8,6 +8,8 @@ import { runOptimizationScheduler } from "./optimizationScheduler.js";
 import { runReportScheduler } from "./reportScheduler.js";
 import { runNotificationScheduler } from "./notificationScheduler.js";
 import { runMaintenanceScheduler } from "./maintenanceScheduler.js";
+import { runDashboardScheduler } from "./dashboardScheduler.js";
+import { runHealthScheduler } from "./healthScheduler.js";
 
 export function registerCronJobs() {
 

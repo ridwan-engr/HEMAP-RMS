@@ -9,6 +9,12 @@ const telemetrySchema = new mongoose.Schema(
             index: true
         },
 
+        installation: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Installation",
+            required: true
+        },
+
         timestamp: {
             type: Date,
             required: true,
