@@ -1,64 +1,172 @@
 import { Router } from "express";
 
-import { authenticate } from "../middlewares/auth.js";
-import { authorize } from "../middlewares/authorize.js";
+import deviceController from "../controllers/deviceController.js";
 
-import {
-
-    createGrid,
-
-    getGrids,
-
-    getGrid,
-
-    updateGrid,
-
-    deleteGrid
-
-
-    //getGridBySite
-
-} from "../controllers/gridController.js";
+import authenticate from "../middlewares/auth.js";
+import authorize from "../middlewares/authorize.js";
+import validate from "../middlewares/validate.js";
 
 const router = Router();
 
-/*router.get(
-    "/site/:siteId",
-    authenticate,
-    getGridBySite
-);*/
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+router.use(authenticate);
+
+/*
+|--------------------------------------------------------------------------
+| Device List
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/",
+    deviceController.getDevices
+);
+
+/*
+|--------------------------------------------------------------------------
+| Device Summary
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/summary",
+    deviceController.getDeviceSummary
+);
+
+/*
+|--------------------------------------------------------------------------
+| Device Statistics
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/statistics",
+    deviceController.getDeviceStatistics
+);
+
+/*
+|--------------------------------------------------------------------------
+| Device Health
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/health",
+    deviceController.getDeviceHealth
+);
+
+/*
+|--------------------------------------------------------------------------
+| Firmware Versions
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/firmware",
+    deviceController.getFirmwareVersions
+);
+
+/*
+|--------------------------------------------------------------------------
+| Device Types
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/types",
+    deviceController.getDeviceTypes
+);
+
+/*
+|--------------------------------------------------------------------------
+| Manufacturers
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/manufacturers",
+    deviceController.getManufacturers
+);
+
+/*
+|--------------------------------------------------------------------------
+| Refresh Devices
+|--------------------------------------------------------------------------
+*/
+
+router.post(
+    "/refresh",
+    authorize("ADMIN"),
+    deviceController.refreshDevices
+);
+
+/*
+|--------------------------------------------------------------------------
+| Device By Internal ID
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/:id",
+    deviceController.getDevice
+);
+
+/*
+|--------------------------------------------------------------------------
+| Device By Device ID
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+    "/device-id/:deviceId",
+    deviceController.getDeviceByDeviceId
+);
+
+/*
+|--------------------------------------------------------------------------
+| Create Device
+|--------------------------------------------------------------------------
+*/
 
 router.post(
     "/",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    createGrid
+    authorize(
+        "ADMIN",
+        "ENGINEER"
+    ),
+    deviceController.createDevice
 );
 
-router.get(
-    "/",
-    authenticate,
-    getGrids
-);
-
-router.get(
-    "/:id",
-    authenticate,
-    getGrid
-);
+/*
+|--------------------------------------------------------------------------
+| Update Device
+|--------------------------------------------------------------------------
+*/
 
 router.put(
     "/:id",
-    authenticate,
-    authorize("Administrator", "Engineer"),
-    updateGrid
+    authorize(
+        "ADMIN",
+        "ENGINEER"
+    ),
+    deviceController.updateDevice
 );
+
+/*
+|--------------------------------------------------------------------------
+| Delete Device
+|--------------------------------------------------------------------------
+*/
 
 router.delete(
     "/:id",
-    authenticate,
-    authorize("Administrator"),
-    deleteGrid
+    authorize("ADMIN"),
+    deviceController.deleteDevice
 );
 
 export default router;

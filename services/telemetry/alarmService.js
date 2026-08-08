@@ -2,7 +2,7 @@ import Alarm from "../../models/Alarm.js";
 
 import vrmAlarmService from "../vrm/alarmService.js";
 
-import  { normalizeAlarm }  from "../vrm/normalize.js";
+import { normalizeAlarm } from "../vrm/normalize.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -18,11 +18,11 @@ export async function getInstallationAlarms(siteId) {
 
     })
 
-    .sort({
+        .sort({
 
-        startedAt: -1
+            startedAt: -1
 
-    });
+        });
 
 }
 
@@ -126,13 +126,13 @@ export async function getAlarmHistory(
 
     })
 
-    .sort({
+        .sort({
 
-        startedAt: -1
+            startedAt: -1
 
-    })
+        })
 
-    .limit(limit);
+        .limit(limit);
 
 }
 
@@ -350,8 +350,7 @@ export async function synchronizeAlarms(
                 normalized,
                 {
                     upsert: true,
-                    new: true,
-                    setDefaultsOnInsert: true
+                    returnDocument: "after"
                 }
             );
 

@@ -242,7 +242,7 @@ export async function synchronizeTelemetry(
             normalized,
             {
                 upsert: true,
-                new: true
+                returnDocument: "after"
             }
         );
 
@@ -329,21 +329,21 @@ export async function synchronizeTelemetry(
 
     logger.success({
 
-    installationId,
+        installationId,
 
-    siteId: installation.site,
+        siteId: installation.site,
 
-    batterySOC: saved.batterySOC,
+        batterySOC: saved.batterySOC,
 
-    batteryVoltage: saved.batteryVoltage,
+        batteryVoltage: saved.batteryVoltage,
 
-    solarPower: saved.solarPower,
+        solarPower: saved.solarPower,
 
-    loadPower: saved.loadPower,
+        loadPower: saved.loadPower,
 
-    message: "Telemetry synchronized successfully."
-    
-});
+        message: "Telemetry synchronized successfully."
+
+    });
 
     return saved;
 

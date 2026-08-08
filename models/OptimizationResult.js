@@ -2,15 +2,29 @@ import mongoose from "mongoose";
 
 const optimizationResultSchema = new mongoose.Schema(
     {
+        /*
+        |------------------------------------------------------------------
+        | Site
+        |------------------------------------------------------------------
+        */
+
         site: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Site",
-            required: true
+            required: true,
+            index: true
         },
+
+        /*
+        |------------------------------------------------------------------
+        | Optimization Metadata
+        |------------------------------------------------------------------
+        */
 
         optimizationDate: {
             type: Date,
-            default: Date.now
+            default: Date.now,
+            index: true
         },
 
         objectiveFunction: {
@@ -18,57 +32,160 @@ const optimizationResultSchema = new mongoose.Schema(
             default: "Minimum ENS"
         },
 
+        objectiveValue: {
+            type: Number,
+            default: 0
+        },
+
         optimizationMethod: {
             type: String,
             default: "Pyomo"
         },
 
-        batteryDispatch: Number,
+        /*
+        |------------------------------------------------------------------
+        | Dispatch Results
+        |------------------------------------------------------------------
+        */
 
-        generatorDispatch: Number,
+        batteryDispatch: {
+            type: Number,
+            default: 0
+        },
 
-        solarDispatch: Number,
+        generatorDispatch: {
+            type: Number,
+            default: 0
+        },
 
-        gridDispatch: Number,
+        solarDispatch: {
+            type: Number,
+            default: 0
+        },
 
-        renewableFraction: Number,
+        gridDispatch: {
+            type: Number,
+            default: 0
+        },
 
-        batteryEfficiency: Number,
+        /*
+        |------------------------------------------------------------------
+        | Optimization Metrics
+        |------------------------------------------------------------------
+        */
 
-        generatorRuntime: Number,
+        renewableFraction: {
+            type: Number,
+            default: 0
+        },
 
-        fuelConsumption: Number,
+        batteryEfficiency: {
+            type: Number,
+            default: 0
+        },
 
-        operatingCost: Number,
+        generatorRuntime: {
+            type: Number,
+            default: 0
+        },
 
-        co2Emission: Number,
+        fuelConsumption: {
+            type: Number,
+            default: 0
+        },
 
-        lolp: Number,
+        operatingCost: {
+            type: Number,
+            default: 0
+        },
 
-        ens: Number,
+        co2Emission: {
+            type: Number,
+            default: 0
+        },
 
-        saifi: Number,
+        /*
+        |------------------------------------------------------------------
+        | Reliability Metrics
+        |------------------------------------------------------------------
+        */
 
-        saidi: Number,
+        lolp: {
+            type: Number,
+            default: 0
+        },
 
-        resilienceIndex: Number,
+        ens: {
+            type: Number,
+            default: 0
+        },
 
-        computationTime: Number,
+        saifi: {
+            type: Number,
+            default: 0
+        },
+
+        saidi: {
+            type: Number,
+            default: 0
+        },
+
+        resilienceIndex: {
+            type: Number,
+            default: 0
+        },
+
+        /*
+        |------------------------------------------------------------------
+        | Computation
+        |------------------------------------------------------------------
+        */
+
+        computationTime: {
+            type: Number,
+            default: 0
+        },
+
+        /*
+        |------------------------------------------------------------------
+        | Optimization Constraints
+        |------------------------------------------------------------------
+        */
+
+        constraints: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {}
+        },
+
+        /*
+        |------------------------------------------------------------------
+        | Status
+        |------------------------------------------------------------------
+        */
 
         status: {
             type: String,
+
             enum: [
                 "SUCCESS",
                 "FAILED",
                 "RUNNING"
             ],
+
             default: "SUCCESS"
         }
     },
+
     {
         timestamps: true
     }
 );
+
+/*
+|----------------------------------------------------------------------
+| Index
+|----------------------------------------------------------------------
+*/
 
 optimizationResultSchema.index({
     site: 1,

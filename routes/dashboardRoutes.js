@@ -176,6 +176,10 @@ router.post(
 
 router.get(
     "/charts",
+    authenticate,
+    validate({
+        query: dashboardQuerySchema
+    }),
     dashboardController.getDashboardCharts
 );
 

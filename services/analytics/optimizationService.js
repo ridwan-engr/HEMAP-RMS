@@ -5,6 +5,7 @@ import Solar from "../../models/Solar.js";
 import Telemetry from "../../models/Telemetry.js";
 import Weather from "../../models/Weather.js";
 import OptimizationResult from "../../models/OptimizationResult.js";
+import Site from "../../models/Site.js";
 
 import {
     forecastSolar,
@@ -18,6 +19,23 @@ import {
 
 import mongoose from "mongoose";
 
+
+
+function validateSite(siteId) {
+
+    if (
+        !siteId ||
+        !mongoose.Types.ObjectId.isValid(siteId)
+    ) {
+
+        throw new Error("A valid siteId is required for optimization.");
+
+    }
+
+    return true;
+
+}
+
 /*
 |--------------------------------------------------------------------------
 | Current System State
@@ -26,7 +44,10 @@ import mongoose from "mongoose";
 
 export async function getCurrentSystemState(siteId) {
 
+    validateSite(siteId);
+
     const [
+        site,
         telemetry,
         battery,
         generator,
@@ -35,37 +56,49 @@ export async function getCurrentSystemState(siteId) {
         weather
     ] = await Promise.all([
 
+        Site.findById(siteId).lean(),
+
         Telemetry.findOne({
             site: siteId
-        }).sort({
-            timestamp: -1
-        }),
+        })
+            .sort({
+                timestamp: -1
+            })
+            .lean(),
 
         Battery.findOne({
             site: siteId
-        }),
+        })
+            .lean(),
 
         Generator.findOne({
             site: siteId
-        }),
+        })
+            .lean(),
 
         Grid.findOne({
             site: siteId
-        }),
+        })
+            .lean(),
 
         Solar.findOne({
             site: siteId
-        }),
+        })
+            .lean(),
 
         Weather.findOne({
             site: siteId
-        }).sort({
-            timestamp: -1
         })
+            .sort({
+                timestamp: -1
+            })
+            .lean()
 
     ]);
 
     return {
+
+        site,
 
         telemetry,
 
@@ -107,10 +140,8 @@ export function calculateRenewableGeneration(state) {
 
 export function calculateGeneratorCapacity(state) {
 
-    return (
-
-        state.generator?.capacity ?? 0
-
+    return Number(
+        state.generator?.ratedPower ?? 0
     );
 
 }
@@ -123,19 +154,72 @@ export function calculateGeneratorCapacity(state) {
 
 export function calculateBatteryCapacity(state) {
 
+    const battery = state.battery;
+
+    const nominalEnergy =
+        Number(
+            battery?.nominalEnergy ?? 0
+        );
+
+    const nominalVoltage =
+        Number(
+            battery?.nominalVoltage ?? 0
+        );
+
+    const maximumDischargeCurrent =
+        Number(
+            battery?.maximumDischargeCurrent ?? 0
+        );
+
+    const maximumChargeCurrent =
+        Number(
+            battery?.maximumChargeCurrent ?? 0
+        );
+
     return {
 
-        capacity:
+        nominalEnergy,
 
-            state.battery?.capacity ?? 0,
+        nominalVoltage,
+
+        maximumDischargeCurrent,
+
+        maximumChargeCurrent,
+
+        maximumDischargePower:
+            maximumDischargeCurrent *
+            nominalVoltage,
+
+        maximumChargePower:
+            maximumChargeCurrent *
+            nominalVoltage,
 
         soc:
-
-            state.telemetry?.batterySOC ?? 0,
+            Number(
+                state.telemetry?.batterySOC ??
+                battery?.currentSOC ??
+                0
+            ),
 
         power:
+            Number(
+                state.telemetry?.batteryPower ?? 0
+            ),
 
-            state.telemetry?.batteryPower ?? 0
+        stateOfHealth:
+            Number(
+                battery?.stateOfHealth ?? 100
+            ),
+
+        minimumSOC:
+            Number(
+                battery?.minimumSOC ?? 20
+            ),
+
+        maximumSOC:
+            Number(
+                battery?.maximumSOC ?? 100
+            )
 
     };
 
@@ -533,26 +617,26 @@ export function validateBatteryConstraints(
 */
 
 export function validateGeneratorConstraints(
-
     generator,
-
     telemetry
-
 ) {
 
     const output =
-
-        telemetry?.generatorPower ?? 0;
+        Number(
+            telemetry?.generatorPower ?? 0
+        );
 
     const capacity =
-
-        generator?.capacity ?? 0;
+        Number(
+            generator?.ratedPower ?? 0
+        );
 
     return {
 
         valid:
-
-            output <= capacity,
+            !generator
+                ? false
+                : output <= capacity,
 
         output,
 
@@ -684,42 +768,113 @@ export function validateOptimizationConstraints(
 
 export function optimizeBatteryDispatch(state) {
 
-    const soc = state.telemetry?.batterySOC ?? 0;
-    const netLoad = calculateNetLoad(state);
+    const battery = state.battery;
 
-    if (netLoad <= 0) {
+    const soc = Number(
+        state.telemetry?.batterySOC ??
+        battery?.currentSOC ??
+        0
+    );
+
+    const minimumSOC = Number(
+        battery?.minimumSOC ?? 20
+    );
+
+    const maximumSOC = Number(
+        battery?.maximumSOC ?? 100
+    );
+
+    const nominalVoltage = Number(
+        battery?.nominalVoltage ?? 0
+    );
+
+    const maximumDischargeCurrent = Number(
+        battery?.maximumDischargeCurrent ?? 0
+    );
+
+    const maximumDischargePower =
+        nominalVoltage *
+        maximumDischargeCurrent;
+
+    const netLoad =
+        calculateNetLoad(state);
+
+    /*
+    |--------------------------------------------------------------------------
+    | No battery configuration
+    |--------------------------------------------------------------------------
+    */
+
+    if (!battery) {
+
+        return {
+
+            action: "UNAVAILABLE",
+
+            recommendedPower: 0,
+
+            reason:
+                "Battery configuration is unavailable."
+
+        };
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Excess renewable generation
+    |--------------------------------------------------------------------------
+    */
+
+    if (netLoad < 0) {
 
         return {
 
             action: "CHARGE",
 
-            recommendedPower: Math.abs(netLoad),
+            recommendedPower:
+                Math.abs(netLoad),
 
-            reason: "Excess renewable generation"
+            reason:
+                "Excess renewable generation."
 
         };
 
     }
 
-    if (soc > 30) {
+    /*
+    |--------------------------------------------------------------------------
+    | Battery can discharge
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        soc > minimumSOC &&
+        maximumDischargePower > 0
+    ) {
 
         return {
 
             action: "DISCHARGE",
 
-            recommendedPower: Math.min(
+            recommendedPower:
+                Math.min(
+                    netLoad,
+                    maximumDischargePower
+                ),
 
-                netLoad,
-
-                state.battery?.maxDischargePower ?? netLoad
-
-            ),
-
-            reason: "Reduce grid/diesel usage"
+            reason:
+                "Reduce grid/generator usage."
 
         };
 
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Battery unavailable for discharge
+    |--------------------------------------------------------------------------
+    */
 
     return {
 
@@ -727,7 +882,10 @@ export function optimizeBatteryDispatch(state) {
 
         recommendedPower: 0,
 
-        reason: "SOC below minimum threshold"
+        reason:
+            soc <= minimumSOC
+                ? "SOC is at or below minimum threshold."
+                : "Battery discharge capability unavailable."
 
     };
 
@@ -741,9 +899,29 @@ export function optimizeBatteryDispatch(state) {
 
 export function optimizeGeneratorDispatch(state) {
 
-    const balance = calculatePowerBalance(state);
+    const balance =
+        calculatePowerBalance(state);
 
-    if (balance.balance >= 0) {
+    const generator =
+        state.generator;
+
+    const ratedPower =
+        Number(
+            generator?.ratedPower ?? 0
+        );
+
+    const currentPower =
+        Number(
+            state.telemetry?.generatorPower ?? 0
+        );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generator configuration unavailable
+    |--------------------------------------------------------------------------
+    */
+
+    if (!generator) {
 
         return {
 
@@ -751,25 +929,56 @@ export function optimizeGeneratorDispatch(state) {
 
             power: 0,
 
-            reason: "Generation is sufficient"
+            reason:
+                "Generator configuration is unavailable."
 
         };
 
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Existing generator output is already sufficient
+    |--------------------------------------------------------------------------
+    */
+
+    if (balance.balance >= 0) {
+
+        return {
+
+            start:
+                currentPower <= 0,
+
+            power: 0,
+
+            reason:
+                "Current generation is sufficient."
+
+        };
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Supply deficit
+    |--------------------------------------------------------------------------
+    */
+
+    const requiredPower =
+        Math.abs(balance.balance);
+
     return {
 
         start: true,
 
-        power: Math.min(
+        power:
+            Math.min(
+                requiredPower,
+                ratedPower
+            ),
 
-            Math.abs(balance.balance),
-
-            state.generator?.capacity ?? 0
-
-        ),
-
-        reason: "Supply deficit"
+        reason:
+            "Supply deficit."
 
     };
 
@@ -936,16 +1145,74 @@ export function performLoadShedding(state) {
 export function performDemandResponse(state) {
 
     const load =
+        Number(
+            state.telemetry?.loadPower ?? 0
+        );
 
-        state.telemetry?.loadPower ?? 0;
+    /*
+    |--------------------------------------------------------------------------
+    | Grid model does not define capacity.
+    |--------------------------------------------------------------------------
+    | Therefore we must not use state.grid.capacity.
+    |--------------------------------------------------------------------------
+    */
+
+    if (load <= 0) {
+
+        return {
+
+            active: false,
+
+            recommendedReduction: 0,
+
+            reason: "No active load."
+
+        };
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Until a formal demand threshold is configured,
+    | do not automatically activate demand response.
+    |--------------------------------------------------------------------------
+    */
+
+    const threshold =
+        Number(
+            state.site?.peakThreshold ?? 0
+        );
+
+    if (threshold <= 0) {
+
+        return {
+
+            active: false,
+
+            recommendedReduction: 0,
+
+            reason:
+                "Demand-response threshold is not configured."
+
+        };
+
+    }
+
+    const active =
+        load > threshold;
 
     return {
 
-        active: load > 0.9 * (state.grid?.capacity ?? load),
+        active,
+
+        threshold,
 
         recommendedReduction:
-
-            load * 0.10
+            active
+                ? Number(
+                    (load - threshold).toFixed(2)
+                )
+                : 0
 
     };
 
@@ -958,46 +1225,129 @@ export function performDemandResponse(state) {
 */
 
 export async function saveOptimizationResult(
-
     siteId,
-
     optimization
-
 ) {
 
-    const result = await OptimizationResult.create({
+    validateSite(siteId);
 
-        site: siteId,
+    const result =
+        await OptimizationResult.create({
 
-        timestamp: new Date(),
+            site: siteId,
 
-        objectiveValue: optimization.objectiveValue,
+            optimizationDate:
+                new Date(),
 
-        batteryDispatch: optimization.battery,
+            objectiveFunction:
+                "Minimum ENS",
 
-        generatorDispatch: optimization.generator,
+            optimizationMethod:
+                "Rule-Based",
 
-        gridDispatch: optimization.grid,
+            batteryDispatch:
+                Number(
+                    optimization.battery
+                        ?.recommendedPower ?? 0
+                ),
 
-        solarDispatch: optimization.solar,
+            generatorDispatch:
+                Number(
+                    optimization.generator
+                        ?.power ?? 0
+                ),
 
-        constraints: optimization.constraints,
+            solarDispatch:
+                Number(
+                    optimization.solar
+                        ?.utilized ?? 0
+                ),
 
-        status: "COMPLETED"
+            gridDispatch:
+                Number(
+                    optimization.grid
+                        ?.importPower ?? 0
+                ),
 
-    });
+            renewableFraction:
+                Number(
+                    calculateRenewableUtilization(
+                        optimization.state ?? {}
+                    )
+                ),
 
-    emitOptimization(siteId, result);
+            batteryEfficiency:
+                Number(
+                    optimization.state
+                        ?.battery
+                        ?.dischargeEfficiency ?? 0
+                ),
 
-    function validateSite(siteId) {
+            generatorRuntime:
+                Number(
+                    optimization.state
+                        ?.generator
+                        ?.todayRuntime ?? 0
+                ),
 
-        if (!mongoose.Types.ObjectId.isValid(siteId)) {
+            fuelConsumption:
+                0,
 
-            throw new Error("Invalid siteId");
+            operatingCost:
+                Number(
+                    optimization.objectiveValue ?? 0
+                ),
 
-        }
+            co2Emission:
+                Number(
+                    optimization.costs
+                        ?.carbonCost ?? 0
+                ),
 
-    }
+            lolp:
+                Number(
+                    optimization.constraints
+                        ?.powerBalance
+                        ?.satisfied
+                        ? 0
+                        : 1
+                ),
+
+            ens:
+                Number(
+                    optimization.loadShedding
+                        ?.shedPower ?? 0
+                ),
+
+            saifi:
+                Number(
+                    optimization.state
+                        ?.grid
+                        ?.SAIFI ?? 0
+                ),
+
+            saidi:
+                Number(
+                    optimization.state
+                        ?.grid
+                        ?.SAIDI ?? 0
+                ),
+
+            resilienceIndex:
+                0,
+
+            computationTime:
+                0,
+
+            status:
+                "SUCCESS"
+
+        });
+
+    emitOptimization(
+        siteId,
+        result
+    );
 
     return result;
 
@@ -1009,13 +1359,18 @@ export async function saveOptimizationResult(
 |--------------------------------------------------------------------------
 */
 
-export async function performRuleBasedDispatch(siteId) {
+export async function performRuleBasedDispatch(
+    siteId,
+    providedState = null
+) {
+
+    validateSite(siteId);
 
     const state =
-
+        providedState ??
         await getCurrentSystemState(siteId);
 
-    if(!state.telemetry) {
+    if (!state.telemetry) {
 
         throw new Error(
             "No telemetry available for optimization."
@@ -1024,114 +1379,89 @@ export async function performRuleBasedDispatch(siteId) {
     }
 
     const battery =
-
         optimizeBatteryDispatch(state);
 
     const generator =
-
         optimizeGeneratorDispatch(state);
 
     const grid =
-
         optimizeGridDispatch(state);
 
     const solar =
-
         optimizeSolarDispatch(state);
 
     const constraints =
-
         validateOptimizationConstraints(state);
 
     const costs = {
 
         gridCost:
-
             calculateGridCost(
-
                 grid.importPower
-
             ),
 
         generatorCost:
-
             calculateGeneratorFuelCost(
-
                 generator.power
-
             ).cost,
 
         batteryCost:
-
             calculateBatteryDegradationCost(
-
                 battery.recommendedPower
-
             ),
 
         carbonCost:
-
             calculateCarbonCost(
-
                 generator.power
-
             ).cost
 
     };
 
     const objectiveValue =
-
         calculateObjectiveFunction(costs);
 
     const optimization = {
 
-        battery,
+    state,
 
-        generator,
+    battery,
 
-        grid,
+    generator,
 
-        solar,
+    grid,
 
-        peakShaving:
+    solar,
 
-            performPeakShaving(state),
+    peakShaving:
+        performPeakShaving(state),
 
-        loadShedding:
+    loadShedding:
+        performLoadShedding(state),
 
-            performLoadShedding(state),
+    demandResponse:
+        performDemandResponse(state),
 
-        demandResponse:
+    constraints,
 
-            performDemandResponse(state),
+    costs,
 
-        constraints,
+    objectiveValue
 
-        objectiveValue
-
-    };
-
+};
     await saveOptimizationResult(
         siteId,
         optimization
     );
 
-    function validateSite(siteId) {
-
-        if (!mongoose.Types.ObjectId.isValid(siteId)) {
-
-            throw new Error("Invalid siteId");
-
-        }
-
-    }
-
     return {
 
         timestamp: new Date(),
-        
+
+        siteId,
+
         optimization
-}
+
+    };
 
 }
 
@@ -1140,32 +1470,29 @@ export async function performRuleBasedDispatch(siteId) {
 | Forecast-Driven Optimization
 |--------------------------------------------------------------------------
 */
+export async function optimizeWithForecast(
+    siteId,
+    state = null
+) {
 
-export async function optimizeWithForecast(siteId) {
-
-    const dispatch =
-        await performRuleBasedDispatch(siteId);
+    const currentState =
+        state ??
+        await getCurrentSystemState(siteId);
 
     const forecasts =
         await getForecastInputs(siteId);
 
-    function validateSite(siteId) {
-
-        if (!mongoose.Types.ObjectId.isValid(siteId)) {
-
-            throw new Error("Invalid siteId");
-
-        }
-
-    }
 
     return {
 
-        ...dispatch,
 
         forecasts,
 
-        optimizationMode: "FORECAST"
+        optimizationMode:
+            "FORECAST",
+
+        state:
+            currentState
 
     };
 
@@ -1327,15 +1654,6 @@ export async function exportPyomoData(siteId) {
     const forecasts =
         await getForecastInputs(siteId);
 
-    function validateSite(siteId) {
-
-        if (!mongoose.Types.ObjectId.isValid(siteId)) {
-
-            throw new Error("Invalid siteId");
-
-        }
-
-    }
 
     return {
 
@@ -1419,35 +1737,43 @@ export function performNMinusOneAnalysis(state) {
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| Optimization Dashboard
+|--------------------------------------------------------------------------
+*/
+
 export async function getOptimizationDashboard(siteId) {
 
-    const [
+    validateSite(siteId);
 
-        state,
+    const state =
+        await getCurrentSystemState(siteId);
 
-        dispatch,
+    const dispatch =
+        await performRuleBasedDispatch(
+            siteId,
+            state
+        );
 
-        forecast
-
-    ] = await Promise.all([
-
-        getCurrentSystemState(siteId),
-
-        performRuleBasedDispatch(siteId),
-
-        optimizeWithForecast(siteId)
-
-    ]);
+    const forecast =
+        await optimizeWithForecast(
+            siteId,
+            state
+        );
 
     return {
 
         timestamp: new Date(),
 
+        siteId,
+
         state,
 
         dispatch,
 
-        forecast
+        forecasts:
+            forecast.forecasts
 
     };
 
@@ -1464,16 +1790,6 @@ export async function generateOptimizationReport(siteId) {
     const dashboard =
         await getOptimizationDashboard(siteId);
 
-    function validateSite(siteId) {
-
-        if (!mongoose.Types.ObjectId.isValid(siteId)) {
-
-            throw new Error("Invalid siteId");
-
-        }
-
-    }
-
     return {
 
         generatedAt: new Date(),
@@ -1482,19 +1798,19 @@ export async function generateOptimizationReport(siteId) {
 
             objectiveValue:
 
-                dashboard.dispatch.objectiveValue,
+                dashboard.dispatch.optimization.objectiveValue,
 
             battery:
 
-                dashboard.dispatch.battery.action,
+                dashboard.dispatch.optimization.battery.action,
 
             generator:
 
-                dashboard.dispatch.generator.start,
+                dashboard.dispatch.optimization.generator.start,
 
             gridImport:
 
-                dashboard.dispatch.grid.importPower,
+                dashboard.dispatch.optimization.grid.importPower,
 
             renewableGeneration:
 
@@ -1516,18 +1832,12 @@ export async function generateOptimizationReport(siteId) {
 
 export async function getDashboardOptimization(filters = {}) {
 
-    function validateSite(siteId) {
+    const { siteId } = filters;
 
-        if (!mongoose.Types.ObjectId.isValid(siteId)) {
-
-            throw new Error("Invalid siteId");
-
-        }
-
-    }
+    validateSite(siteId);
 
     return getOptimizationDashboard(
-        filters.siteId
+        siteId
     );
 
 }

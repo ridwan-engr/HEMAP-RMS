@@ -178,6 +178,37 @@ export async function getDashboardStatistics(filters = {}) {
 
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard Cards
+|--------------------------------------------------------------------------
+*/
+
+export async function getDashboardCards(filters = {}) {
+
+    const dashboard = await getDashboardStatistics(filters);
+
+    return {
+
+        totalSites: dashboard.totalSites,
+
+        activeSites: dashboard.activeSites,
+
+        offlineSites: dashboard.offlineSites,
+
+        activeAlarms: dashboard.activeAlarms,
+
+        batterySOC: dashboard.averageSOC,
+
+        renewableEnergy: dashboard.renewablePercentage,
+
+        generatorRuntime: dashboard.generatorRuntime
+
+    };
+
+}
+
 /*
 |--------------------------------------------------------------------------
 | Energy Statistics
@@ -507,6 +538,10 @@ export async function saveStatisticsSnapshot() {
 export default {
 
     getDashboardStatistics,
+
+    getDashboardCards,
+
+    getLatestTelemetry,
 
     getFleetStatistics,
 

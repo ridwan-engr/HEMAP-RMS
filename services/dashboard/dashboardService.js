@@ -16,17 +16,11 @@ export async function getDashboard(filters = {}) {
     console.log("Dashboard Filters:", filters);
 
     const [
-
         statistics,
-
         reliability,
-
         forecasts,
-
         insights,
-
         charts
-
     ] = await Promise.all([
 
         statisticsService.getDashboardStatistics(filters),
@@ -63,6 +57,7 @@ export async function getDashboard(filters = {}) {
     };
 
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -106,6 +101,7 @@ export async function getExecutiveDashboard(filters = {}) {
 
 }
 
+
 /*
 |--------------------------------------------------------------------------
 | Dashboard Cards
@@ -114,13 +110,37 @@ export async function getExecutiveDashboard(filters = {}) {
 
 export async function getDashboardCards(filters = {}) {
 
-    return statisticsService.getDashboardCards(filters);
+    const stats =
+        await statisticsService.getDashboardStatistics(filters);
+
+    return {
+
+        totalSites:
+            stats.totalSites ?? 0,
+
+        activeSites:
+            stats.activeSites ?? 0,
+
+        activeAlarms:
+            stats.activeAlarms ?? 0,
+
+        batterySOC:
+            stats.averageSOC ?? 0,
+
+        renewableEnergy:
+            stats.renewablePercentage ?? 0,
+
+        generatorRuntime:
+            stats.generatorRuntime ?? 0
+
+    };
 
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| KPIs
+| Dashboard KPIs
 |--------------------------------------------------------------------------
 */
 
@@ -130,9 +150,10 @@ export async function getKPIs(filters = {}) {
 
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Map
+| Dashboard Map
 |--------------------------------------------------------------------------
 */
 
@@ -142,21 +163,67 @@ export async function getMap(filters = {}) {
 
 }
 
+
 /*
 |--------------------------------------------------------------------------
 | Optimization Summary
+|--------------------------------------------------------------------------
+|
+| IMPORTANT:
+|
+| Optimization is site-specific.
+|
+| The main dashboard is fleet-level and normally has no siteId.
+| Therefore we must NOT call getDashboardOptimization() when
+| siteId is missing.
 |--------------------------------------------------------------------------
 */
 
 export async function getOptimizationSummary(filters = {}) {
 
-    return optimizationService.optimize(filters);
+    const siteId = filters?.siteId;
+
+    /*
+     * No site selected.
+     *
+     * This is a valid dashboard state, not an error.
+     */
+    if (!siteId) {
+
+        return {
+
+            siteId: null,
+
+            scope: "fleet",
+
+            available: false,
+
+            message:
+                "Select a site to view site-specific optimization.",
+
+            data: null
+
+        };
+
+    }
+
+
+    /*
+     * Site selected.
+     */
+
+    return optimizationService.getDashboardOptimization({
+
+        siteId
+
+    });
 
 }
 
+
 /*
 |--------------------------------------------------------------------------
-| Refresh
+| Refresh Dashboard
 |--------------------------------------------------------------------------
 */
 
@@ -165,6 +232,7 @@ export async function refreshDashboard(filters = {}) {
     return getDashboard(filters);
 
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -177,6 +245,13 @@ export async function getDashboardCharts(filters = {}) {
     return chartService.getDashboardCharts(filters);
 
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Default Export
+|--------------------------------------------------------------------------
+*/
 
 export default {
 

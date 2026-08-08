@@ -1,5 +1,4 @@
 import asyncHandler from "../utils/asyncHandler.js";
-
 import * as dashboardService from "../services/dashboard/dashboardService.js";
 
 /*
@@ -13,13 +12,9 @@ export const getDashboard = asyncHandler(async (req, res) => {
     const data = await dashboardService.getDashboard(req.query);
 
     return res.status(200).json({
-
         success: true,
-
         message: "Dashboard retrieved successfully.",
-
         data
-
     });
 
 });
@@ -35,13 +30,9 @@ export const getExecutiveDashboard = asyncHandler(async (req, res) => {
     const data = await dashboardService.getExecutiveDashboard(req.query);
 
     return res.status(200).json({
-
         success: true,
-
         message: "Executive dashboard retrieved successfully.",
-
         data
-
     });
 
 });
@@ -57,13 +48,9 @@ export const getDashboardCards = asyncHandler(async (req, res) => {
     const data = await dashboardService.getDashboardCards(req.query);
 
     return res.status(200).json({
-
         success: true,
-
         message: "Dashboard cards retrieved successfully.",
-
         data
-
     });
 
 });
@@ -79,13 +66,9 @@ export const getKPIs = asyncHandler(async (req, res) => {
     const data = await dashboardService.getKPIs(req.query);
 
     return res.status(200).json({
-
         success: true,
-
         message: "KPIs retrieved successfully.",
-
         data
-
     });
 
 });
@@ -101,13 +84,9 @@ export const getMap = asyncHandler(async (req, res) => {
     const data = await dashboardService.getMap(req.query);
 
     return res.status(200).json({
-
         success: true,
-
         message: "Dashboard map retrieved successfully.",
-
         data
-
     });
 
 });
@@ -123,13 +102,9 @@ export const getOptimizationSummary = asyncHandler(async (req, res) => {
     const data = await dashboardService.getOptimizationSummary(req.query);
 
     return res.status(200).json({
-
         success: true,
-
         message: "Optimization summary retrieved successfully.",
-
         data
-
     });
 
 });
@@ -145,13 +120,9 @@ export const refreshDashboard = asyncHandler(async (req, res) => {
     const data = await dashboardService.refreshDashboard(req.body);
 
     return res.status(200).json({
-
         success: true,
-
         message: "Dashboard refreshed successfully.",
-
         data
-
     });
 
 });
@@ -167,13 +138,9 @@ export const getDashboardCharts = asyncHandler(async (req, res) => {
     const data = await dashboardService.getDashboardCharts(req.query);
 
     return res.status(200).json({
-
         success: true,
-
         message: "Dashboard charts retrieved successfully.",
-
         data
-
     });
 
 });
@@ -181,19 +148,12 @@ export const getDashboardCharts = asyncHandler(async (req, res) => {
 export default {
 
     getDashboard,
-
     getExecutiveDashboard,
-
     getDashboardCards,
-
     getKPIs,
-
     getMap,
-
     getOptimizationSummary,
-
     getDashboardCharts,
-
     refreshDashboard
 
 };
